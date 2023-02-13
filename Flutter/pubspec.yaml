@@ -57,18 +57,18 @@ dev_dependencies:
 flutter_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "assets/icon/main_transparent.png"
+  image_path: "assets/icon/main.png"
   remove_alpha_ios: true
   windows:
     generate: true
-    image_path: "assets/icon/main_transparent.png"
+    image_path: "assets/icon/main.png"
     icon_size: 48 # min:48, max:256, default: 48
   macos:
     generate: true
-    image_path: "assets/icon/main_transparent.png"
+    image_path: "assets/icon/main.png"
   web:
     generate: true
-    image_path: "assets/icon/main_transparent.png"
+    image_path: "assets/icon/main.png"
 # The following section is specific to Flutter packages.
 flutter:
 

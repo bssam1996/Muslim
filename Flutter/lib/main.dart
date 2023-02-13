@@ -37,12 +37,8 @@ class _MyHomePageState extends State<MyHomePage> {
   static const headlineStyle = TextStyle(fontSize: 30,fontWeight: FontWeight.bold);
   static const detailsStyle = TextStyle(fontSize: 20,fontWeight: FontWeight.w500);
   String jsonDataDate = "";
-  String jsonDataFajr = "";
-  String jsonDataSunrise = "";
-  String jsonDataDhuhr = "";
-  String jsonDataAsr = "";
-  String jsonDataMaghrib = "";
-  String jsonDataIsha = "";
+  Map<String, dynamic> jsonTimings = <String, dynamic>{};
+
   void _fetchAPI() async{
     EasyLoading.show(status: 'loading...', dismissOnTap: false);
     String formattedDate = DateFormatter(DateTime.now());
@@ -51,15 +47,20 @@ class _MyHomePageState extends State<MyHomePage> {
     if(jsonData != null && jsonData['code'] == 200){
       setState(() {
         jsonDataDate = jsonData['data']['date']['readable'];
-        jsonDataFajr = jsonData['data']['timings']['Fajr'];
-        jsonDataSunrise = jsonData['data']['timings']['Sunrise'];
-        jsonDataDhuhr = jsonData['data']['timings']['Dhuhr'];
-        jsonDataAsr = jsonData['data']['timings']['Asr'];
-        jsonDataMaghrib = jsonData['data']['timings']['Maghrib'];
-        jsonDataIsha = jsonData['data']['timings']['Isha'];
+        jsonTimings = jsonData['data']['timings'];
       });
+      EasyLoading.dismiss();
+    }else{
+      EasyLoading.showError("API didn't return any data!",dismissOnTap: true);
     }
-    EasyLoading.dismiss();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      _fetchAPI();
+    });
   }
 
   @override
@@ -78,17 +79,17 @@ class _MyHomePageState extends State<MyHomePage> {
               style: headlineStyle,
             ),
             const Divider(height: 20, thickness: 5, color: Colors.grey,),
-            detailsRow('Fajr:', jsonDataFajr),
+            detailsRow('Fajr', jsonTimings['Fajr']),
             Divider(),
-            detailsRow('Sunrise:', jsonDataSunrise),
+            detailsRow('Sunrise', jsonTimings['Sunrise']),
             Divider(),
-            detailsRow('Dhuhr:', jsonDataDhuhr),
+            detailsRow('Dhuhr', jsonTimings['Dhuhr']),
             Divider(),
-            detailsRow('Asr:', jsonDataAsr),
+            detailsRow('Asr', jsonTimings['Asr']),
             Divider(),
-            detailsRow('Maghrib:', jsonDataMaghrib),
+            detailsRow('Maghrib', jsonTimings['Maghrib']),
             Divider(),
-            detailsRow('Isha:', jsonDataIsha),
+            detailsRow('Isha', jsonTimings['Isha']),
             Divider(),
           ],
         ),
@@ -109,7 +110,7 @@ class _MyHomePageState extends State<MyHomePage> {
           child: Container(
             width: MediaQuery.of(context).size.width * 0.3,
             child: Center(
-              child: Text(headText, style: detailsStyle),
+              child: Text("$headText:", style: detailsStyle),
             ),
           ),
         ),

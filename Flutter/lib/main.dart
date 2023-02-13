@@ -38,12 +38,17 @@ class _MyHomePageState extends State<MyHomePage> {
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
   static const headlineStyle = TextStyle(fontSize: 30,fontWeight: FontWeight.bold);
   static const detailsStyle = TextStyle(fontSize: 20,fontWeight: FontWeight.w500);
+  static const highlightedDetailsStyle = TextStyle(fontSize: 20,fontWeight: FontWeight.w500, color: Colors.green);
+  List<String> prayerNames = ['Fajr','Sunrise','Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+  String nextPray = 'Fajr';
+
   String jsonDataDate = "Date";
   Map<String, dynamic> jsonTimings = <String, dynamic>{};
 
   void _fetchAPI() async{
     var jsonData;
     String jsonEncoded = "";
+
     bool fitchedFromSharedPreferences = false;
     EasyLoading.show(status: 'loading...', dismissOnTap: false);
     final SharedPreferences prefs = await _prefs;
@@ -51,7 +56,7 @@ class _MyHomePageState extends State<MyHomePage> {
     final String? sharedData = prefs.getString(formattedDate);
     if(sharedData != null){
       fitchedFromSharedPreferences = true;
-      print("Fetching from sharedpreferences");
+      print("Fetching from shared-preferences");
       Map<String,dynamic> decodedMap = json.decode(sharedData);
       jsonData = decodedMap;
     }else{
@@ -63,8 +68,28 @@ class _MyHomePageState extends State<MyHomePage> {
     }
     if(jsonData != null && jsonData['code'] == 200){
       if(!fitchedFromSharedPreferences){
-        print("Setting in sharedpreferences");
+        print("Setting in shared-preferences");
         await prefs.setString(formattedDate, jsonEncoded);
+      }
+      Map<String, dynamic> timings = jsonData['data']['timings'];
+      int prayerIndex = 0;
+      bool found = false;
+      for(prayerIndex=0;prayerIndex < prayerNames.length;prayerIndex++){
+        String name = prayerNames[prayerIndex];
+        DateTime currentDateTime = DateTime.now();
+        List<String> timingWhole = timings[name].toString().split(":");
+        int timingHour = int.parse(timingWhole[0]);
+        int timingMinute = int.parse(timingWhole[1]);
+        DateTime constructedDateTime = DateTime(DateTime.now().year,DateTime.now().month,DateTime.now().day,timingHour,timingMinute,DateTime.now().second);
+        if(constructedDateTime.compareTo(currentDateTime) > 0){
+          found = true;
+          break;
+        }
+      }
+      if(found){
+        nextPray = prayerNames[prayerIndex];
+      }else{
+        nextPray = prayerNames[0];
       }
       setState(() {
         jsonDataDate = jsonData['data']['date']['readable'];
@@ -107,18 +132,19 @@ class _MyHomePageState extends State<MyHomePage> {
               style: headlineStyle,
             ),
             const Divider(height: 20, thickness: 5, color: Colors.grey,),
-            detailsRow('Fajr', jsonTimings['Fajr']??"-"),
-            Divider(),
-            detailsRow('Sunrise', jsonTimings['Sunrise']??"-"),
-            Divider(),
-            detailsRow('Dhuhr', jsonTimings['Dhuhr']??"-"),
-            Divider(),
-            detailsRow('Asr', jsonTimings['Asr']??"-"),
-            Divider(),
-            detailsRow('Maghrib', jsonTimings['Maghrib']??"-"),
-            Divider(),
-            detailsRow('Isha', jsonTimings['Isha']??"-"),
-            Divider(),
+            Expanded(
+              child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: prayerNames.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    return Column(
+                      children: [
+                        detailsRow(prayerNames[index], jsonTimings[prayerNames[index]]??"-"),
+                        const Divider(),
+                      ],
+                    );
+                  }),
+            )
           ],
         ),
       ),
@@ -138,7 +164,7 @@ class _MyHomePageState extends State<MyHomePage> {
           child: Container(
             width: MediaQuery.of(context).size.width * 0.3,
             child: Center(
-              child: Text("$headText:", style: detailsStyle),
+              child: Text("$headText:", style: nextPray==headText?highlightedDetailsStyle:detailsStyle),
             ),
           ),
         ),
@@ -147,7 +173,7 @@ class _MyHomePageState extends State<MyHomePage> {
           child: Container(
             width: MediaQuery.of(context).size.width / 2 * 3,
             child: Center(
-              child: Text(detailsText, style: detailsStyle),
+              child: Text(detailsText, style: nextPray==headText?highlightedDetailsStyle:detailsStyle),
             ),
           ),
         ),

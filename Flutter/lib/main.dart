@@ -36,6 +36,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
+  TextEditingController locationController = TextEditingController();
   static const headlineStyle = TextStyle(fontSize: 30,fontWeight: FontWeight.bold);
   static const detailsStyle = TextStyle(fontSize: 20,fontWeight: FontWeight.w500);
   static const highlightedDetailsStyle = TextStyle(fontSize: 20,fontWeight: FontWeight.w500, color: Colors.green);
@@ -46,13 +47,25 @@ class _MyHomePageState extends State<MyHomePage> {
   Map<String, dynamic> jsonTimings = <String, dynamic>{};
 
   void _fetchAPI() async{
+    final SharedPreferences prefs = await _prefs;
+    bool saveLocation = false;
+    // Check location
+    if(locationController.text.isEmpty){
+      EasyLoading.showError("Location is needed!");
+      return;
+    }else{
+      // Compare input with saved location
+      var savedLocation = await checkSavedLocation();
+      if(savedLocation == null || savedLocation['location'] != locationController.text){
+        saveLocation = true;
+      }
+    }
     var jsonData;
     String jsonEncoded = "";
-
     bool fitchedFromSharedPreferences = false;
     EasyLoading.show(status: 'loading...', dismissOnTap: false);
-    final SharedPreferences prefs = await _prefs;
-    String formattedDate = DateFormatter(DateTime.now());
+    
+    String formattedDate = dateFormatter(DateTime.now());
     final String? sharedData = prefs.getString(formattedDate);
     if(sharedData != null){
       fitchedFromSharedPreferences = true;
@@ -61,7 +74,7 @@ class _MyHomePageState extends State<MyHomePage> {
       jsonData = decodedMap;
     }else{
       print("Fetching from API");
-      var r = await fetchData(formattedDate);
+      var r = await fetchData(formattedDate, locationController.text);
       jsonEncoded = r.body;
       jsonData = jsonDecode(jsonEncoded);
 
@@ -70,6 +83,14 @@ class _MyHomePageState extends State<MyHomePage> {
       if(!fitchedFromSharedPreferences){
         print("Setting in shared-preferences");
         await prefs.setString(formattedDate, jsonEncoded);
+      }
+      if(saveLocation){
+        print("Saving Location...");
+        Map<String, dynamic> location = {
+          "location": locationController.text,
+          "type": "address"
+        };
+        await prefs.setString("location", json.encode(location));
       }
       Map<String, dynamic> timings = jsonData['data']['timings'];
       int prayerIndex = 0;
@@ -111,8 +132,14 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      _fetchAPI();
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
+      var location = await checkSavedLocation();
+      if(location != null) {
+        setState(() {
+          locationController.text = location['location'];
+        });
+        _fetchAPI();
+      }
     });
   }
 
@@ -127,6 +154,17 @@ class _MyHomePageState extends State<MyHomePage> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: <Widget>[
+            TextFormField(
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(
+                  filled: true,
+                  hintText: "What is your location",
+                  labelText: "Location..."
+              ),
+              style: detailsStyle,
+              controller: locationController,
+            ),
+            const Divider(),
             Text(
               jsonDataDate,
               style: headlineStyle,
@@ -150,8 +188,8 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _fetchAPI,
-        tooltip: 'Refresh',
-        child: const Icon(Icons.refresh),
+        tooltip: 'Fetch',
+        child: const Icon(Icons.get_app),
       ),
     );
   }
@@ -180,12 +218,22 @@ class _MyHomePageState extends State<MyHomePage> {
       ],
     );
   }
+
+  checkSavedLocation() async{
+    final SharedPreferences prefs = await _prefs;
+    final String? sharedData = prefs.getString("location");
+    var whatToReturn;
+    if(sharedData != null){
+      whatToReturn = json.decode(sharedData);
+    }
+    return whatToReturn;
+  }
 }
-String DateFormatter(DateTime){
+String dateFormatter(DateTime d){
   DateFormat formatter = DateFormat('dd-MM-yyyy');
-  String formattedDate = formatter.format(DateTime);
+  String formattedDate = formatter.format(d);
   return formattedDate;
 }
-Future<http.Response> fetchData(String requiredData) {
-  return http.get(Uri.parse('http://api.aladhan.com/v1/timingsByAddress/$requiredData?address=Crawley, UK'));
+Future<http.Response> fetchData(String requiredData, String location) {
+  return http.get(Uri.parse('http://api.aladhan.com/v1/timingsByAddress/$requiredData?address=$location'));
 }

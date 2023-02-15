@@ -55,92 +55,110 @@ class _MyHomePageState extends State<MyHomePage> {
       return;
     }else{
       // Compare input with saved location
-      var savedLocation = await checkSavedLocation();
-      if(savedLocation == null || savedLocation['location'] != locationController.text){
-        saveLocation = true;
+      try{
+        var savedLocation = await checkSavedLocation();
+        if(savedLocation == null || savedLocation['location'] != locationController.text){
+          saveLocation = true;
+        }
+      }catch(e){
+        print(e);
+        EasyLoading.showError("Something went wrong while checking saved Data",dismissOnTap: true);
       }
     }
     var jsonData;
-    String jsonEncoded = "";
+    String? jsonEncoded = "";
     bool fitchedFromSharedPreferences = false;
     EasyLoading.show(status: 'loading...', dismissOnTap: false);
-    
-    String formattedDate = dateFormatter(DateTime.now());
-    final String? sharedData = prefs.getString(formattedDate);
-    if(sharedData != null){
-      fitchedFromSharedPreferences = true;
-      print("Fetching from shared-preferences");
-      Map<String,dynamic> decodedMap = json.decode(sharedData);
-      jsonData = decodedMap;
-    }else{
-      print("Fetching from API");
-      var r = await fetchData(formattedDate, locationController.text);
-      jsonEncoded = r.body;
-      jsonData = jsonDecode(jsonEncoded);
+    try{
+      String formattedDate = dateFormatter(DateTime.now());
+      final String? sharedData = prefs.getString(formattedDate);
+      if(sharedData != null){
+        fitchedFromSharedPreferences = true;
+        print("Fetching from shared-preferences");
+        Map<String,dynamic> decodedMap = json.decode(sharedData);
+        jsonData = decodedMap;
+      }else{
+        print("Fetching from API");
+        var r = await fetchData(formattedDate, locationController.text);
+        jsonEncoded = r?.body;
+        jsonData = jsonDecode(jsonEncoded!);
 
-    }
-    if(jsonData != null && jsonData['code'] == 200){
-      if(!fitchedFromSharedPreferences){
-        print("Setting in shared-preferences");
-        await prefs.setString(formattedDate, jsonEncoded);
       }
-      if(saveLocation){
-        print("Saving Location...");
-        Map<String, dynamic> location = {
-          "location": locationController.text,
-          "type": "address"
-        };
-        await prefs.setString("location", json.encode(location));
-      }
-      Map<String, dynamic> timings = jsonData['data']['timings'];
-      int prayerIndex = 0;
-      bool found = false;
-      for(prayerIndex=0;prayerIndex < prayerNames.length;prayerIndex++){
-        String name = prayerNames[prayerIndex];
-        DateTime currentDateTime = DateTime.now();
-        List<String> timingWhole = timings[name].toString().split(":");
-        int timingHour = int.parse(timingWhole[0]);
-        int timingMinute = int.parse(timingWhole[1]);
-        DateTime constructedDateTime = DateTime(DateTime.now().year,DateTime.now().month,DateTime.now().day,timingHour,timingMinute,DateTime.now().second);
-        if(constructedDateTime.compareTo(currentDateTime) > 0){
-          found = true;
-          break;
+      if(jsonData != null && jsonData['code'] == 200){
+        if(!fitchedFromSharedPreferences){
+          print("Setting in shared-preferences");
+          await prefs.setString(formattedDate, jsonEncoded);
+        }
+        if(saveLocation){
+          print("Saving Location...");
+          Map<String, dynamic> location = {
+            "location": locationController.text,
+            "type": "address"
+          };
+          await prefs.setString("location", json.encode(location));
+        }
+        Map<String, dynamic> timings = jsonData['data']['timings'];
+        int prayerIndex = 0;
+        bool found = false;
+        for(prayerIndex=0;prayerIndex < prayerNames.length;prayerIndex++){
+          String name = prayerNames[prayerIndex];
+          DateTime currentDateTime = DateTime.now();
+          List<String> timingWhole = timings[name].toString().split(":");
+          int timingHour = int.parse(timingWhole[0]);
+          int timingMinute = int.parse(timingWhole[1]);
+          DateTime constructedDateTime = DateTime(DateTime.now().year,DateTime.now().month,DateTime.now().day,timingHour,timingMinute,DateTime.now().second);
+          if(constructedDateTime.compareTo(currentDateTime) > 0){
+            found = true;
+            break;
+          }
+        }
+        if(found){
+          nextPray = prayerNames[prayerIndex];
+        }else{
+          nextPray = prayerNames[0];
+        }
+        setState(() {
+          jsonDataDate = jsonData['data']['date']['readable'];
+          jsonTimings = jsonData['data']['timings'];
+        });
+        EasyLoading.dismiss();
+      }else{
+        EasyLoading.showError("API didn't return any data!",dismissOnTap: true);
+        if(fitchedFromSharedPreferences){
+          invalidateSharedData(formattedDate);
         }
       }
-      if(found){
-        nextPray = prayerNames[prayerIndex];
-      }else{
-        nextPray = prayerNames[0];
-      }
-      setState(() {
-        jsonDataDate = jsonData['data']['date']['readable'];
-        jsonTimings = jsonData['data']['timings'];
-      });
+    }catch(e){
       EasyLoading.dismiss();
-    }else{
-      EasyLoading.showError("API didn't return any data!",dismissOnTap: true);
-      if(fitchedFromSharedPreferences){
-        invalidateSharedData(formattedDate);
-      }
+      EasyLoading.showError("Something went wrong $e",dismissOnTap: true);
     }
+
   }
   void invalidateSharedData(String name) async{
-    final SharedPreferences prefs = await _prefs;
-    final success = await prefs.remove(name);
-    print("Removed from sharedPreferences");
+    try{
+      final SharedPreferences prefs = await _prefs;
+      final success = await prefs.remove(name);
+      print("Removed from sharedPreferences");
+    }catch(e){
+      print(e);
+    }
   }
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-      var location = await checkSavedLocation();
-      if(location != null) {
-        setState(() {
-          locationController.text = location['location'];
-        });
-        _fetchAPI();
-      }
-    });
+    try{
+      WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
+        var location = await checkSavedLocation();
+        if(location != null) {
+          setState(() {
+            locationController.text = location['location'];
+          });
+          _fetchAPI();
+        }
+      });
+    }catch(e){
+      print(e);
+    }
   }
 
   @override
@@ -220,13 +238,18 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   checkSavedLocation() async{
-    final SharedPreferences prefs = await _prefs;
-    final String? sharedData = prefs.getString("location");
-    var whatToReturn;
-    if(sharedData != null){
-      whatToReturn = json.decode(sharedData);
+    try{
+      final SharedPreferences prefs = await _prefs;
+      final String? sharedData = prefs.getString("location");
+      var whatToReturn;
+      if(sharedData != null){
+        whatToReturn = json.decode(sharedData);
+      }
+      return whatToReturn;
+    }catch(e){
+      print(e);
+      return null;
     }
-    return whatToReturn;
   }
 }
 String dateFormatter(DateTime d){
@@ -234,6 +257,12 @@ String dateFormatter(DateTime d){
   String formattedDate = formatter.format(d);
   return formattedDate;
 }
-Future<http.Response> fetchData(String requiredData, String location) {
-  return http.get(Uri.parse('http://api.aladhan.com/v1/timingsByAddress/$requiredData?address=$location'));
+Future<http.Response>? fetchData(String requiredData, String location) {
+  try{
+    return http.get(Uri.parse('http://api.aladhan.com/v1/timingsByAddress/$requiredData?address=$location'));
+  }catch(e){
+    print(e);
+    return null;
+  }
+
 }

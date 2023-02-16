@@ -8,7 +8,7 @@ function getData(){
 
     var location = document.getElementById("locationText").value;
 
-    api_url = 'http://api.aladhan.com/v1/timingsByAddress/' + today + '?address=' + location
+    api_url = 'https://api.aladhan.com/v1/timingsByAddress/' + today + '?address=' + location
 
     $.getJSON(api_url, function(data, status){
         var myList = data['data']['timings'];

@@ -259,7 +259,7 @@ String dateFormatter(DateTime d){
 }
 Future<http.Response>? fetchData(String requiredData, String location) {
   try{
-    return http.get(Uri.parse('http://api.aladhan.com/v1/timingsByAddress/$requiredData?address=$location'));
+    return http.get(Uri.parse('https://api.aladhan.com/v1/timingsByAddress/$requiredData?address=$location'));
   }catch(e){
     print(e);
     return null;

@@ -72,7 +72,7 @@ class _MyHomePageState extends State<MyHomePage> {
     try{
       String formattedDate = dateFormatter(DateTime.now());
       final String? sharedData = prefs.getString(formattedDate);
-      if(sharedData != null){
+      if(sharedData != null && saveLocation == false){
         fitchedFromSharedPreferences = true;
         print("Fetching from shared-preferences");
         Map<String,dynamic> decodedMap = json.decode(sharedData);

@@ -11,16 +11,49 @@ function getData(){
     api_url = 'https://api.aladhan.com/v1/timingsByAddress/' + today + '?address=' + location
 
     $.getJSON(api_url, function(data, status){
-        var myList = data['data']['timings'];
-        var student = '';
-        for (let key in myList) {
-            student += '<tr class="Timings">';
-            student += '<td>' + key + '</td>';
-            student += '<td>' + myList[key] + '</td>';
-            student += '</tr>';
+        var definedTimes = [
+            "Fajr",
+            "Sunrise",
+            "Dhuhr",
+            "Asr",
+            "Maghrib",
+            "Isha"
+        ]
+        var dataTimings = data['data']['timings'];
+        var t_row = '';
+        var nextPrayerName = "";
+        var currentTime = new Date();
+        var PrayerDate = new Date();
+        // Getting next Prayer
+        for (let key in dataTimings) {
+            if(definedTimes.includes(key)){
+                var prayerTime = dataTimings[key]
+                prayerTime = prayerTime.split(":")
+                PrayerDate.setHours(Number(prayerTime[0]),Number(prayerTime[1]))
+                if(PrayerDate > currentTime){
+                    nextPrayerName = key;
+                    break;
+                }
+            }
+        }
+        if (nextPrayerName == ""){
+            nextPrayerName = "Fajr"
+        }
+        // Populating data
+        for (let key in dataTimings) {
+            if(definedTimes.includes(key)){
+                if (key == nextPrayerName){
+                    t_row += '<tr class="Timings nextPrayer">';
+                }else{
+                    t_row += '<tr class="Timings">';
+                }
+                t_row += '<td>' + key + '</td>';
+                t_row += '<td>' + dataTimings[key] + '</td>';
+                t_row += '</tr>';
+            }
         };  
         $(".Timings").remove(); 
-        $('#table').append(student);
+        $('#table').append(t_row);
         localStorage.setItem("location", location)
     });
 }

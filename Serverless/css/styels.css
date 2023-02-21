@@ -70,3 +70,8 @@
 #getTimesButton:hover {
   background-color: #550964;
 }
+
+.nextPrayer{
+    color: green;
+    background-color: lightgreen !important;
+}

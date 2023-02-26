@@ -1,4 +1,5 @@
 function getData(){
+    var system24 = document.getElementById("use24Option");
     var today = new Date();
     var dd = String(today.getDate()).padStart(2, '0');
     var mm = String(today.getMonth() + 1).padStart(2, '0'); //January is 0!
@@ -48,7 +49,13 @@ function getData(){
                     t_row += '<tr class="Timings">';
                 }
                 t_row += '<td>' + key + '</td>';
-                t_row += '<td>' + dataTimings[key] + '</td>';
+                if(system24.checked){
+                    t_row += '<td>' + dataTimings[key] + '</td>';
+                }else{
+                    var convertedValue = convertTime(dataTimings[key]);
+                    t_row += '<td>' + convertedValue + '</td>';
+                }
+                
                 t_row += '</tr>';
             }
         };  
@@ -61,14 +68,38 @@ function getData(){
 
 $( document ).ready(function() {
     var input_text = document.getElementById("locationText");
+    var system24 = document.getElementById("use24Option");
+
     input_text.addEventListener("keypress", function(event) {
     if (event.key === "Enter") {
         event.preventDefault();
         document.getElementById("getTimesButton").click();
     }
     });
+    if (localStorage.getItem("24system") != null) {
+        if(localStorage.getItem("24system") == 'false'){
+            system24.checked = false
+        }else{
+            system24.checked = true
+        }
+    }else{
+        localStorage.setItem("24system", true)
+    }
     if (localStorage.getItem("location")) {
-        input_text.value = localStorage.getItem("location")
+        input_text.value = localStorage.getItem("location");
         getData();
-      }
+    }
+    
 });
+
+function change24Option(){
+    var system24 = document.getElementById("use24Option");
+    localStorage.setItem("24system", system24.checked)
+}
+
+function convertTime(time){
+    var PrayerDate = new Date();
+    time = time.split(":")
+    PrayerDate.setHours(Number(time[0]),Number(time[1]))
+    return PrayerDate.toLocaleTimeString([],{hour12:true, hour: '2-digit', minute:'2-digit'})
+}

@@ -6,10 +6,17 @@
     <link rel="icon" type="image/x-icon" href="./assets/muslim_main.png" class="muslim_logo">
 </head>
 <body>
-
-<input type="text" id="locationText" value="" placeholder="Your Location...">
-<button id="getTimesButton" onclick="getData()">Get Times</button>
-
+<div class="headerOptions">
+    <input type="text" id="locationText" value="" placeholder="Your Location...">
+    <div class="hour24div">
+        <label class="toggle">
+            <input id="use24Option" class="toggle-checkbox" type="checkbox" onclick="change24Option()">
+            <div class="toggle-switch"></div>
+            <span class="toggle-label">24-Hour</span>
+          </label>
+    </div>
+    <button id="getTimesButton" onclick="getData()">Get Times</button>
+</div>
 <table id="table">
     <thead>
         <th>Prayer</th>

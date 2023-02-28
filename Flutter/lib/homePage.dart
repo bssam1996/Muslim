@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -17,6 +18,9 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  Timer? refreshTimer;
+  Duration refreshDuration = const Duration(seconds: 1);
+
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
   TextEditingController locationController = TextEditingController();
   static const headlineStyle =
@@ -37,6 +41,7 @@ class _MyHomePageState extends State<MyHomePage> {
     'Isha'
   ];
   String nextPray = 'Fajr';
+  DateTime? nextPrayTime;
 
   String jsonDataDate = "Date";
 
@@ -116,18 +121,10 @@ class _MyHomePageState extends State<MyHomePage> {
         DateTime currentDateTime = DateTime.now();
         for (prayerIndex = 0; prayerIndex < prayerNames.length; prayerIndex++) {
           String name = prayerNames[prayerIndex];
-          List<String> timingWhole = timings[name].toString().split(":");
-          int timingHour = int.parse(timingWhole[0]);
-          int timingMinute = int.parse(timingWhole[1]);
-          DateTime constructedDateTime = DateTime(
-              DateTime.now().year,
-              DateTime.now().month,
-              DateTime.now().day,
-              timingHour,
-              timingMinute,
-              DateTime.now().second);
+          DateTime constructedDateTime = helper.constructDateTime(timings[name].toString());
           if (constructedDateTime.compareTo(currentDateTime) > 0) {
             found = true;
+            nextPrayTime = constructedDateTime;
             break;
           }
         }
@@ -135,6 +132,8 @@ class _MyHomePageState extends State<MyHomePage> {
           nextPray = prayerNames[prayerIndex];
         } else {
           nextPray = prayerNames[0];
+          nextPrayTime = helper.constructDateTime(timings[prayerNames[0]].toString());
+          nextPrayTime = nextPrayTime?.add(const Duration(days: 1));
         }
 
         //24 System check
@@ -168,6 +167,7 @@ class _MyHomePageState extends State<MyHomePage> {
           jsonDataDate = jsonData['data']['date']['readable'];
           jsonTimings = jsonData['data']['timings'];
         });
+        resetTimer();
         EasyLoading.dismiss();
       } else {
         EasyLoading.showError("API didn't return any data!",
@@ -218,13 +218,16 @@ class _MyHomePageState extends State<MyHomePage> {
           centerTitle: true,
           actions: [
             IconButton(
-                onPressed: () {
-                  Navigator.push(
+                onPressed: () async{
+                  stopTimer();
+                  await Navigator.push(
                     context,
                     MaterialPageRoute(
                         builder: (context) => SettingsPageClass(prefs: _prefs)),
                   );
-                  _fetchAPI();
+                  if(locationController.text.isNotEmpty){
+                    _fetchAPI();
+                  }
                 },
                 icon: const Icon(
                   Icons.settings,
@@ -252,10 +255,20 @@ class _MyHomePageState extends State<MyHomePage> {
                   },
                 ),
                 const Divider(),
-                Text(
-                  jsonDataDate,
-                  style: headlineStyle,
+                Row(
+                  children: [
+                    Text(
+                      jsonDataDate,
+                      style: headlineStyle.copyWith(fontSize: 20),
+                    ),
+                  ],
                 ),
+                const Divider(),
+                Text(
+                  "Time left: ${nextPrayTime != null?(helper.constructTimeLeft(nextPrayTime!.difference(DateTime.now()))):"-"}",
+                  style: headlineStyle.copyWith(color: Colors.green),
+                ),
+
                 const Divider(
                   height: 20,
                   thickness: 5,
@@ -319,5 +332,30 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ],
     );
+  }
+
+  void startTimer() {
+    refreshTimer =
+        Timer.periodic(
+            refreshDuration, (_){
+                if(nextPrayTime != null) {
+                  setState(
+                        (){}
+                  );
+                }
+            }
+      );
+  }
+  // Step 4
+  void stopTimer() {
+    if(refreshTimer != null){
+      setState(() => refreshTimer!.cancel());
+    }
+
+  }
+  // Step 5
+  void resetTimer() {
+    stopTimer();
+    startTimer();
   }
 }

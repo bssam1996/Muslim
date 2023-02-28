@@ -50,8 +50,6 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
       });
     }
     EasyLoading.dismiss();
-    print(is24);
-
   }
 
   void _change24HourSystem(value) async{
@@ -66,7 +64,7 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Setings"),
+        title: const Text("Setings"),
         centerTitle: true,
       ),
       body: SingleChildScrollView(

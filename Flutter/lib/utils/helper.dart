@@ -22,3 +22,27 @@ Future<http.Response>? fetchData(String requiredData, String location) {
     return null;
   }
 }
+
+DateTime constructDateTime(String timeString){
+  List<String> timingWhole = timeString.toString().split(":");
+  int timingHour = int.parse(timingWhole[0]);
+  int timingMinute = int.parse(timingWhole[1]);
+  DateTime constructedDateTime = DateTime(
+      DateTime.now().year,
+      DateTime.now().month,
+      DateTime.now().day,
+      timingHour,
+      timingMinute,
+      DateTime.now().second);
+  return constructedDateTime;
+}
+
+String constructTimeLeft(Duration? duration){
+  if(duration == null){
+    return "-";
+  }
+  String twoDigits(int n) => n.toString().padLeft(2, "0");
+  String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
+  String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
+  return "${twoDigits(duration.inHours)}:$twoDigitMinutes:$twoDigitSeconds";
+}

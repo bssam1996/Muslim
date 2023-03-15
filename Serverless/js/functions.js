@@ -1,4 +1,6 @@
 function getData(){
+    // var loader = document.getElementById("loading");
+    $("#loading").show()
     var system24 = document.getElementById("use24Option");
     var today = new Date();
     var dd = String(today.getDate()).padStart(2, '0');
@@ -62,7 +64,9 @@ function getData(){
         $(".Timings").remove(); 
         $('#table').append(t_row);
         localStorage.setItem("location", location)
+        $("#loading").hide()
     });
+    
 }
 
 

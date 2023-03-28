@@ -1,0 +1,113 @@
+.discount-container .close-btn {
+    width: 20px;
+  }
+  
+  .discount-container {
+    position: fixed;
+    left: 0;
+    display: flex;
+    gap: 30px;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    background: #770981;
+    background-image: radial-gradient(
+      circle 610px at 50.2% 51%,
+      rgb(94, 5, 94) 0%,
+      rgb(165, 7, 157) 97%
+    );
+    color: #fff;
+    font-family: "Inter", sans-serif;
+    padding: 8px 0;
+  }
+  
+  .discount-container .discount-heading {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 4px;
+  }
+  
+  .discount-container .discount-subheading {
+    font-size: 16px;
+  }
+  
+  .discount-container .countdown-timer {
+    display: flex;
+    gap: 16px;
+  }
+  
+  .countdown-timer .group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  
+  .countdown-timer .value {
+    background: #fff;
+    color: #222;
+    font-size: 20px;
+    font-weight: bold;
+    padding: 8px;
+    width: 24px;
+    text-align: center;
+    border-radius: 4px;
+  }
+  
+  .countdown-timer .unit {
+    font-size: 13px;
+  }
+  
+  .discount-container .discount-btn {
+    padding: 8px 24px;
+    background: rgb(99, 251, 215);
+    background-image: linear-gradient(
+      68deg,
+      rgb(99, 251, 215) 0%,
+      rgb(5, 222, 250) 100%
+    );
+    font-size: 14px;
+    font-weight: bold;
+    color: #000;
+    text-decoration: none;
+    border-radius: 4px;
+    text-transform: uppercase;
+    transition: all 400ms ease;
+  }
+  
+  .discount-container .discount-btn:hover {
+    transform: scale(1.03);
+  }
+  
+  .discount-container .close-btn {
+    position: fixed;
+    top: 24px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 3px;
+    border-radius: 50%;
+    display: flex;
+    cursor: pointer;
+    transition: all 400ms ease;
+  }
+  
+  .discount-container .close-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+  
+  @media (max-width: 800px) {
+    .discount-container {
+      justify-content: flex-start;
+      padding-left: 30px;
+    }
+  }
+  
+  @media (max-width: 640px) {
+    .discount-container {
+      flex-direction: column;
+      text-align: center;
+      padding-left: 0;
+      gap: 16px;
+    }
+  }
+  

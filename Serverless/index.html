@@ -3,6 +3,7 @@
 <head>
     <title>Muslim</title>
     <link rel="stylesheet" href="./css/styles.css">
+    <link rel="stylesheet" href="./css/countdown.css">
     <link rel="icon" type="image/x-icon" href="./assets/muslim_main.png" class="muslim_logo">
 </head>
 <body>
@@ -25,7 +26,27 @@
     </thead>
     
 </table>
+<p id="timeLeft"></p>
 <div id="loading" class="loader_head loader"></div>
+
+<div class="discount-container">
+    <div class="countdown-timer">
+      <div class="group">
+        <div id="hoursLeft" class="value hours">00</div>
+        <div class="unit">Hrs</div>
+      </div>
+
+      <div class="group">
+        <div id="minutesLeft" class="value minutes">00</div>
+        <div class="unit">Min</div>
+      </div>
+
+      <div class="group">
+        <div id="secondsLeft" class="value seconds">00</div>
+        <div class="unit">Sec</div>
+      </div>
+    </div>
+  </div>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.3/jquery.min.js"></script>
     <script src="./js/functions.js"></script>
 </body>

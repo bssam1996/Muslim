@@ -32,9 +32,10 @@ function getData(){
             if(definedTimes.includes(key)){
                 var prayerTime = dataTimings[key]
                 prayerTime = prayerTime.split(":")
-                PrayerDate.setHours(Number(prayerTime[0]),Number(prayerTime[1]))
+                PrayerDate.setHours(Number(prayerTime[0]),Number(prayerTime[1]),0)
                 if(PrayerDate > currentTime){
                     nextPrayerName = key;
+                    nextPrayerTime = PrayerDate.getTime();
                     break;
                 }
             }
@@ -65,11 +66,12 @@ function getData(){
         $('#table').append(t_row);
         localStorage.setItem("location", location)
         $("#loading").hide()
+        checkTimeLeft()
     });
     
 }
 
-
+var nextPrayerTime = null
 $( document ).ready(function() {
     var input_text = document.getElementById("locationText");
     var system24 = document.getElementById("use24Option");
@@ -107,3 +109,39 @@ function convertTime(time){
     PrayerDate.setHours(Number(time[0]),Number(time[1]))
     return PrayerDate.toLocaleTimeString([],{hour12:true, hour: '2-digit', minute:'2-digit'})
 }
+
+let interval = null
+
+function checkTimeLeft(){
+    if (nextPrayerTime == null){
+        return 
+    }
+    interval = setInterval(calculateTimeLeft, 1000);
+}
+
+function calculateTimeLeft(){
+    var currentTime = new Date().getTime();
+    var difference = nextPrayerTime - currentTime;
+    let hoursValue = Math.floor(
+      (difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+    )
+      .toString()
+      .padStart(2, "0");
+    let minutesValue = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60))
+      .toString()
+      .padStart(2, "0");
+    let secondsValue = Math.floor((difference % (1000 * 60)) / 1000)
+      .toString()
+      .padStart(2, "0");
+
+    document.getElementById('hoursLeft').innerText = hoursValue;
+    document.getElementById('minutesLeft').innerText = minutesValue;
+    document.getElementById('secondsLeft').innerText = secondsValue;
+  
+    if (difference < 0) {
+      clearInterval(t);
+      discountContainer.style.display = "none";
+    }
+}
+
+  

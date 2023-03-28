@@ -159,3 +159,7 @@
     left: 50%;
     top: 35%;
 }
+
+.current_date_head{
+    text-align: center;
+}

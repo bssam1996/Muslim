@@ -66,6 +66,7 @@ function getData(){
         $('#table').append(t_row);
         localStorage.setItem("location", location)
         $("#loading").hide()
+        $("#current_date_header").text(currentTime.toLocaleDateString('en-us',{weekday:"long", year:"numeric", month:"short", day:"numeric"}))
         checkTimeLeft()
     });
     

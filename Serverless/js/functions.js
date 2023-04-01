@@ -127,6 +127,11 @@ function checkTimeLeft(){
 
 function calculateTimeLeft(){
     var currentTime = new Date().getTime();
+    if (nextPrayerTime < currentTime) {
+        clearInterval(interval);
+        location.reload();
+        return;
+      }
     var difference = nextPrayerTime - currentTime;
     let hoursValue = Math.floor(
       (difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
@@ -143,12 +148,6 @@ function calculateTimeLeft(){
     document.getElementById('hoursLeft').innerText = hoursValue;
     document.getElementById('minutesLeft').innerText = minutesValue;
     document.getElementById('secondsLeft').innerText = secondsValue;
-  
-    if (nextPrayerTime < currentTime) {
-      clearInterval(interval);
-      discountContainer.style.display = "none";
-      location.reload();
-    }
 }
 
   

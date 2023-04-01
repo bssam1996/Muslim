@@ -42,6 +42,11 @@ function getData(){
         }
         if (nextPrayerName == ""){
             nextPrayerName = "Fajr"
+            var prayerTime = dataTimings["Fajr"]
+            prayerTime = prayerTime.split(":")
+            PrayerDate.setHours(Number(prayerTime[0]),Number(prayerTime[1]),0)
+            PrayerDate.setDate(currentTime.getDate() + 1)
+            nextPrayerTime = PrayerDate.getTime();
         }
         // Populating data
         for (let key in dataTimings) {

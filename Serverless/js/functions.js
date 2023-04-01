@@ -139,9 +139,10 @@ function calculateTimeLeft(){
     document.getElementById('minutesLeft').innerText = minutesValue;
     document.getElementById('secondsLeft').innerText = secondsValue;
   
-    if (difference < 0) {
-      clearInterval(t);
+    if (nextPrayerTime < currentTime) {
+      clearInterval(interval);
       discountContainer.style.display = "none";
+      location.reload();
     }
 }
 

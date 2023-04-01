@@ -33,7 +33,7 @@ DateTime constructDateTime(String timeString){
       DateTime.now().day,
       timingHour,
       timingMinute,
-      DateTime.now().second);
+      0);
   return constructedDateTime;
 }
 

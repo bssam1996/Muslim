@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:core';
 
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'UI/settings/settings.dart';
@@ -43,7 +45,9 @@ class _MyHomePageState extends State<MyHomePage> {
   String nextPray = 'Fajr';
   DateTime? nextPrayTime;
 
-  String jsonDataDate = "Date";
+  Map<String,dynamic> jsonDataDate = {};
+  // String jsonDataDate = "gregorian";
+  // String jsonDataHijri = "Hijri";
 
   Future<bool> _fetchAPI() async {
     bool saveLocation = false;
@@ -164,7 +168,7 @@ class _MyHomePageState extends State<MyHomePage> {
           await shared_preference_methods.setBoolData(_prefs, '24system', true);
         }
         setState(() {
-          jsonDataDate = jsonData['data']['date']['readable'];
+          jsonDataDate = jsonData['data']['date'];
           jsonTimings = jsonData['data']['timings'];
         });
         resetTimer();
@@ -208,6 +212,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+
     return RefreshIndicator(
       onRefresh: () {
         return _fetchAPI();
@@ -257,9 +262,39 @@ class _MyHomePageState extends State<MyHomePage> {
                 const Divider(),
                 Row(
                   children: [
-                    Text(
-                      jsonDataDate,
-                      style: headlineStyle.copyWith(fontSize: 20),
+                    Expanded(
+                      flex: 1,
+                      child: Center(
+                          child: Column(
+                            children: [
+                              AutoSizeText(
+                                jsonDataDate["gregorian"]?["month"]?["en"]??"Month",
+                                style: headlineStyle.copyWith(fontSize: 18),
+                              ),
+                              AutoSizeText(
+                                jsonDataDate["gregorian"]?["date"]??"gregorian",
+                                style: headlineStyle.copyWith(fontSize: 18),
+                              ),
+                            ],
+                          )
+                      ),
+                    ),
+                    Expanded(
+                      flex: 1,
+                      child: Center(
+                          child: Column(
+                            children: [
+                              AutoSizeText(
+                                jsonDataDate["hijri"]?["month"]?["en"]??"Month",
+                                style: headlineStyle.copyWith(fontSize: 18),
+                              ),
+                              AutoSizeText(
+                                jsonDataDate["hijri"]?["date"]??"hijri",
+                                style: headlineStyle.copyWith(fontSize: 18),
+                              ),
+                            ],
+                          )
+                      ),
                     ),
                   ],
                 ),
@@ -339,9 +374,14 @@ class _MyHomePageState extends State<MyHomePage> {
         Timer.periodic(
             refreshDuration, (_){
                 if(nextPrayTime != null) {
-                  setState(
-                        (){}
-                  );
+                  if(nextPrayTime!.isBefore(DateTime.now())){
+                    setState((){
+                      _fetchAPI();
+                    });
+                  }else{
+                    setState((){});
+                  }
+
                 }
             }
       );

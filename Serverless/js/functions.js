@@ -71,7 +71,8 @@ function getData(){
         $('#table').append(t_row);
         localStorage.setItem("location", location)
         $("#loading").hide()
-        $("#current_date_header").text(currentTime.toLocaleDateString('en-us',{weekday:"long", year:"numeric", month:"short", day:"numeric"}))
+        $("#current_date_text").text(currentTime.toLocaleDateString('en-us',{weekday:"long", year:"numeric", month:"short", day:"numeric"}))
+        $("#current_hijri_text").text(currentTime.toLocaleDateString('en-TN-u-ca-islamic',{year:"numeric", month:"long", day:"numeric"}))
         checkTimeLeft()
     });
     

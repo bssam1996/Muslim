@@ -162,4 +162,14 @@
 
 .current_date_head{
     text-align: center;
+    grid-column: 1;
+}
+
+.current_hijri_head{
+    text-align: center;
+    grid-column: 2;
+}
+.dates_header{
+    display: grid;
+    column-count: 2;
 }

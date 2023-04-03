@@ -71,8 +71,16 @@ function getData(){
         $('#table').append(t_row);
         localStorage.setItem("location", location)
         $("#loading").hide()
-        $("#current_date_text").text(currentTime.toLocaleDateString('en-us',{weekday:"long", year:"numeric", month:"short", day:"numeric"}))
-        $("#current_hijri_text").text(currentTime.toLocaleDateString('en-TN-u-ca-islamic',{year:"numeric", month:"long", day:"numeric"}))
+        gregorian_month_name = data['data']['date']["gregorian"]["month"]["en"]
+        hijri_month_name = data['data']['date']["gregorian"]["date"]
+        gregorian_date = data['data']['date']["hijri"]["month"]["en"]
+        hijri_date = data['data']['date']["hijri"]["date"]
+        $("#current_date_month").text(gregorian_month_name)
+        $("#current_date_text").text(hijri_month_name)
+        $("#current_hijri_month").text(gregorian_date)
+        $("#current_hijri_text").text(hijri_date)
+        // $("#current_date_text").text(currentTime.toLocaleDateString('en-us',{weekday:"long", year:"numeric", month:"short", day:"numeric"}))
+        // $("#current_hijri_text").text(currentTime.toLocaleDateString('en-TN-u-ca-islamic',{year:"numeric", month:"long", day:"numeric"}))
         checkTimeLeft()
     });
     

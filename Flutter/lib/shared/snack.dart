@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-class snack{
+class Snack{
   SnackBar displaySnackBar(String msg, [Color? backcolor]) {
     final snackBar = SnackBar(
       content: Text(msg,style: const TextStyle(fontSize: 18,fontWeight: FontWeight.bold),),

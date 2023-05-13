@@ -5,11 +5,12 @@ import 'dart:core';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:muslim/shared/constants.dart';
 import 'UI/settings/settings.dart';
 import 'utils/helper.dart' as helper;
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'utils/sharedpreference_methods.dart' as shared_preference_methods;
+import 'utils/shared_preference_methods.dart' as shared_preference_methods;
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
@@ -20,17 +21,37 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  @override
+  void initState() {
+    super.initState();
+    EasyLoading.showInfo("Loading settings...");
+    try {
+      WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
+        _fetchAPI();
+      });
+    } catch (e) {
+      EasyLoading.dismiss();
+      if (kDebugMode) {
+        print(e);
+      }
+    }
+  }
+
   Timer? refreshTimer;
   Duration refreshDuration = const Duration(seconds: 1);
 
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
-  TextEditingController locationController = TextEditingController();
+
   static const headlineStyle =
-      TextStyle(fontSize: 30, fontWeight: FontWeight.bold);
+      TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: Colors.white);
   static const detailsStyle =
-      TextStyle(fontSize: 20, fontWeight: FontWeight.w500);
-  static const highlightedDetailsStyle =
-      TextStyle(fontSize: 20, fontWeight: FontWeight.w500, color: Colors.green);
+      TextStyle(fontSize: 20, fontWeight: FontWeight.w500, color: Colors.white);
+  static const prayerStyle =
+      TextStyle(fontSize: 20, fontWeight: FontWeight.w500, color: textColor);
+  static const highlightedDetailsStyle = TextStyle(
+      fontSize: 20, fontWeight: FontWeight.w500, color: highlightedColor);
+
+  String metaData = "";
 
   Map<String, dynamic> jsonTimings = <String, dynamic>{};
 
@@ -45,43 +66,27 @@ class _MyHomePageState extends State<MyHomePage> {
   String nextPray = 'Fajr';
   DateTime? nextPrayTime;
 
-  Map<String,dynamic> jsonDataDate = {};
-  // String jsonDataDate = "gregorian";
-  // String jsonDataHijri = "Hijri";
+  Map<String, dynamic> jsonDataDate = {};
 
   Future<bool> _fetchAPI() async {
-    bool saveLocation = false;
-    // Check location
-    if (locationController.text.isEmpty) {
-      EasyLoading.showError("Location is needed!");
-      return false;
-    } else {
-      // Compare input with saved location
-      try {
-        var savedLocation = await shared_preference_methods.getStringData(
-            _prefs, 'location', true);
-        if (savedLocation == null ||
-            savedLocation['location'] != locationController.text) {
-          saveLocation = true;
-        }
-      } catch (e) {
-        if (kDebugMode) {
-          print(e);
-        }
-        EasyLoading.showError("Something went wrong while checking saved Data",
-            dismissOnTap: true);
-      }
-    }
-    var jsonData;
+    dynamic jsonData;
     String? jsonEncoded = "";
-    bool fitchedFromSharedPreferences = false;
+    bool fetchedFromSharedPreferences = false;
     EasyLoading.show(status: 'loading...', dismissOnTap: false);
     try {
+      var savedLocation = await shared_preference_methods.getStringData(
+          _prefs, 'location', true);
+      if (savedLocation == null) {
+        EasyLoading.showError(
+            "Location is needed! please go to settings to add a location",
+            duration: const Duration(seconds: 10));
+        return false;
+      }
       String formattedDate = helper.dateFormatter(DateTime.now());
       var sharedData = await shared_preference_methods.getStringData(
           _prefs, formattedDate, true);
-      if (sharedData != null && saveLocation == false) {
-        fitchedFromSharedPreferences = true;
+      if (sharedData != null) {
+        fetchedFromSharedPreferences = true;
         if (kDebugMode) {
           print("Fetching from shared-preferences");
         }
@@ -90,31 +95,17 @@ class _MyHomePageState extends State<MyHomePage> {
         if (kDebugMode) {
           print("Fetching from API");
         }
-        var r = await helper.fetchData(formattedDate, locationController.text);
+        var r = await helper.fetchData(formattedDate, savedLocation, _prefs);
         jsonEncoded = r?.body;
         jsonData = jsonDecode(jsonEncoded!);
       }
       if (jsonData != null && jsonData['code'] == 200) {
-        if (!fitchedFromSharedPreferences) {
+        if (!fetchedFromSharedPreferences) {
           if (kDebugMode) {
             print("Setting in shared-preferences");
           }
           bool result = await shared_preference_methods.setStringData(
               _prefs, formattedDate, jsonEncoded);
-          if (!result) {
-            EasyLoading.showError("Couldn't save data", dismissOnTap: true);
-          }
-        }
-        if (saveLocation) {
-          if (kDebugMode) {
-            print("Saving Location...");
-          }
-          Map<String, dynamic> location = {
-            "location": locationController.text,
-            "type": "address"
-          };
-          bool result = await shared_preference_methods.setStringData(
-              _prefs, "location", json.encode(location));
           if (!result) {
             EasyLoading.showError("Couldn't save data", dismissOnTap: true);
           }
@@ -125,7 +116,8 @@ class _MyHomePageState extends State<MyHomePage> {
         DateTime currentDateTime = DateTime.now();
         for (prayerIndex = 0; prayerIndex < prayerNames.length; prayerIndex++) {
           String name = prayerNames[prayerIndex];
-          DateTime constructedDateTime = helper.constructDateTime(timings[name].toString());
+          DateTime constructedDateTime =
+              helper.constructDateTime(timings[name].toString());
           if (constructedDateTime.compareTo(currentDateTime) > 0) {
             found = true;
             nextPrayTime = constructedDateTime;
@@ -136,7 +128,8 @@ class _MyHomePageState extends State<MyHomePage> {
           nextPray = prayerNames[prayerIndex];
         } else {
           nextPray = prayerNames[0];
-          nextPrayTime = helper.constructDateTime(timings[prayerNames[0]].toString());
+          nextPrayTime =
+              helper.constructDateTime(timings[prayerNames[0]].toString());
           nextPrayTime = nextPrayTime?.add(const Duration(days: 1));
         }
 
@@ -170,13 +163,14 @@ class _MyHomePageState extends State<MyHomePage> {
         setState(() {
           jsonDataDate = jsonData['data']['date'];
           jsonTimings = jsonData['data']['timings'];
+          metaData = processMetaData(jsonData['data']['meta']);
         });
         resetTimer();
         EasyLoading.dismiss();
       } else {
         EasyLoading.showError("API didn't return any data!",
             dismissOnTap: true);
-        if (fitchedFromSharedPreferences) {
+        if (fetchedFromSharedPreferences) {
           shared_preference_methods.invalidateSharedData(_prefs, formattedDate);
         }
         return false;
@@ -190,53 +184,35 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    try {
-      WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-        var location = await shared_preference_methods.getStringData(
-            _prefs, 'location', true);
-        if (location != null) {
-          setState(() {
-            locationController.text = location['location'];
-          });
-          _fetchAPI();
-        }
-      });
-    } catch (e) {
-      if (kDebugMode) {
-        print(e);
-      }
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-
     return RefreshIndicator(
       onRefresh: () {
         return _fetchAPI();
       },
       child: Scaffold(
+        backgroundColor: thirdColor,
         appBar: AppBar(
           title: Text(widget.title),
           centerTitle: true,
           actions: [
             IconButton(
-                onPressed: () async{
+                onPressed: () async {
                   stopTimer();
                   await Navigator.push(
                     context,
                     MaterialPageRoute(
                         builder: (context) => SettingsPageClass(prefs: _prefs)),
                   );
-                  if(locationController.text.isNotEmpty){
+                  helper.invalidateTodayCachedData(_prefs);
+                  var location = await shared_preference_methods.getStringData(
+                      _prefs, 'location', true);
+                  if (location != null) {
                     _fetchAPI();
                   }
                 },
                 icon: const Icon(
                   Icons.settings,
-                  color: Colors.white,
+                  color: textColor,
                 ))
           ],
         ),
@@ -246,68 +222,64 @@ class _MyHomePageState extends State<MyHomePage> {
             padding: const EdgeInsets.all(16.0),
             child: Column(
               children: <Widget>[
-                TextFormField(
-                  textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(
-                      filled: true,
-                      hintText: "What is your location",
-                      labelText: "Location..."),
-                  style: detailsStyle,
-                  controller: locationController,
-                  textInputAction: TextInputAction.done,
-                  onEditingComplete: () {
-                    _fetchAPI();
-                  },
-                ),
-                const Divider(),
                 Row(
                   children: [
                     Expanded(
                       flex: 1,
                       child: Center(
                           child: Column(
-                            children: [
-                              AutoSizeText(
-                                jsonDataDate["gregorian"]?["month"]?["en"]??"Month",
-                                style: headlineStyle.copyWith(fontSize: 18),
-                              ),
-                              AutoSizeText(
-                                jsonDataDate["gregorian"]?["date"]??"gregorian",
-                                style: headlineStyle.copyWith(fontSize: 18),
-                              ),
-                            ],
-                          )
-                      ),
+                        children: [
+                          AutoSizeText(
+                            jsonDataDate["gregorian"]?["month"]?["en"] ??
+                                "Month",
+                            style: headlineStyle.copyWith(fontSize: 20),
+                          ),
+                          AutoSizeText(
+                            jsonDataDate["gregorian"]?["date"] ?? "gregorian",
+                            style: headlineStyle.copyWith(fontSize: 20),
+                          ),
+                        ],
+                      )),
                     ),
                     Expanded(
                       flex: 1,
                       child: Center(
                           child: Column(
-                            children: [
-                              AutoSizeText(
-                                jsonDataDate["hijri"]?["month"]?["en"]??"Month",
-                                style: headlineStyle.copyWith(fontSize: 18),
-                              ),
-                              AutoSizeText(
-                                jsonDataDate["hijri"]?["date"]??"hijri",
-                                style: headlineStyle.copyWith(fontSize: 18),
-                              ),
-                            ],
-                          )
-                      ),
+                        children: [
+                          AutoSizeText(
+                            jsonDataDate["hijri"]?["month"]?["en"] ?? "Month",
+                            style: headlineStyle.copyWith(fontSize: 20),
+                          ),
+                          AutoSizeText(
+                            jsonDataDate["hijri"]?["date"] ?? "hijri",
+                            style: headlineStyle.copyWith(fontSize: 20),
+                          ),
+                        ],
+                      )),
                     ),
                   ],
                 ),
-                const Divider(),
-                Text(
-                  "Time left: ${nextPrayTime != null?(helper.constructTimeLeft(nextPrayTime!.difference(DateTime.now()))):"-"}",
-                  style: headlineStyle.copyWith(color: Colors.green),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    buildTimeCard(nextPrayTime != null
+                        ? (helper.constructTimeLeftSplitted(
+                            nextPrayTime!.difference(DateTime.now()), "hour"))
+                        : "-"),
+                    buildTimeCard(nextPrayTime != null
+                        ? (helper.constructTimeLeftSplitted(
+                            nextPrayTime!.difference(DateTime.now()), "minute"))
+                        : "-"),
+                    buildTimeCard(nextPrayTime != null
+                        ? (helper.constructTimeLeftSplitted(
+                            nextPrayTime!.difference(DateTime.now()), "second"))
+                        : "-"),
+                  ],
                 ),
-
                 const Divider(
                   height: 20,
                   thickness: 5,
-                  color: Colors.grey,
+                  color: dividerColor,
                 ),
                 RefreshIndicator(
                     child: ListView.builder(
@@ -318,13 +290,27 @@ class _MyHomePageState extends State<MyHomePage> {
                             children: [
                               detailsRow(prayerNames[index],
                                   jsonTimings[prayerNames[index]] ?? "-"),
-                              const Divider(),
                             ],
                           );
                         }),
                     onRefresh: () {
                       return _fetchAPI();
-                    })
+                    }),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Divider(),
+                    Text(
+                      metaData,
+                      style: detailsStyle.copyWith(fontSize: 18),
+                    ),
+                    const Divider(),
+                    Text(
+                      declaration,
+                      style: highlightedDetailsStyle.copyWith(fontSize: 12),
+                    ),
+                  ],
+                )
               ],
             ),
           ),
@@ -339,63 +325,107 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget detailsRow(String headText, String detailsText) {
-    return Row(
-      children: [
-        Expanded(
-          flex: 1,
-          child: SizedBox(
-            width: MediaQuery.of(context).size.width * 0.3,
-            child: Center(
-              child: Text("$headText:",
-                  style: nextPray == headText
-                      ? highlightedDetailsStyle
-                      : detailsStyle),
-            ),
+    return SizedBox(
+      height: 50,
+      child: Card(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10.0),
+          side: const BorderSide(
+            color: boxesBorderColor,
           ),
         ),
-        Expanded(
-          flex: 2,
-          child: SizedBox(
-            width: MediaQuery.of(context).size.width / 2 * 3,
-            child: Center(
-              child: Text(detailsText,
-                  style: nextPray == headText
-                      ? highlightedDetailsStyle
-                      : detailsStyle),
+        shadowColor: Colors.blueGrey,
+        color: fourthColor,
+        elevation: 15,
+        margin: const EdgeInsets.all(5),
+        child: Row(
+          children: [
+            Expanded(
+              flex: 1,
+              child: SizedBox(
+                width: MediaQuery.of(context).size.width * 0.3,
+                child: Center(
+                  child: Text("$headText:",
+                      style: nextPray == headText
+                          ? highlightedDetailsStyle
+                          : prayerStyle),
+                ),
+              ),
             ),
-          ),
+            Expanded(
+              flex: 2,
+              child: SizedBox(
+                width: MediaQuery.of(context).size.width / 2 * 3,
+                child: Center(
+                  child: Text(detailsText,
+                      style: nextPray == headText
+                          ? highlightedDetailsStyle
+                          : prayerStyle),
+                ),
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
   void startTimer() {
-    refreshTimer =
-        Timer.periodic(
-            refreshDuration, (_){
-                if(nextPrayTime != null) {
-                  if(nextPrayTime!.isBefore(DateTime.now())){
-                    setState((){
-                      _fetchAPI();
-                    });
-                  }else{
-                    setState((){});
-                  }
-
-                }
-            }
-      );
+    refreshTimer = Timer.periodic(refreshDuration, (_) {
+      if (nextPrayTime != null) {
+        if (nextPrayTime!.isBefore(DateTime.now())) {
+          setState(() async {
+            await _fetchAPI();
+          });
+        } else {
+          setState(() {});
+        }
+      }
+    });
   }
+
   // Step 4
   void stopTimer() {
-    if(refreshTimer != null){
+    if (refreshTimer != null) {
       setState(() => refreshTimer!.cancel());
     }
-
   }
+
   // Step 5
   void resetTimer() {
     stopTimer();
     startTimer();
+  }
+
+  Widget buildTimeCard(String time) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          margin: const EdgeInsets.all(2),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: boxesBorderColor,
+            ),
+            color: fourthColor,
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: Text(
+            time,
+            style: highlightedDetailsStyle.copyWith(fontSize: 25),
+          ),
+        )
+      ],
+    );
+  }
+
+  String processMetaData(meta) {
+    String metaResponse = "Timezone: ${meta["timezone"]}\n";
+    metaResponse = "${metaResponse}Longitude: ${meta["longitude"]}\n";
+    metaResponse = "${metaResponse}Latitude: ${meta["latitude"]}\n";
+    metaResponse = "${metaResponse}Method: ${meta["method"]["name"]}\n";
+    metaResponse = "${metaResponse}School: ${meta["school"]}";
+    return metaResponse;
   }
 }

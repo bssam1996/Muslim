@@ -16,7 +16,7 @@ class MyApp extends StatelessWidget {
     const primaryColor = constants.primaryColor;
     MaterialColor materialColor = getMaterialColor(primaryColor);
     return MaterialApp(
-      title: 'Muslim',
+      title: constants.gloabalAppName,
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: materialColor,

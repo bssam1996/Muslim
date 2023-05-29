@@ -5,6 +5,8 @@ import 'dart:core';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:muslim/UI/qiblah/qiblah_page.dart';
+import 'package:muslim/UI/quran/quran_page.dart';
 import 'package:muslim/shared/constants.dart';
 import 'UI/settings/settings.dart';
 import 'utils/helper.dart' as helper;
@@ -78,7 +80,7 @@ class _MyHomePageState extends State<MyHomePage> {
           _prefs, 'location', true);
       if (savedLocation == null) {
         EasyLoading.showError(
-            "Location is needed! please go to settings to add a location",
+            "Location is unset and it is needed! please go to settings to add a location",
             duration: const Duration(seconds: 10));
         return false;
       }
@@ -182,7 +184,24 @@ class _MyHomePageState extends State<MyHomePage> {
       return false;
     }
   }
-
+  final drawerHeader = UserAccountsDrawerHeader(
+    accountEmail: null,
+    currentAccountPicture: CircleAvatar(
+      child: CircleAvatar(
+        backgroundColor: Colors.grey[100],
+        child: ClipOval(
+          child: Image.asset(
+            'assets/icon/main.png',
+            width: 512.0,
+            height: 512.0,
+          ),
+        ),
+        radius: 50.0,
+      ),
+      backgroundColor: thirdColor,
+    ),
+    accountName: const Text(gloabalAppName,style: TextStyle(fontSize: 20,fontWeight: FontWeight.bold),),
+  );
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
@@ -191,30 +210,73 @@ class _MyHomePageState extends State<MyHomePage> {
       },
       child: Scaffold(
         backgroundColor: thirdColor,
+        drawer: Drawer(
+          backgroundColor: fourthColor,
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              drawerHeader,
+              Column(
+                children: [
+                  ListTile(
+                    title: const Text('Qiblah Compass', style: TextStyle(color: textColor),),
+                    trailing: Image.asset("assets/qiblah/compass.png",width: 24,),
+                    onTap: () async{
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const QiblahClass()),
+                      );
+                    },
+                  ),
+                  const Divider(color: textColor,),
+                ],
+              ),
+              Column(
+                children: [
+                  ListTile(
+                    title: const Text('Quran', style: TextStyle(color: textColor),),
+                    trailing: Image.asset("assets/quran/quran.png",width: 24, color: textColor,),
+                    onTap: () async{
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const QuranPageClass()),
+                      );
+                    },
+                  ),
+                  const Divider(color: textColor,),
+                ],
+              ),
+              Column(
+                children: [
+                  ListTile(
+                    title: const Text('Settings', style: TextStyle(color: textColor)),
+                    trailing: const Icon(Icons.settings, color: textColor, size: 24,),
+                    onTap: () async{
+                      stopTimer();
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => SettingsPageClass(prefs: _prefs)),
+                      );
+                      helper.invalidateTodayCachedData(_prefs);
+                      var location = await shared_preference_methods.getStringData(
+                          _prefs, 'location', true);
+                      if (location != null) {
+                        _fetchAPI();
+                      }
+                    },
+                  ),
+                  const Divider(color: textColor,),
+                ],
+              ),
+            ],
+          ),
+        ),
         appBar: AppBar(
           title: Text(widget.title),
           centerTitle: true,
-          actions: [
-            IconButton(
-                onPressed: () async {
-                  stopTimer();
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => SettingsPageClass(prefs: _prefs)),
-                  );
-                  helper.invalidateTodayCachedData(_prefs);
-                  var location = await shared_preference_methods.getStringData(
-                      _prefs, 'location', true);
-                  if (location != null) {
-                    _fetchAPI();
-                  }
-                },
-                icon: const Icon(
-                  Icons.settings,
-                  color: textColor,
-                ))
-          ],
         ),
         body: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),

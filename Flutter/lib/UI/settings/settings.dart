@@ -232,26 +232,33 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                     color: fourthColor,
                     border:
                     Border.all(color: boxesBorderColor, width: 1)),
-                child: DropdownSearch<String>(
-                  popupProps: const PopupProps.menu(
-                      menuProps: MenuProps(
-                        backgroundColor: fourthColor,
-                      ),
-                      fit: FlexFit.loose
+                child: Theme(
+                  data: ThemeData(
+                    textTheme: const TextTheme(titleMedium: TextStyle(color: textColor)),
                   ),
-                  items: authorities.keys.toList(),
-                  dropdownDecoratorProps: const DropDownDecoratorProps(
-                    baseStyle: TextStyle(color: textColor, fontSize: 16),
-                    dropdownSearchDecoration: InputDecoration(
-                      labelText: "Method",
-                      labelStyle: TextStyle(color: textColor),
-                      helperText: "A prayer times calculation method",
-                      helperStyle: TextStyle(color: highlightedColor),
-                      suffixIconColor: textColor,
+                  child: DropdownSearch<String>(
+                    popupProps: const PopupProps.menu(
+                        menuProps: MenuProps(
+                          backgroundColor: fourthColor,
+                        ),
+                        fit: FlexFit.loose,
+                        showSelectedItems: true,
                     ),
+                    items: authorities.keys.toList(),
+                    dropdownDecoratorProps: const DropDownDecoratorProps(
+                      baseStyle: TextStyle(color: textColor, fontSize: 16),
+                      dropdownSearchDecoration: InputDecoration(
+                        labelText: "Method",
+                        labelStyle: TextStyle(color: textColor),
+                        helperText: "A prayer times calculation method",
+                        helperStyle: TextStyle(color: highlightedColor),
+                        suffixIconColor: textColor,
+                      ),
+                    ),
+                    onChanged: saveMethodParameter,
+                    selectedItem: selectedMethod,
+
                   ),
-                  onChanged: saveMethodParameter,
-                  selectedItem: selectedMethod,
                 ),
               ),
               const Divider(
@@ -266,27 +273,32 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                     color: fourthColor,
                     border:
                     Border.all(color: boxesBorderColor, width: 1)),
-                child: DropdownSearch<String>(
-                  popupProps: const PopupProps.menu(
-                    menuProps: MenuProps(
-                      backgroundColor: fourthColor,
-                    ),
-                    showSelectedItems: true,
-                    fit: FlexFit.loose
+                child: Theme(
+                  data: ThemeData(
+                    textTheme: const TextTheme(titleMedium: TextStyle(color: textColor)),
                   ),
-                  items: schools.keys.toList(),
-                  dropdownDecoratorProps: const DropDownDecoratorProps(
-                    baseStyle: TextStyle(color: textColor, fontSize: 16),
-                    dropdownSearchDecoration: InputDecoration(
-                      labelText: "School",
-                      labelStyle: TextStyle(color: textColor),
-                      helperText: "A prayer times calculation school",
-                      helperStyle: TextStyle(color: highlightedColor),
-                      suffixIconColor: textColor,
+                  child: DropdownSearch<String>(
+                    popupProps: const PopupProps.menu(
+                      menuProps: MenuProps(
+                        backgroundColor: fourthColor,
+                      ),
+                      showSelectedItems: true,
+                      fit: FlexFit.loose
                     ),
+                    items: schools.keys.toList(),
+                    dropdownDecoratorProps: const DropDownDecoratorProps(
+                      baseStyle: TextStyle(color: textColor, fontSize: 16),
+                      dropdownSearchDecoration: InputDecoration(
+                        labelText: "School",
+                        labelStyle: TextStyle(color: textColor),
+                        helperText: "A prayer times calculation school",
+                        helperStyle: TextStyle(color: highlightedColor),
+                        suffixIconColor: textColor,
+                      ),
+                    ),
+                    onChanged: saveSchoolParameter,
+                    selectedItem: selectedSchool,
                   ),
-                  onChanged: saveSchoolParameter,
-                  selectedItem: selectedSchool,
                 ),
               ),
               const Divider(

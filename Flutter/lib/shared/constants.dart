@@ -8,6 +8,7 @@ const highlightedColor = Color.fromRGBO(236, 179, 101, 1);
 const textColor = Color.fromRGBO(255, 255, 255, 1);
 const dividerColor = Colors.white24;
 const boxesBorderColor = Color.fromRGBO(10, 98, 140, 1.0);
+const gloabalAppName = "Muslim";
 
 String declaration = "*Please note that prayer timings might not always match your local mosque or government authority. Their timings are likely tuned or adjusted.";
 

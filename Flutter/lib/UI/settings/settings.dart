@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:muslim/shared/constants.dart';
+import 'package:number_inc_dec/number_inc_dec.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../utils/shared_preference_methods.dart' as shared_preference_methods;
 import 'package:csc_picker/csc_picker.dart';
@@ -31,6 +32,7 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
   String selectedSchool = "Shafi (Standard)";
 
   TextEditingController locationController = TextEditingController();
+  TextEditingController adjustmentsController = TextEditingController();
 
   final GlobalKey<CSCPickerState> _cscPickerKey = GlobalKey();
   @override
@@ -75,6 +77,9 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
     if (school != null) {
       selectedSchool = school;
     }
+    var adjustment = await shared_preference_methods.getIntegerData(
+        widget.prefs, 'adjustment', 1);
+    adjustmentsController.text = adjustment.toString();
     setState(() {
       is24 = shared24;
     });
@@ -306,6 +311,47 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                 thickness: 5,
                 color: dividerColor,
               ),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                    borderRadius: const BorderRadius.all(Radius.circular(10)),
+                    color: fourthColor,
+                    border:
+                    Border.all(color: boxesBorderColor, width: 1)),
+                child: Theme(
+                  data: ThemeData(
+                    textTheme: const TextTheme(titleMedium: TextStyle(color: textColor)),
+                  ),
+                  child: Column(
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.only(bottom: 8),
+                        child: Row(
+                          children: [
+                            Text("Adjustment hijri date (days)",style: TextStyle(color: textColor),),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        width: MediaQuery.of(context).size.width/2,
+                        child: NumberInputWithIncrementDecrement(
+                          controller: adjustmentsController,
+                          onChanged: saveAdjustmentValue,
+                          onDecrement: saveAdjustmentValue,
+                          onIncrement: saveAdjustmentValue,
+                          min: -100,
+                          incDecBgColor: textColor,
+                        ),
+                      ),
+                    ],
+                  )
+                ),
+              ),
+              const Divider(
+                height: 20,
+                thickness: 5,
+                color: dividerColor,
+              ),
             ],
           ),
         ),
@@ -364,5 +410,21 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
     }
   }
 
+
+  void saveAdjustmentValue(num? newValue) async{
+    if(newValue != null) {
+      EasyLoading.showInfo("Saving adjustment...");
+      if (kDebugMode) {
+        print("Saving school...");
+      }
+      bool result = await shared_preference_methods.setIntegerData(
+          widget.prefs, "adjustment", newValue.toInt());
+      if (!result) {
+        EasyLoading.showError("Couldn't save data", dismissOnTap: true);
+        return;
+      }
+      EasyLoading.showSuccess("Saved successfully");
+    }
+  }
 }
 

@@ -39,6 +39,11 @@ Future<http.Response?>? fetchData(String requiredDate, Map<String,dynamic> locat
       String mappedSchool = constants.schools[sharedSchool].toString();
       constructedParameters = '$constructedParameters&school=$mappedSchool';
     }
+    var sharedAdjustment = await shared_preference_methods.getIntegerData(
+        prefs, "adjustment", 1);
+    if(sharedAdjustment != null){
+      constructedParameters = '$constructedParameters&adjustment=${sharedAdjustment.toString()}';
+    }
     return http.get(Uri.parse('https://api.aladhan.com/v1/$callType/$requiredDate?$constructedParameters'));
   }catch(e){
     if (kDebugMode) {

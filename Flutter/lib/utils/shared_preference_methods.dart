@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ffi';
 
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -64,6 +65,32 @@ Future<bool> setBoolData(Future<SharedPreferences> sharedPreferences, String key
   try {
     final SharedPreferences prefs = await sharedPreferences;
     await prefs.setBool(key, value);
+    return true;
+  } catch (e) {
+    if (kDebugMode) {
+      print(e);
+    }
+    return false;
+  }
+}
+
+Future<dynamic> getIntegerData(Future<SharedPreferences> sharedPreferences, String data, int def) async {
+  try {
+    final SharedPreferences prefs = await sharedPreferences;
+    final int? sharedData = prefs.getInt(data);
+    return (sharedData != null)?sharedData:def;
+  } catch (e) {
+    if (kDebugMode) {
+      print(e);
+    }
+    return null;
+  }
+}
+
+Future<bool> setIntegerData(Future<SharedPreferences> sharedPreferences, String key, int value) async {
+  try {
+    final SharedPreferences prefs = await sharedPreferences;
+    await prefs.setInt(key, value);
     return true;
   } catch (e) {
     if (kDebugMode) {

@@ -1,9 +1,9 @@
-.discount-container .close-btn {
+.timeleft-container .close-btn {
     width: 20px;
   }
   
-  .discount-container {
-    position: fixed;
+  .timeleft-container {
+    /* position: fixed; */
     left: 0;
     display: flex;
     gap: 30px;
@@ -21,17 +21,17 @@
     padding: 8px 0;
   }
   
-  .discount-container .discount-heading {
+  /* .timeleft-container .discount-heading {
     font-size: 18px;
     font-weight: bold;
     margin-bottom: 4px;
   }
   
-  .discount-container .discount-subheading {
+  .timeleft-container .discount-subheading {
     font-size: 16px;
   }
-  
-  .discount-container .countdown-timer {
+   */
+  .timeleft-container .countdown-timer {
     display: flex;
     gap: 16px;
   }
@@ -58,7 +58,7 @@
     font-size: 13px;
   }
   
-  .discount-container .discount-btn {
+  .timeleft-container .discount-btn {
     padding: 8px 24px;
     background: rgb(99, 251, 215);
     background-image: linear-gradient(
@@ -75,11 +75,11 @@
     transition: all 400ms ease;
   }
   
-  .discount-container .discount-btn:hover {
+  .timeleft-container .discount-btn:hover {
     transform: scale(1.03);
   }
   
-  .discount-container .close-btn {
+  .timeleft-container .close-btn {
     position: fixed;
     top: 24px;
     right: 20px;
@@ -91,23 +91,23 @@
     transition: all 400ms ease;
   }
   
-  .discount-container .close-btn:hover {
+  .timeleft-container .close-btn:hover {
     background: rgba(255, 255, 255, 0.3);
   }
-  
+/*   
   @media (max-width: 800px) {
-    .discount-container {
+    .timeleft-container {
       justify-content: flex-start;
       padding-left: 30px;
     }
   }
   
   @media (max-width: 640px) {
-    .discount-container {
+    .timeleft-container {
       flex-direction: column;
       text-align: center;
       padding-left: 0;
       gap: 16px;
     }
   }
-  
+   */

@@ -7,22 +7,17 @@
     <link rel="icon" type="image/x-icon" href="./assets/muslim_main.png" class="muslim_logo">
 </head>
 <body>
-<div class="headerOptions">
-    <input type="text" id="locationText" value="" placeholder="Your Location...">
-    <div class="hour24div">
-        <label class="toggle">
-            <input id="use24Option" class="toggle-checkbox" type="checkbox" onclick="change24Option()">
-            <div class="toggle-switch"></div>
-            <span class="toggle-label">24-Hour</span>
-          </label>
-    </div>
-    <button id="getTimesButton" onclick="getData()">Get Times</button>
-</div>
+
 <div id="dates_header" class="dates_header">
   <div class="current_date_head">
+    <h2 class="current_date_month" id="current_date_month">Month</h1>
     <h2 class="current_date_text" id="current_date_text">Current Date</h1>
   </div>
+  <div class="muslim_logo_head">
+    <img class="muslim_head_image" src="./assets/muslim_main.png"> 
+  </div>
   <div class="current_hijri_head">
+    <h2 class="current_hijri_month" id="current_hijri_month">Month</h1>
     <h2 class="current_hijri_text" id="current_hijri_text">Current Hijri</h1>
   </div>
 </div>
@@ -34,7 +29,7 @@
 </table>
 <div id="loading" class="loader_head loader"></div>
 
-<div class="discount-container">
+<div class="timeleft-container">
     <div class="countdown-timer">
       <div class="group">
         <div id="hoursLeft" class="value hours">00</div>
@@ -51,7 +46,22 @@
         <div class="unit">Sec</div>
       </div>
     </div>
+</div>
+<div class="headerOptions">
+  <div class="options">
+    <input type="text" id="locationText" value="" placeholder="Your Location...">
   </div>
+  <div class="options">
+    <button id="getTimesButton" onclick="getData()">Get Times</button>
+  </div>
+  <div class="hour24div options">
+    <label class="toggle">
+        <input id="use24Option" class="toggle-checkbox" type="checkbox" onclick="change24Option()">
+        <div class="toggle-switch"></div>
+        <span class="toggle-label">24-Hour</span>
+    </label>
+  </div>
+</div>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.3/jquery.min.js"></script>
     <script src="./js/functions.js"></script>
 </body>

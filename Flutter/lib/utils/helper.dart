@@ -16,15 +16,19 @@ String customtimeFormatter(String customFormat,DateTime d){
   String formattedDate = formatter.format(d);
   return formattedDate;
 }
-Future<http.Response?>? fetchData(String requiredDate, Map<String,dynamic> location, Future<SharedPreferences> prefs) async{
+Future<http.Response?>? fetchData(String callType, String requiredDate, Map<String,dynamic> location, Future<SharedPreferences> prefs) async{
   try{
     String constructedParameters = "";
-    String callType = "";
-    if(location["type"] != "address"){
-      callType = "timings";
-      return null;
-    }else{
-      callType = "timingsByAddress";
+
+    if(callType == ""){
+      if(location["type"] != "address"){
+        callType = "timings";
+        return null;
+      }else{
+        callType = "timingsByAddress";
+        constructedParameters = 'address=${location["location"]}';
+      }
+    }else if(callType=="calendarByAddress"){
       constructedParameters = 'address=${location["location"]}';
     }
     var sharedMethod = await shared_preference_methods.getStringData(

@@ -5,6 +5,7 @@ import 'dart:core';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:muslim/UI/month/months_page.dart';
 import 'package:muslim/UI/qiblah/qiblah_page.dart';
 import 'package:muslim/UI/quran/quran_page.dart';
 import 'package:muslim/shared/constants.dart';
@@ -97,7 +98,7 @@ class _MyHomePageState extends State<MyHomePage> {
         if (kDebugMode) {
           print("Fetching from API");
         }
-        var r = await helper.fetchData(formattedDate, savedLocation, _prefs);
+        var r = await helper.fetchData("",formattedDate, savedLocation, _prefs);
         jsonEncoded = r?.body;
         jsonData = jsonDecode(jsonEncoded!);
       }
@@ -242,6 +243,22 @@ class _MyHomePageState extends State<MyHomePage> {
                         context,
                         MaterialPageRoute(
                             builder: (context) => const QuranPageClass()),
+                      );
+                    },
+                  ),
+                  const Divider(color: textColor,),
+                ],
+              ),
+              Column(
+                children: [
+                  ListTile(
+                    title: const Text('Prayer Calendar', style: TextStyle(color: textColor),),
+                    trailing: Image.asset("assets/prayercalender/prayercalender.png",width: 24,),
+                    onTap: () async{
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const MonthsPageClass()),
                       );
                     },
                   ),

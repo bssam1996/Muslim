@@ -29,7 +29,7 @@ class _MyHomePageState extends State<MyHomePage> {
     super.initState();
     EasyLoading.showInfo("Loading settings...");
     try {
-      WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
+      WidgetsBinding.instance.addPostFrameCallback((timeStamp){
         _fetchAPI();
       });
     } catch (e) {

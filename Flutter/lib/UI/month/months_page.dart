@@ -5,9 +5,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
+import 'package:syncfusion_flutter_core/theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../utils/shared_preference_methods.dart'
     as shared_preference_methods;
+import 'package:muslim/shared/constants.dart';
 import '../../utils/helper.dart' as helper;
 import 'helper.dart' as helpermodal;
 
@@ -87,93 +89,26 @@ class _MonthsPageClassState extends State<MonthsPageClass> {
           ],
         ),
         body: Center(
-          child: SfDataGrid(
-            rowHeight: 60,
-            source: detailsDatesDataSource,
-            columnWidthMode: ColumnWidthMode.fill,
-            columns: <GridColumn>[
-              GridColumn(
-                  columnName: 'day',
-                  label: Container(
-                      padding: const EdgeInsets.all(8.0),
-                      alignment: Alignment.center,
-                      child: const AutoSizeText(
-                        "Day",
-                        overflow: TextOverflow.ellipsis,
-                      ))),
-              GridColumn(
-                  columnName: 'gregorian',
-                  label: Container(
-                      padding: const EdgeInsets.all(8.0),
-                      alignment: Alignment.center,
-                      child: const AutoSizeText(
-                        'Gregorian',
-                        overflow: TextOverflow.ellipsis,
-                      ))),
-              GridColumn(
-                  columnName: 'hijri',
-                  label: Container(
-                      padding: const EdgeInsets.all(8.0),
-                      alignment: Alignment.center,
-                      child: const AutoSizeText(
-                        'Hijri',
-                        overflow: TextOverflow.ellipsis,
-                      ))),
-              GridColumn(
-                  columnName: 'fajr',
-                  label: Container(
-                      padding: const EdgeInsets.all(8.0),
-                      alignment: Alignment.center,
-                      child: const AutoSizeText(
-                        'Fajr',
-                        overflow: TextOverflow.ellipsis,
-                      ))),
-              GridColumn(
-                  columnName: 'sunrise',
-                  label: Container(
-                      padding: const EdgeInsets.all(8.0),
-                      alignment: Alignment.center,
-                      child: const AutoSizeText(
-                        'Sunrise',
-                        overflow: TextOverflow.ellipsis,
-                      ))),
-              GridColumn(
-                  columnName: 'dhuhr',
-                  label: Container(
-                      padding: const EdgeInsets.all(8.0),
-                      alignment: Alignment.center,
-                      child: const AutoSizeText(
-                        'Dhuhr',
-                        overflow: TextOverflow.ellipsis,
-                      ))),
-              GridColumn(
-                  columnName: 'asr',
-                  label: Container(
-                      padding: const EdgeInsets.all(8.0),
-                      alignment: Alignment.center,
-                      child: const AutoSizeText(
-                        'Asr',
-                        overflow: TextOverflow.ellipsis,
-                      ))),
-              GridColumn(
-                  columnName: 'maghrib',
-                  label: Container(
-                      padding: const EdgeInsets.all(8.0),
-                      alignment: Alignment.center,
-                      child: const AutoSizeText(
-                        'Maghrib',
-                        overflow: TextOverflow.ellipsis,
-                      ))),
-              GridColumn(
-                  columnName: 'isha',
-                  label: Container(
-                      padding: const EdgeInsets.all(8.0),
-                      alignment: Alignment.center,
-                      child: const AutoSizeText(
-                        'Isha',
-                        overflow: TextOverflow.ellipsis,
-                      ))),
-            ],
+          child: SfDataGridTheme(
+            data: SfDataGridThemeData(
+              gridLineStrokeWidth: 0.8,
+            ),
+            child: SfDataGrid(
+              rowHeight: 60,
+              source: detailsDatesDataSource,
+              columnWidthMode: ColumnWidthMode.fill,
+              columns: <GridColumn>[
+                generateColumn("day", thirdColor, "Day", textColor),
+                generateColumn("gregorian", thirdColor, "Gregorian", textColor),
+                generateColumn("hijri", thirdColor, "Hijri", textColor),
+                generateColumn("fajr", thirdColor, "Fajr", textColor),
+                generateColumn("sunrise", thirdColor, "Sunrise", textColor),
+                generateColumn("dhuhr", thirdColor, "Dhuhr", textColor),
+                generateColumn("asr", thirdColor, "Asr", textColor),
+                generateColumn("maghrib", thirdColor, "Maghrib", textColor),
+                generateColumn("isha", thirdColor, "Isha", textColor),
+              ],
+            ),
           ),
         ));
   }
@@ -207,6 +142,14 @@ class _MonthsPageClassState extends State<MonthsPageClass> {
     if (data.isEmpty) {
       return [];
     }
+
+    var exists =
+        await shared_preference_methods.checkExistenceData(_prefs, '24system');
+    bool shared24 = true;
+    if (exists) {
+      shared24 =
+          await shared_preference_methods.getBoolData(_prefs, '24system');
+    }
     List<DetailedDates> detailsDates = [];
     for (var index = 0; index < data.length; index++) {
       Map<String, dynamic> timings = data[index]["timings"];
@@ -216,9 +159,21 @@ class _MonthsPageClassState extends State<MonthsPageClass> {
       String? asr = constructTime(timings["Asr"].toString());
       String? maghrib = constructTime(timings["Maghrib"].toString());
       String? isha = constructTime(timings["Isha"].toString());
+      if (shared24 == false) {
+        fajr = shared24Convert(fajr);
+        sunrise = shared24Convert(sunrise);
+        dhuhr = shared24Convert(dhuhr);
+        asr = shared24Convert(asr);
+        maghrib = shared24Convert(maghrib);
+        isha = shared24Convert(isha);
+      }
       Map<String, dynamic> dateDetails = data[index]["date"];
-      String gregorianDate = dateDetails["gregorian"]["date"];
-      String hijriDate = dateDetails["hijri"]["date"];
+      List<String> splittedGregorianDate =
+          dateDetails["gregorian"]["date"].split("-");
+      String gregorianDate =
+          "${splittedGregorianDate[0]}-${splittedGregorianDate[1]}";
+      List<String> splittedhijriDate = dateDetails["hijri"]["date"].split("-");
+      String hijriDate = "${splittedhijriDate[0]}-${splittedhijriDate[1]}";
       String dayName =
           dateDetails["gregorian"]["weekday"]["en"].toString().substring(0, 3);
       DetailedDates detailedDates = DetailedDates(dayName, gregorianDate,
@@ -227,11 +182,27 @@ class _MonthsPageClassState extends State<MonthsPageClass> {
     }
     return detailsDates;
   }
-
-  String constructTime(String time) {
-    List<String> timingWhole = time.split(" ");
-    return timingWhole[0];
-  }
+}
+String constructTime(String time) {
+  List<String> timingWhole = time.split(" ");
+  return timingWhole[0];
+}
+GridColumn generateColumn(
+    String id, Color color, String labelName, Color textColor) {
+  return GridColumn(
+      columnName: id,
+      label: Container(
+          color: color,
+          // padding: const EdgeInsets.all(2.0),
+          alignment: Alignment.center,
+          child: FittedBox(
+            child: AutoSizeText(
+              labelName,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: textColor),
+              minFontSize: 4,
+            ),
+          )));
 }
 
 class DetailedDates {
@@ -278,10 +249,24 @@ class DatesDetailsDataSource extends DataGridSource {
     return DataGridRowAdapter(
         cells: row.getCells().map<Widget>((e) {
       return Container(
+        color: e.columnName == "day" ? thirdColor : fourthColor,
         alignment: Alignment.center,
-        padding: const EdgeInsets.all(8.0),
-        child: Text(e.value.toString()),
+        // padding: const EdgeInsets.all(8.0),
+        child: FittedBox(
+            child: AutoSizeText(
+              e.value.toString(),
+              style: const TextStyle(color: textColor),
+        )),
       );
     }).toList());
   }
+}
+
+String shared24Convert(String time) {
+  List<String> splittedTime = time.split(":");
+  int integerHour = int.parse(splittedTime[0]);
+  if (integerHour > 12) {
+    splittedTime[0] = (integerHour - 12).toString();
+  }
+  return "${splittedTime[0]}:${splittedTime[1]}";
 }

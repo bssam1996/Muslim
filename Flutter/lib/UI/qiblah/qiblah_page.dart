@@ -22,7 +22,7 @@ class _QiblahClassState extends State<QiblahClass> {
           future: _deviceSupport,
           builder: (_, AsyncSnapshot<bool?> snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return LoadingIndicator();
+              return const LoadingIndicator();
             }
             if (snapshot.hasError) {
               return Center(
@@ -31,9 +31,9 @@ class _QiblahClassState extends State<QiblahClass> {
             }
 
             if (snapshot.data!) {
-              return QiblahCompass();
+              return const QiblahCompass();
             }else{
-              return LoadingIndicator();
+              return const LoadingIndicator();
             }
           },
         ),

@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:month_year_picker/month_year_picker.dart';
@@ -8,6 +7,11 @@ import 'package:muslim/shared/constants.dart' as constants;
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() {
+  // runApp(DevicePreview(
+  //   enabled: true,
+  //   builder: (BuildContext context) => const MyApp(),
+  // ));
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
 }
 
@@ -34,5 +38,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-
-

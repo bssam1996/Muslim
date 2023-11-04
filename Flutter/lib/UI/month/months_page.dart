@@ -94,6 +94,8 @@ class _MonthsPageClassState extends State<MonthsPageClass> {
               gridLineStrokeWidth: 0.8,
             ),
             child: SfDataGrid(
+              gridLinesVisibility: GridLinesVisibility.both,
+              headerGridLinesVisibility: GridLinesVisibility.both,
               rowHeight: 60,
               source: detailsDatesDataSource,
               columnWidthMode: ColumnWidthMode.fill,
@@ -193,7 +195,7 @@ GridColumn generateColumn(
       columnName: id,
       label: Container(
           color: color,
-          // padding: const EdgeInsets.all(2.0),
+          padding: const EdgeInsets.fromLTRB(2.0,0,2.0,0),
           alignment: Alignment.center,
           child: FittedBox(
             child: AutoSizeText(

@@ -35,7 +35,7 @@ class _QuranPageClassState extends State<QuranPageClass> {
                       );
                     },
                   ),
-                  Divider(color: textColor,)
+                  const Divider(color: textColor,)
                 ],
               ),
               const Padding(

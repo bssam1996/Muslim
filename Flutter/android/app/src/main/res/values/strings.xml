@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="appwidget_text">- Muslim -</string>
+    <string name="add_widget">Add widget</string>
+    <string name="app_widget_description">Prayer times</string>
+    <string name="gregorianName_text">-</string>
+    <string name="gregorianDate_text">DD-MM-yyyy</string>
+    <string name="hijriName_text">-</string>
+    <string name="hijriDate_text">DD-MM-yyyy</string>
+    <string name="fajr_label">Fajr</string>
+    <string name="fajr_text">00:00 AM</string>
+    <string name="sunrise_label">Sunrise</string>
+    <string name="sunrise_text">00:00 AM</string>
+    <string name="dhuhr_label">Dhuhr</string>
+    <string name="dhuhr_text">00:00 AM</string>
+    <string name="asr_label">Asr</string>
+    <string name="asr_text">00:00 AM</string>
+    <string name="maghrib_label">Maghrib</string>
+    <string name="maghrib_text">00:00 AM</string>
+    <string name="isha_label">Isha</string>
+    <string name="isha_text">00:00 AM</string>
+</resources>

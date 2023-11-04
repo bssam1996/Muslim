@@ -14,6 +14,7 @@ import 'utils/helper.dart' as helper;
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'utils/shared_preference_methods.dart' as shared_preference_methods;
+import 'package:home_widget/home_widget.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
@@ -27,6 +28,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
+    HomeWidget.setAppGroupId(HOME_WIDGET_GROUP_ID);
     EasyLoading.showInfo("Loading settings...");
     try {
       WidgetsBinding.instance.addPostFrameCallback((timeStamp){
@@ -82,7 +84,9 @@ class _MyHomePageState extends State<MyHomePage> {
       if (savedLocation == null) {
         EasyLoading.showError(
             "Location is unset and it is needed! please go to settings to add a location",
-            duration: const Duration(seconds: 10));
+            duration: const Duration(seconds: 10),
+          dismissOnTap: true
+        );
         return false;
       }
       String formattedDate = helper.dateFormatter(DateTime.now());
@@ -167,6 +171,7 @@ class _MyHomePageState extends State<MyHomePage> {
           jsonDataDate = jsonData['data']['date'];
           jsonTimings = jsonData['data']['timings'];
           metaData = processMetaData(jsonData['data']['meta']);
+          updateHomePage(jsonTimings, jsonDataDate);
         });
         resetTimer();
         EasyLoading.dismiss();
@@ -188,8 +193,10 @@ class _MyHomePageState extends State<MyHomePage> {
   final drawerHeader = UserAccountsDrawerHeader(
     accountEmail: null,
     currentAccountPicture: CircleAvatar(
+      backgroundColor: thirdColor,
       child: CircleAvatar(
         backgroundColor: Colors.grey[100],
+        radius: 50.0,
         child: ClipOval(
           child: Image.asset(
             'assets/icon/main.png',
@@ -197,12 +204,11 @@ class _MyHomePageState extends State<MyHomePage> {
             height: 512.0,
           ),
         ),
-        radius: 50.0,
       ),
-      backgroundColor: thirdColor,
     ),
     accountName: const Text(gloabalAppName,style: TextStyle(fontSize: 20,fontWeight: FontWeight.bold),),
   );
+
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
@@ -506,5 +512,46 @@ class _MyHomePageState extends State<MyHomePage> {
     metaResponse = "${metaResponse}Method: ${meta["method"]["name"]}\n";
     metaResponse = "${metaResponse}School: ${meta["school"]}";
     return metaResponse;
+  }
+
+  void updateHomePage(Map<String, dynamic> jsonTimings, Map<String, dynamic> jsonData) async {
+    // try{
+    //   return Future.wait([
+    //
+    //   ]).then((value) => print(value));
+    // } catch (exception){
+    //   print(exception);
+    // }
+    Future.wait<bool?>([
+      HomeWidget.saveWidgetData<String>("fajr_text", jsonTimings["Fajr"].toString()),
+      HomeWidget.saveWidgetData<String>("sunrise_text", jsonTimings["Sunrise"].toString()),
+      HomeWidget.saveWidgetData<String>("dhuhr_text", jsonTimings["Dhuhr"].toString()),
+      HomeWidget.saveWidgetData<String>("asr_text", jsonTimings["Asr"].toString()),
+      HomeWidget.saveWidgetData<String>("maghrib_text", jsonTimings["Maghrib"].toString()),
+      HomeWidget.saveWidgetData<String>("isha_text", jsonTimings["Isha"].toString()),
+      // HomeWidget.saveWidgetData<String>("gregorianName_text", jsonData["gregorian"]?["month"]?["en"] ?? "Month"),
+      HomeWidget.saveWidgetData<String>("gregorianDate_text", jsonData["gregorian"]?["date"] ?? "Month"),
+      // HomeWidget.saveWidgetData<String>("hijriName_text", jsonData["hijri"]?["month"]?["en"] ?? "Month"),
+      HomeWidget.saveWidgetData<String>("hijriDate_text", jsonData["hijri"]?["date"] ?? "Month"),
+    ]).then((value){
+      HomeWidget.updateWidget(
+        name: "HomeAppWidget",
+        androidName: "HomeAppWidget",
+      );
+      HomeWidget.updateWidget(
+        name: "HomeAppWidgetWide",
+        androidName: "HomeAppWidgetWide",
+      );
+    });
+
+    // HomeWidget.renderFlutterWidget(
+    //   const Icon(
+    //     Icons.flutter_dash,
+    //     size: 200,
+    //   ),
+    //   logicalSize: const Size(200, 200),
+    //   key: 'dashIcon',
+    // );
+
   }
 }

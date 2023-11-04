@@ -332,7 +332,7 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                           ],
                         ),
                       ),
-                      Container(
+                      SizedBox(
                         width: MediaQuery.of(context).size.width/2,
                         child: NumberInputWithIncrementDecrement(
                           controller: adjustmentsController,

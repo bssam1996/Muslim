@@ -5,6 +5,7 @@ import 'dart:core';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:muslim/UI/month/months_page.dart';
 import 'package:muslim/UI/qiblah/qiblah_page.dart';
 import 'package:muslim/UI/quran/quran_page.dart';
@@ -15,6 +16,8 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'utils/shared_preference_methods.dart' as shared_preference_methods;
 import 'package:home_widget/home_widget.dart';
+import 'package:easy_localization/easy_localization.dart' as easy_Localization;
+import 'package:seeip_client/seeip_client.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
@@ -56,7 +59,7 @@ class _MyHomePageState extends State<MyHomePage> {
   static const highlightedDetailsStyle = TextStyle(
       fontSize: 20, fontWeight: FontWeight.w500, color: highlightedColor);
 
-  String metaData = "";
+  Widget metaData = DataTable(columns: [DataColumn(label: Text("")), DataColumn(label: Text(""))], rows: []);
 
   Map<String, dynamic> jsonTimings = <String, dynamic>{};
 
@@ -82,12 +85,33 @@ class _MyHomePageState extends State<MyHomePage> {
       var savedLocation = await shared_preference_methods.getStringData(
           _prefs, 'location', true);
       if (savedLocation == null) {
-        EasyLoading.showError(
-            "Location is unset and it is needed! please go to settings to add a location",
-            duration: const Duration(seconds: 10),
-          dismissOnTap: true
-        );
-        return false;
+        try{
+          var seeip = SeeipClient();
+          var ip = await seeip.getIP();
+          var geoLocation = await seeip.getGeoIP(ip.ip);
+          Map<String, dynamic> location = {
+            "location": "${geoLocation.city}, ${geoLocation.region}, ${geoLocation.country}",
+            "type": "address"
+          };
+          bool result = await shared_preference_methods.setStringData(
+              _prefs, "location", json.encode(location));
+          if (!result) {
+            EasyLoading.showError(
+                "Location_Missing_Error".tr(),
+                duration: const Duration(seconds: 10),
+                dismissOnTap: true
+            );
+            return false;
+          }
+          savedLocation = location;
+        }catch (e) {
+          EasyLoading.showError(
+              "Location_Missing_Error".tr(),
+              duration: const Duration(seconds: 10),
+              dismissOnTap: true
+          );
+          return false;
+        }
       }
       String formattedDate = helper.dateFormatter(DateTime.now());
       var sharedData = await shared_preference_methods.getStringData(
@@ -226,7 +250,7 @@ class _MyHomePageState extends State<MyHomePage> {
               Column(
                 children: [
                   ListTile(
-                    title: const Text('Qiblah Compass', style: TextStyle(color: textColor),),
+                    title: const Text('Home_Panel_Qiblah', style: TextStyle(color: textColor),).tr(),
                     trailing: Image.asset("assets/qiblah/compass.png",width: 24,),
                     onTap: () async{
                       await Navigator.push(
@@ -242,7 +266,7 @@ class _MyHomePageState extends State<MyHomePage> {
               Column(
                 children: [
                   ListTile(
-                    title: const Text('Quran', style: TextStyle(color: textColor),),
+                    title: const Text('Home_Panel_Quran', style: TextStyle(color: textColor),).tr(),
                     trailing: Image.asset("assets/quran/quran.png",width: 24, color: textColor,),
                     onTap: () async{
                       await Navigator.push(
@@ -258,7 +282,7 @@ class _MyHomePageState extends State<MyHomePage> {
               Column(
                 children: [
                   ListTile(
-                    title: const Text('Prayer Calendar', style: TextStyle(color: textColor),),
+                    title: const Text('Home_Panel_Prayer_Calendar', style: TextStyle(color: textColor),).tr(),
                     trailing: Image.asset("assets/prayercalender/prayercalender.png",width: 24,),
                     onTap: () async{
                       await Navigator.push(
@@ -274,7 +298,7 @@ class _MyHomePageState extends State<MyHomePage> {
               Column(
                 children: [
                   ListTile(
-                    title: const Text('Settings', style: TextStyle(color: textColor)),
+                    title: const Text('Home_Panel_Settings', style: TextStyle(color: textColor)).tr(),
                     trailing: const Icon(Icons.settings, color: textColor, size: 24,),
                     onTap: () async{
                       stopTimer();
@@ -298,7 +322,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ),
         appBar: AppBar(
-          title: Text(widget.title),
+          title: Text(widget.title.tr()),
           centerTitle: true,
         ),
         body: SingleChildScrollView(
@@ -315,8 +339,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           child: Column(
                         children: [
                           AutoSizeText(
-                            jsonDataDate["gregorian"]?["month"]?["en"] ??
-                                "Month",
+                            (jsonDataDate["gregorian"]?["month"]?["en"] ?? "Month").toString().tr(),
                             style: headlineStyle.copyWith(fontSize: 20),
                           ),
                           AutoSizeText(
@@ -332,7 +355,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           child: Column(
                         children: [
                           AutoSizeText(
-                            jsonDataDate["hijri"]?["month"]?["en"] ?? "Month",
+                            (jsonDataDate["hijri"]?["month"]?["en"] ?? "Month").toString().tr(),
                             style: headlineStyle.copyWith(fontSize: 20),
                           ),
                           AutoSizeText(
@@ -346,6 +369,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
+                  textDirection: TextDirection.ltr,
                   children: [
                     buildTimeCard(nextPrayTime != null
                         ? (helper.constructTimeLeftSplitted(
@@ -385,13 +409,24 @@ class _MyHomePageState extends State<MyHomePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Divider(),
-                    Text(
-                      metaData,
-                      style: detailsStyle.copyWith(fontSize: 18),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Card(
+                            elevation: 20,
+                            color: fourthColor,
+                            shadowColor: thirdColor,
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: metaData,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const Divider(),
                     Text(
-                      declaration,
+                      "Home_Page_Declaration".tr(),
                       style: highlightedDetailsStyle.copyWith(fontSize: 12),
                     ),
                   ],
@@ -402,7 +437,7 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: _fetchAPI,
-          tooltip: 'Fetch',
+          tooltip: 'Reload'.tr(),
           child: const Icon(Icons.get_app),
         ),
       ),
@@ -430,7 +465,7 @@ class _MyHomePageState extends State<MyHomePage> {
               child: SizedBox(
                 width: MediaQuery.of(context).size.width * 0.3,
                 child: Center(
-                  child: Text("$headText:",
+                  child: Text("${headText.tr()}:",
                       style: nextPray == headText
                           ? highlightedDetailsStyle
                           : prayerStyle),
@@ -443,6 +478,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 width: MediaQuery.of(context).size.width / 2 * 3,
                 child: Center(
                   child: Text(detailsText,
+                      textDirection: TextDirection.ltr,
                       style: nextPray == headText
                           ? highlightedDetailsStyle
                           : prayerStyle),
@@ -505,33 +541,93 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  String processMetaData(meta) {
-    String metaResponse = "Timezone: ${meta["timezone"]}\n";
-    metaResponse = "${metaResponse}Longitude: ${meta["longitude"]}\n";
-    metaResponse = "${metaResponse}Latitude: ${meta["latitude"]}\n";
-    metaResponse = "${metaResponse}Method: ${meta["method"]["name"]}\n";
-    metaResponse = "${metaResponse}School: ${meta["school"]}";
-    return metaResponse;
+  Widget processMetaData(meta) {
+    List<DataRow> datarows = [];
+    datarows.add(buildMetaRow("Home_Page_Meta_Timezone".tr(), meta["timezone"]?.toString()??""));
+    datarows.add(buildMetaRow("Home_Page_Meta_Longitude".tr(), meta["longitude"]?.toString()??""));
+    datarows.add(buildMetaRow("Home_Page_Meta_Latitude".tr(), meta["latitude"]?.toString()??""));
+    datarows.add(buildMetaRow("Home_Page_Meta_Method".tr(), meta["method"]["name"]?.toString()??""));
+    datarows.add(buildMetaRow("Home_Page_Meta_School".tr(), meta["school"]?.toString()??""));
+    List<DataColumn> dataColumns = [];
+    dataColumns.add(buildMetaColumn("Home_Page_Meta_Type".tr()));
+    dataColumns.add(buildMetaColumn("Home_Page_Meta_Value".tr()));
+    DataTable dataTable = DataTable(
+        columns: dataColumns,
+        rows: datarows,
+        headingRowHeight: 22,
+        dataRowMinHeight: 22,
+        dataRowMaxHeight: 22,
+    );
+    return dataTable;
+  }
+  
+  DataRow buildMetaRow(String label, String value){
+    DataRow dataRow = DataRow(cells: [
+      DataCell(
+          Container(
+            alignment: Alignment.center,
+            child: FittedBox(
+              child: Text(
+                  label,
+                  style: const TextStyle(color: textColor),
+              ),
+            ),
+          )
+      ),
+      DataCell(
+          Container(
+            alignment: Alignment.center,
+            child: FittedBox(
+              child: Text(
+                  value,
+                  style: const TextStyle(color: textColor),
+                  textDirection: TextDirection.ltr,
+              ),
+            ),
+          ),
+        onTap: ()async{
+          await Clipboard.setData(ClipboardData(text: value));
+          EasyLoading.showSuccess("Copied".tr());
+        }
+      ),
+    ]);
+    return dataRow;
+  }
+
+  DataColumn buildMetaColumn(String text){
+    return DataColumn(
+      label: Expanded(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            FittedBox(
+              child: Text(
+                  text,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: textColor),
+              ),
+            ),
+          ],
+        ),
+      )
+    );
   }
 
   void updateHomePage(Map<String, dynamic> jsonTimings, Map<String, dynamic> jsonData) async {
-    // try{
-    //   return Future.wait([
-    //
-    //   ]).then((value) => print(value));
-    // } catch (exception){
-    //   print(exception);
-    // }
     Future.wait<bool?>([
       HomeWidget.saveWidgetData<String>("fajr_text", jsonTimings["Fajr"].toString()),
+      HomeWidget.saveWidgetData<String>("fajr_label", "Fajr".tr()),
       HomeWidget.saveWidgetData<String>("sunrise_text", jsonTimings["Sunrise"].toString()),
+      HomeWidget.saveWidgetData<String>("sunrise_label", "Sunrise".tr()),
       HomeWidget.saveWidgetData<String>("dhuhr_text", jsonTimings["Dhuhr"].toString()),
+      HomeWidget.saveWidgetData<String>("dhuhr_label", "Dhuhr".tr()),
       HomeWidget.saveWidgetData<String>("asr_text", jsonTimings["Asr"].toString()),
+      HomeWidget.saveWidgetData<String>("asr_label", "Asr".tr()),
       HomeWidget.saveWidgetData<String>("maghrib_text", jsonTimings["Maghrib"].toString()),
+      HomeWidget.saveWidgetData<String>("maghrib_label", "Maghrib".tr()),
       HomeWidget.saveWidgetData<String>("isha_text", jsonTimings["Isha"].toString()),
-      // HomeWidget.saveWidgetData<String>("gregorianName_text", jsonData["gregorian"]?["month"]?["en"] ?? "Month"),
+      HomeWidget.saveWidgetData<String>("isha_label", "Isha".tr()),
       HomeWidget.saveWidgetData<String>("gregorianDate_text", jsonData["gregorian"]?["date"] ?? "Month"),
-      // HomeWidget.saveWidgetData<String>("hijriName_text", jsonData["hijri"]?["month"]?["en"] ?? "Month"),
       HomeWidget.saveWidgetData<String>("hijriDate_text", jsonData["hijri"]?["date"] ?? "Month"),
     ]).then((value){
       HomeWidget.updateWidget(

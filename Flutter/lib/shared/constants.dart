@@ -11,8 +11,6 @@ const boxesBorderColor = Color.fromRGBO(10, 98, 140, 1.0);
 const gloabalAppName = "Muslim";
 const HOME_WIDGET_GROUP_ID = "com.bplusplus.muslim";
 
-String declaration = "*Please note that prayer timings might not always match your local mosque or government authority. Their timings are likely tuned or adjusted.";
-
 const authorities = <String, int>{
   "Default":-1,
   "Shia Ithna-Ansari":0,

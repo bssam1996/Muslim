@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:muslim/shared/constants.dart';
 
@@ -12,7 +13,7 @@ Dialog showdialog() {
             fontSize: 16, fontWeight: FontWeight.bold, color: textColor),
       )),
       DataCell(Text(
-        monthName ?? "",
+        monthName?.tr() ?? "",
         style: const TextStyle(
             fontSize: 16, fontWeight: FontWeight.bold, color: textColor),
       )),
@@ -30,28 +31,28 @@ Dialog showdialog() {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              const Center(
+              Center(
                 child: Text(
-                  "-Islamic Calendar-",
-                  style: TextStyle(
+                  "Months_Helper_Title".tr(),
+                  style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                       color: textColor),
                 ),
               ),
               Center(
-                child: DataTable(columns: const [
+                child: DataTable(columns: [
                   DataColumn(
-                    label: Text('Number',
-                        style: TextStyle(
+                    label: Text('Months_Helper_Number'.tr(),
+                        style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: textColor)),
                   ),
                   DataColumn(
                     label: Text(
-                      'Name',
-                      style: TextStyle(
+                      'Months_Helper_Name'.tr(),
+                      style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: textColor),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:launch_review/launch_review.dart';
 import 'package:muslim/shared/constants.dart';
+import 'package:easy_localization/easy_localization.dart';
 class QuranPageClass extends StatefulWidget {
   const QuranPageClass({Key? key}) : super(key: key);
 
@@ -13,7 +14,7 @@ class _QuranPageClassState extends State<QuranPageClass> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Quran"),
+        title: const Text("Quran_Title").tr(),
       ),
       backgroundColor: thirdColor,
       body: SingleChildScrollView(
@@ -38,9 +39,9 @@ class _QuranPageClassState extends State<QuranPageClass> {
                   const Divider(color: textColor,)
                 ],
               ),
-              const Padding(
-                padding: EdgeInsets.all(8.0),
-                child: Text("Currently, quran is not implemented in Muslim app's core. You can find list of recommended apps above for Quran",style: TextStyle(fontSize:17, color: highlightedColor),),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: const Text("Quran_Page_Tip",style: TextStyle(fontSize:17, color: highlightedColor),).tr(),
               )
             ],
           ),

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:month_year_picker/month_year_picker.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/foundation.dart';
@@ -29,7 +30,7 @@ class _MonthsPageClassState extends State<MonthsPageClass> {
   @override
   void initState() {
     super.initState();
-    EasyLoading.showInfo("Loading timetable...");
+    EasyLoading.showInfo("Months_Loading_Timetable".tr());
     try {
       WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
         DateTime currentDate = DateTime.now();
@@ -55,7 +56,7 @@ class _MonthsPageClassState extends State<MonthsPageClass> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-          title: const Text("Prayer Calendar"),
+          title: const Text("Months_Title").tr(),
           centerTitle: true,
           actions: [
             IconButton(
@@ -65,6 +66,7 @@ class _MonthsPageClassState extends State<MonthsPageClass> {
                     initialDate: DateTime.now(),
                     firstDate: DateTime(1900),
                     lastDate: DateTime(2100),
+                    locale: context.locale
                   );
                   if (selected != null) {
                     updateTable("${selected.year}/${selected.month}");
@@ -100,15 +102,15 @@ class _MonthsPageClassState extends State<MonthsPageClass> {
               source: detailsDatesDataSource,
               columnWidthMode: ColumnWidthMode.fill,
               columns: <GridColumn>[
-                generateColumn("day", thirdColor, "Day", textColor),
-                generateColumn("gregorian", thirdColor, "Gregorian", textColor),
-                generateColumn("hijri", thirdColor, "Hijri", textColor),
-                generateColumn("fajr", thirdColor, "Fajr", textColor),
-                generateColumn("sunrise", thirdColor, "Sunrise", textColor),
-                generateColumn("dhuhr", thirdColor, "Dhuhr", textColor),
-                generateColumn("asr", thirdColor, "Asr", textColor),
-                generateColumn("maghrib", thirdColor, "Maghrib", textColor),
-                generateColumn("isha", thirdColor, "Isha", textColor),
+                generateColumn("day", thirdColor, "Months_Column_Day".tr(), textColor),
+                generateColumn("gregorian", thirdColor, "Months_Column_Gregorian".tr(), textColor),
+                generateColumn("hijri", thirdColor, "Months_Column_Hijri".tr(), textColor),
+                generateColumn("fajr", thirdColor, "Months_Column_Fajr".tr(), textColor),
+                generateColumn("sunrise", thirdColor, "Months_Column_Sunrise".tr(), textColor),
+                generateColumn("dhuhr", thirdColor, "Months_Column_Dhuhr".tr(), textColor),
+                generateColumn("asr", thirdColor, "Months_Column_Asr".tr(), textColor),
+                generateColumn("maghrib", thirdColor, "Months_Column_Maghrib".tr(), textColor),
+                generateColumn("isha", thirdColor, "Months_Column_Isha".tr(), textColor),
               ],
             ),
           ),
@@ -126,7 +128,7 @@ class _MonthsPageClassState extends State<MonthsPageClass> {
         await shared_preference_methods.getStringData(_prefs, 'location', true);
     if (savedLocation == null) {
       EasyLoading.showError(
-          "Location is unset and it is needed! please go to settings to add a location",
+          "Location_Missing_Error".tr(),
           duration: const Duration(seconds: 10));
       return [];
     }
@@ -178,7 +180,7 @@ class _MonthsPageClassState extends State<MonthsPageClass> {
       String hijriDate = "${splittedhijriDate[0]}-${splittedhijriDate[1]}";
       String dayName =
           dateDetails["gregorian"]["weekday"]["en"].toString().substring(0, 3);
-      DetailedDates detailedDates = DetailedDates(dayName, gregorianDate,
+      DetailedDates detailedDates = DetailedDates(dayName.tr(), gregorianDate,
           hijriDate, fajr, sunrise, dhuhr, asr, maghrib, isha);
       detailsDates.add(detailedDates);
     }

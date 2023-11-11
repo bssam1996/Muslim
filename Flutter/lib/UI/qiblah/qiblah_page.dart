@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_qiblah/flutter_qiblah.dart';
 import 'package:muslim/shared/loading_indicator.dart';
@@ -16,7 +17,7 @@ class _QiblahClassState extends State<QiblahClass> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-          title: const Text('Qiblah Compass'),
+          title: const Text('Qiblah_Title').tr(),
         ),
         body: FutureBuilder(
           future: _deviceSupport,

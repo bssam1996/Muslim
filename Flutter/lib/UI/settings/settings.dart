@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:dropdown_search/dropdown_search.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -30,7 +31,7 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
   String address = "";
   String selectedMethod = "Default";
   String selectedSchool = "Shafi (Standard)";
-
+  String selectedlocale = "";
   TextEditingController locationController = TextEditingController();
   TextEditingController adjustmentsController = TextEditingController();
 
@@ -38,7 +39,7 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
   @override
   void initState() {
     super.initState();
-    EasyLoading.showInfo("Loading settings...");
+    EasyLoading.showInfo("Settings_Loading_Tip");
     try {
       WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
 
@@ -83,22 +84,30 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
     setState(() {
       is24 = shared24;
     });
+
+    if(context.locale.toString() == "ar_EG"){
+      selectedlocale = "العربية";
+    }else if(context.locale.toString() == "en_US"){
+      selectedlocale = "English";
+    }
     EasyLoading.dismiss();
   }
 
   void _change24HourSystem(value) async{
     var result = await shared_preference_methods.setBoolData(widget.prefs, '24system', value);
     if(!result){
-      EasyLoading.showError("Couldn't save data",
+      EasyLoading.showError("Couldn't save data".tr(),
           dismissOnTap: true);
     }
     _updateSettings();
   }
+
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Settings"),
+        title: Text("Settings_Title".tr()),
         centerTitle: true,
       ),
       backgroundColor: thirdColor,
@@ -114,9 +123,49 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                     color: fourthColor,
                     border:
                     Border.all(color: boxesBorderColor, width: 1)),
+                child: Theme(
+                  data: ThemeData(
+                    textTheme: const TextTheme(titleMedium: TextStyle(color: textColor)),
+                  ),
+                  child: DropdownSearch<String>(
+                    popupProps: const PopupProps.menu(
+                        menuProps: MenuProps(
+                          backgroundColor: fourthColor,
+                        ),
+                        showSelectedItems: true,
+                        fit: FlexFit.loose
+                    ),
+                    items: const ["العربية", "English"],
+                    dropdownDecoratorProps: DropDownDecoratorProps(
+                      baseStyle: const TextStyle(color: textColor, fontSize: 16),
+                      dropdownSearchDecoration: InputDecoration(
+                        labelText: "Settings_Language_Title".tr(),
+                        labelStyle: const TextStyle(color: textColor),
+                        helperText: "Settings_Language_Desc".tr(),
+                        helperStyle: const TextStyle(color: highlightedColor),
+                        suffixIconColor: textColor,
+                      ),
+                    ),
+                    onChanged: _changelanguage,
+                    selectedItem: selectedlocale,
+                  ),
+                ),
+              ),
+              const Divider(
+                height: 20,
+                thickness: 5,
+                color: dividerColor,
+              ),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                    borderRadius: const BorderRadius.all(Radius.circular(10)),
+                    color: fourthColor,
+                    border:
+                    Border.all(color: boxesBorderColor, width: 1)),
                 child: Row(
                   children: [
-                    const Expanded(flex:4, child: Text("Use 24-Hour", style: detailsStyle,)),
+                    Expanded(flex:4, child: const Text("Settings_Use24Hour", style: detailsStyle,).tr()),
                     Expanded(flex:1, child: Switch(
                       activeColor: textColor,
                       inactiveThumbColor: Colors.grey,
@@ -147,13 +196,13 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                     border:
                     Border.all(color: boxesBorderColor, width: 1)),
 
-                countrySearchPlaceholder: "Country",
-                stateSearchPlaceholder: "State",
-                citySearchPlaceholder: "City",
+                countrySearchPlaceholder: "Settings_Country".tr(),
+                stateSearchPlaceholder: "Settings_State".tr(),
+                citySearchPlaceholder: "Settings_City".tr(),
 
-                countryDropdownLabel: "Country",
-                stateDropdownLabel: "State",
-                cityDropdownLabel: "City",
+                countryDropdownLabel: "Settings_Country".tr(),
+                stateDropdownLabel: "Settings_State".tr(),
+                cityDropdownLabel: "Settings_City".tr(),
 
                 selectedItemStyle: const TextStyle(
                   color: textColor,
@@ -209,11 +258,11 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                     Border.all(color: boxesBorderColor, width: 1)),
                 child: TextFormField(
                   textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                       fillColor: fourthColor,
                       filled: true,
-                      helperText: "Your location in text",
-                      helperStyle: TextStyle(color: highlightedColor),
+                      helperText: "Settings_ManualLocation_Desc".tr(),
+                      helperStyle: const TextStyle(color: highlightedColor),
                       suffixIconColor: textColor,
                   ),
                   style: detailsStyle,
@@ -250,13 +299,13 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                         showSelectedItems: true,
                     ),
                     items: authorities.keys.toList(),
-                    dropdownDecoratorProps: const DropDownDecoratorProps(
-                      baseStyle: TextStyle(color: textColor, fontSize: 16),
+                    dropdownDecoratorProps: DropDownDecoratorProps(
+                      baseStyle: const TextStyle(color: textColor, fontSize: 16),
                       dropdownSearchDecoration: InputDecoration(
-                        labelText: "Method",
-                        labelStyle: TextStyle(color: textColor),
-                        helperText: "A prayer times calculation method",
-                        helperStyle: TextStyle(color: highlightedColor),
+                        labelText: "Settings_Method".tr(),
+                        labelStyle: const TextStyle(color: textColor),
+                        helperText: "Settings_Method_Desc".tr(),
+                        helperStyle: const TextStyle(color: highlightedColor),
                         suffixIconColor: textColor,
                       ),
                     ),
@@ -291,13 +340,13 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                       fit: FlexFit.loose
                     ),
                     items: schools.keys.toList(),
-                    dropdownDecoratorProps: const DropDownDecoratorProps(
-                      baseStyle: TextStyle(color: textColor, fontSize: 16),
+                    dropdownDecoratorProps: DropDownDecoratorProps(
+                      baseStyle: const TextStyle(color: textColor, fontSize: 16),
                       dropdownSearchDecoration: InputDecoration(
-                        labelText: "School",
-                        labelStyle: TextStyle(color: textColor),
-                        helperText: "A prayer times calculation school",
-                        helperStyle: TextStyle(color: highlightedColor),
+                        labelText: "Settings_School".tr(),
+                        labelStyle: const TextStyle(color: textColor),
+                        helperText: "Settings_School_Desc".tr(),
+                        helperStyle: const TextStyle(color: highlightedColor),
                         suffixIconColor: textColor,
                       ),
                     ),
@@ -324,11 +373,11 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                   ),
                   child: Column(
                     children: [
-                      const Padding(
+                      Padding(
                         padding: EdgeInsets.only(bottom: 8),
                         child: Row(
                           children: [
-                            Text("Adjustment hijri date (days)",style: TextStyle(color: textColor),),
+                            const Text("Settings_Adj_Hij_Desc",style: TextStyle(color: textColor),).tr(),
                           ],
                         ),
                       ),
@@ -361,7 +410,7 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
 
   void saveLocationAddress() async{
     if (locationController.text.isNotEmpty) {
-      EasyLoading.showInfo("Saving location...");
+      EasyLoading.showInfo("Settings_Saving_Location".tr());
       if (kDebugMode) {
         print("Saving Location...");
       }
@@ -372,58 +421,66 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
       bool result = await shared_preference_methods.setStringData(
       widget.prefs, "location", json.encode(location));
       if (!result) {
-        EasyLoading.showError("Couldn't save data", dismissOnTap: true);
+        EasyLoading.showError("Settings_Unable_To_Save".tr(), dismissOnTap: true);
         return;
       }
-      EasyLoading.showSuccess("Saved successfully");
+      EasyLoading.showSuccess("Settings_Success_Save".tr());
     }
   }
 
   void saveMethodParameter(String? value) async{
     if (value != null && value.isNotEmpty) {
-      EasyLoading.showInfo("Saving method...");
+      EasyLoading.showInfo("Settings_Saving_Method".tr());
       if (kDebugMode) {
         print("Saving method...");
       }
       bool result = await shared_preference_methods.setStringData(
           widget.prefs, "method", value);
       if (!result) {
-        EasyLoading.showError("Couldn't save data", dismissOnTap: true);
+        EasyLoading.showError("Couldn't save data".tr(), dismissOnTap: true);
         return;
       }
-      EasyLoading.showSuccess("Saved successfully");
+      EasyLoading.showSuccess("Settings_Success_Save".tr());
     }
   }
   void saveSchoolParameter(String? value) async{
     if (value != null && value.isNotEmpty) {
-      EasyLoading.showInfo("Saving school...");
+      EasyLoading.showInfo("Settings_Saving_School".tr());
       if (kDebugMode) {
         print("Saving school...");
       }
       bool result = await shared_preference_methods.setStringData(
           widget.prefs, "school", value);
       if (!result) {
-        EasyLoading.showError("Couldn't save data", dismissOnTap: true);
+        EasyLoading.showError("Couldn't save data".tr(), dismissOnTap: true);
         return;
       }
-      EasyLoading.showSuccess("Saved successfully");
+      EasyLoading.showSuccess("Settings_Success_Save".tr());
     }
   }
 
 
   void saveAdjustmentValue(num? newValue) async{
     if(newValue != null) {
-      EasyLoading.showInfo("Saving adjustment...");
+      EasyLoading.showInfo("Settings_Saving_Adjustment".tr());
       if (kDebugMode) {
         print("Saving school...");
       }
       bool result = await shared_preference_methods.setIntegerData(
           widget.prefs, "adjustment", newValue.toInt());
       if (!result) {
-        EasyLoading.showError("Couldn't save data", dismissOnTap: true);
+        EasyLoading.showError("Couldn't save data".tr(), dismissOnTap: true);
         return;
       }
-      EasyLoading.showSuccess("Saved successfully");
+      EasyLoading.showSuccess("Settings_Success_Save".tr());
+    }
+  }
+  void _changelanguage(String? val) {
+    print(val);
+    if(val == "English"){
+      context.setLocale(Locale("en","US"));
+    }else if(val == "العربية"){
+      context.setLocale(Locale("ar","EG"));
     }
   }
 }

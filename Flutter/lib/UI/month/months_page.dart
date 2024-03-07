@@ -27,6 +27,8 @@ class _MonthsPageClassState extends State<MonthsPageClass> {
       DatesDetailsDataSource(datesData: []);
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
 
+  DateTime currentDate = DateTime.now();
+
   @override
   void initState() {
     super.initState();
@@ -56,20 +58,31 @@ class _MonthsPageClassState extends State<MonthsPageClass> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-          title: const Text("Months_Title").tr(),
           centerTitle: true,
+          title: FittedBox(
+              fit: BoxFit.fitWidth,
+              child: Text("${"Months_Title".tr()}(${helpermodal.convertGregorianMonthToString(currentDate.month)?.tr()} - ${currentDate.year})",
+                style: const TextStyle(color: textColor))),
+          backgroundColor: primaryColor,
+          iconTheme: const IconThemeData(color: textColor),
           actions: [
             IconButton(
                 onPressed: () async {
                   final selected = await showMonthYearPicker(
                     context: context,
-                    initialDate: DateTime.now(),
+                    initialDate: currentDate,
                     firstDate: DateTime(1900),
                     lastDate: DateTime(2100),
                     locale: context.locale
                   );
                   if (selected != null) {
                     updateTable("${selected.year}/${selected.month}");
+                    currentDate = DateTime(
+                      selected.year,
+                      selected.month,
+                      1
+                    );
+
                   }
                 },
                 icon: const Icon(
@@ -90,7 +103,27 @@ class _MonthsPageClassState extends State<MonthsPageClass> {
                 )),
           ],
         ),
-        body: Center(
+        body: GestureDetector(
+          onPanEnd: (details) {
+            // Swiping in right direction (Previous month).
+            if (details.velocity.pixelsPerSecond.dx > 0) {
+              currentDate = DateTime(
+                  currentDate.year,
+                  currentDate.month - 1,
+                  1
+              );
+              updateTable("${currentDate.year}/${currentDate.month}");
+            }
+            // Swiping in left direction (Next month).
+            if (details.velocity.pixelsPerSecond.dx < 0) {
+              currentDate = DateTime(
+                  currentDate.year,
+                  currentDate.month + 1,
+                  1
+              );
+              updateTable("${currentDate.year}/${currentDate.month}");
+            }
+          },
           child: SfDataGridTheme(
             data: SfDataGridThemeData(
               gridLineStrokeWidth: 0.8,
@@ -100,6 +133,8 @@ class _MonthsPageClassState extends State<MonthsPageClass> {
               headerGridLinesVisibility: GridLinesVisibility.both,
               rowHeight: 60,
               source: detailsDatesDataSource,
+              swipeMaxOffset: 0.1,
+              allowSwiping: true,
               columnWidthMode: ColumnWidthMode.fill,
               columns: <GridColumn>[
                 generateColumn("day", thirdColor, "Months_Column_Day".tr(), textColor),
@@ -250,18 +285,29 @@ class DatesDetailsDataSource extends DataGridSource {
 
   @override
   DataGridRowAdapter buildRow(DataGridRow row) {
+    Color backgroundColor = fourthColor;
+    List<String> splittedGregorianDate = row.getCells()[1].value.toString().split("-");
+    if(splittedGregorianDate.length != 2){
+      backgroundColor = fourthColor;
+    }else{
+      if(int.parse(splittedGregorianDate[0]) == DateTime.now().day && int.parse(splittedGregorianDate[1]) == DateTime.now().month){
+        backgroundColor = highlightedMonthDayColor;
+      }else{
+        backgroundColor = fourthColor;
+      }
+    }
     return DataGridRowAdapter(
         cells: row.getCells().map<Widget>((e) {
-      return Container(
-        color: e.columnName == "day" ? thirdColor : fourthColor,
-        alignment: Alignment.center,
-        // padding: const EdgeInsets.all(8.0),
-        child: FittedBox(
-            child: AutoSizeText(
-              e.value.toString(),
-              style: const TextStyle(color: textColor),
-        )),
-      );
+          return Container(
+            color: e.columnName == "day"? thirdColor:backgroundColor,
+            alignment: Alignment.center,
+            // padding: const EdgeInsets.all(8.0),
+            child: FittedBox(
+                child: AutoSizeText(
+                  e.value.toString(),
+                  style: const TextStyle(color: textColor),
+            )),
+          );
     }).toList());
   }
 }

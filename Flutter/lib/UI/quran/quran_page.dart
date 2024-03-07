@@ -14,7 +14,9 @@ class _QuranPageClassState extends State<QuranPageClass> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Quran_Title").tr(),
+        title: const Text("Quran_Title", style: TextStyle(color: textColor),).tr(),
+        backgroundColor: primaryColor,
+        iconTheme: const IconThemeData(color: textColor),
       ),
       backgroundColor: thirdColor,
       body: SingleChildScrollView(

@@ -4,6 +4,7 @@ const primaryColor = Color.fromRGBO(4, 28, 50, 1);
 const secondaryColor = Color.fromRGBO(40, 42, 58, 1);
 const thirdColor = Color.fromRGBO(4, 41, 85, 1);
 const fourthColor = Color.fromRGBO(6, 70, 99, 1);
+const highlightedMonthDayColor = Color.fromRGBO(14, 107, 159, 1.0);
 const highlightedColor = Color.fromRGBO(236, 179, 101, 1);
 const textColor = Color.fromRGBO(255, 255, 255, 1);
 const dividerColor = Colors.white24;

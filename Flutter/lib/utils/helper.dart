@@ -16,7 +16,8 @@ String customtimeFormatter(String customFormat,DateTime d){
   String formattedDate = formatter.format(d);
   return formattedDate;
 }
-Future<http.Response?>? fetchData(String callType, String requiredDate, Map<String,dynamic> location, Future<SharedPreferences> prefs) async{
+
+Future<String?> constructAPIParameters(String callType, String requiredDate, Map<String,dynamic> location, Future<SharedPreferences> prefs) async{
   try{
     String constructedParameters = "";
 
@@ -48,7 +49,21 @@ Future<http.Response?>? fetchData(String callType, String requiredDate, Map<Stri
     if(sharedAdjustment != null){
       constructedParameters = '$constructedParameters&adjustment=${sharedAdjustment.toString()}';
     }
-    return http.get(Uri.parse('https://api.aladhan.com/v1/$callType/$requiredDate?$constructedParameters'));
+    return '$callType/$requiredDate?$constructedParameters';
+  }catch(e){
+    if (kDebugMode) {
+      print(e);
+    }
+    return null;
+  }
+}
+Future<http.Response?>? fetchData(String callType, String requiredDate, Map<String,dynamic> location, Future<SharedPreferences> prefs) async{
+  try{
+    String? constructedParameters = await constructAPIParameters(callType, requiredDate, location, prefs);
+    if(constructedParameters == null){
+      return null;
+    }
+    return http.get(Uri.parse('https://api.aladhan.com/v1/$constructedParameters'));
   }catch(e){
     if (kDebugMode) {
       print(e);

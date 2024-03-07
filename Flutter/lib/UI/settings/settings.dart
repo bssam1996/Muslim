@@ -104,11 +104,12 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       appBar: AppBar(
-        title: Text("Settings_Title".tr()),
+        title: Text("Settings_Title".tr(), style: const TextStyle(color: textColor),),
+        backgroundColor: primaryColor,
         centerTitle: true,
+        iconTheme: const IconThemeData(color: textColor),
       ),
       backgroundColor: thirdColor,
       body: SingleChildScrollView(
@@ -123,32 +124,27 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                     color: fourthColor,
                     border:
                     Border.all(color: boxesBorderColor, width: 1)),
-                child: Theme(
-                  data: ThemeData(
-                    textTheme: const TextTheme(titleMedium: TextStyle(color: textColor)),
-                  ),
-                  child: DropdownSearch<String>(
-                    popupProps: const PopupProps.menu(
-                        menuProps: MenuProps(
-                          backgroundColor: fourthColor,
-                        ),
-                        showSelectedItems: true,
-                        fit: FlexFit.loose
-                    ),
-                    items: const ["العربية", "English"],
-                    dropdownDecoratorProps: DropDownDecoratorProps(
-                      baseStyle: const TextStyle(color: textColor, fontSize: 16),
-                      dropdownSearchDecoration: InputDecoration(
-                        labelText: "Settings_Language_Title".tr(),
-                        labelStyle: const TextStyle(color: textColor),
-                        helperText: "Settings_Language_Desc".tr(),
-                        helperStyle: const TextStyle(color: highlightedColor),
-                        suffixIconColor: textColor,
+                child: DropdownSearch<String>(
+                  popupProps: const PopupProps.menu(
+                      menuProps: MenuProps(
+                        backgroundColor: fourthColor,
                       ),
-                    ),
-                    onChanged: _changelanguage,
-                    selectedItem: selectedlocale,
+                      showSelectedItems: true,
+                      fit: FlexFit.loose,
                   ),
+                  items: const ["العربية", "English"],
+                  dropdownDecoratorProps: DropDownDecoratorProps(
+                    baseStyle: const TextStyle(color: textColor, fontSize: 16),
+                    dropdownSearchDecoration: InputDecoration(
+                      labelText: "Settings_Language_Title".tr(),
+                      labelStyle: const TextStyle(color: textColor),
+                      helperText: "Settings_Language_Desc".tr(),
+                      helperStyle: const TextStyle(color: highlightedColor),
+                      suffixIconColor: textColor,
+                    ),
+                  ),
+                  onChanged: _changelanguage,
+                  selectedItem: selectedlocale,
                 ),
               ),
               const Divider(
@@ -286,73 +282,28 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                     color: fourthColor,
                     border:
                     Border.all(color: boxesBorderColor, width: 1)),
-                child: Theme(
-                  data: ThemeData(
-                    textTheme: const TextTheme(titleMedium: TextStyle(color: textColor)),
-                  ),
-                  child: DropdownSearch<String>(
-                    popupProps: const PopupProps.menu(
-                        menuProps: MenuProps(
-                          backgroundColor: fourthColor,
-                        ),
-                        fit: FlexFit.loose,
-                        showSelectedItems: true,
-                    ),
-                    items: authorities.keys.toList(),
-                    dropdownDecoratorProps: DropDownDecoratorProps(
-                      baseStyle: const TextStyle(color: textColor, fontSize: 16),
-                      dropdownSearchDecoration: InputDecoration(
-                        labelText: "Settings_Method".tr(),
-                        labelStyle: const TextStyle(color: textColor),
-                        helperText: "Settings_Method_Desc".tr(),
-                        helperStyle: const TextStyle(color: highlightedColor),
-                        suffixIconColor: textColor,
-                      ),
-                    ),
-                    onChanged: saveMethodParameter,
-                    selectedItem: selectedMethod,
-
-                  ),
-                ),
-              ),
-              const Divider(
-                height: 20,
-                thickness: 5,
-                color: dividerColor,
-              ),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                    borderRadius: const BorderRadius.all(Radius.circular(10)),
-                    color: fourthColor,
-                    border:
-                    Border.all(color: boxesBorderColor, width: 1)),
-                child: Theme(
-                  data: ThemeData(
-                    textTheme: const TextTheme(titleMedium: TextStyle(color: textColor)),
-                  ),
-                  child: DropdownSearch<String>(
-                    popupProps: const PopupProps.menu(
+                child: DropdownSearch<String>(
+                  popupProps: const PopupProps.menu(
                       menuProps: MenuProps(
                         backgroundColor: fourthColor,
                       ),
+                      fit: FlexFit.loose,
                       showSelectedItems: true,
-                      fit: FlexFit.loose
-                    ),
-                    items: schools.keys.toList(),
-                    dropdownDecoratorProps: DropDownDecoratorProps(
-                      baseStyle: const TextStyle(color: textColor, fontSize: 16),
-                      dropdownSearchDecoration: InputDecoration(
-                        labelText: "Settings_School".tr(),
-                        labelStyle: const TextStyle(color: textColor),
-                        helperText: "Settings_School_Desc".tr(),
-                        helperStyle: const TextStyle(color: highlightedColor),
-                        suffixIconColor: textColor,
-                      ),
-                    ),
-                    onChanged: saveSchoolParameter,
-                    selectedItem: selectedSchool,
                   ),
+                  items: authorities.keys.toList(),
+                  dropdownDecoratorProps: DropDownDecoratorProps(
+                    baseStyle: const TextStyle(color: textColor, fontSize: 16),
+                    dropdownSearchDecoration: InputDecoration(
+                      labelText: "Settings_Method".tr(),
+                      labelStyle: const TextStyle(color: textColor),
+                      helperText: "Settings_Method_Desc".tr(),
+                      helperStyle: const TextStyle(color: highlightedColor),
+                      suffixIconColor: textColor,
+                    ),
+                  ),
+                  onChanged: saveMethodParameter,
+                  selectedItem: selectedMethod,
+
                 ),
               ),
               const Divider(
@@ -367,33 +318,64 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                     color: fourthColor,
                     border:
                     Border.all(color: boxesBorderColor, width: 1)),
-                child: Theme(
-                  data: ThemeData(
-                    textTheme: const TextTheme(titleMedium: TextStyle(color: textColor)),
+                child: DropdownSearch<String>(
+                  popupProps: const PopupProps.menu(
+                    menuProps: MenuProps(
+                      backgroundColor: fourthColor,
+                    ),
+                    showSelectedItems: true,
+                    fit: FlexFit.loose
                   ),
-                  child: Column(
-                    children: [
-                      Padding(
-                        padding: EdgeInsets.only(bottom: 8),
-                        child: Row(
-                          children: [
-                            const Text("Settings_Adj_Hij_Desc",style: TextStyle(color: textColor),).tr(),
-                          ],
-                        ),
+                  items: schools.keys.toList(),
+                  dropdownDecoratorProps: DropDownDecoratorProps(
+                    baseStyle: const TextStyle(color: textColor, fontSize: 16),
+                    dropdownSearchDecoration: InputDecoration(
+                      labelText: "Settings_School".tr(),
+                      labelStyle: const TextStyle(color: textColor),
+                      helperText: "Settings_School_Desc".tr(),
+                      helperStyle: const TextStyle(color: highlightedColor),
+                      suffixIconColor: textColor,
+                    ),
+                  ),
+                  onChanged: saveSchoolParameter,
+                  selectedItem: selectedSchool,
+                ),
+              ),
+              const Divider(
+                height: 20,
+                thickness: 5,
+                color: dividerColor,
+              ),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                    borderRadius: const BorderRadius.all(Radius.circular(10)),
+                    color: fourthColor,
+                    border:
+                    Border.all(color: boxesBorderColor, width: 1)),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        children: [
+                          const Text("Settings_Adj_Hij_Desc",style: TextStyle(color: textColor),).tr(),
+                        ],
                       ),
-                      SizedBox(
-                        width: MediaQuery.of(context).size.width/2,
-                        child: NumberInputWithIncrementDecrement(
-                          controller: adjustmentsController,
-                          onChanged: saveAdjustmentValue,
-                          onDecrement: saveAdjustmentValue,
-                          onIncrement: saveAdjustmentValue,
-                          min: -100,
-                          incDecBgColor: textColor,
-                        ),
+                    ),
+                    SizedBox(
+                      width: MediaQuery.of(context).size.width/2,
+                      child: NumberInputWithIncrementDecrement(
+                        controller: adjustmentsController,
+                        onChanged: saveAdjustmentValue,
+                        onDecrement: saveAdjustmentValue,
+                        onIncrement: saveAdjustmentValue,
+                        min: -100,
+                        incDecBgColor: textColor,
+                        style: const TextStyle(color: textColor),
                       ),
-                    ],
-                  )
+                    ),
+                  ],
                 ),
               ),
               const Divider(

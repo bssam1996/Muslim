@@ -43,10 +43,13 @@ class MyApp extends StatelessWidget {
           titleSmall: TextStyle(color: textColor),
 
         ),
-        useMaterial3: false
+        useMaterial3: false,
       ),
       home: const MyHomePage(title: 'App_Title'),
-      builder: EasyLoading.init(),
+      // builder: EasyLoading.init(),
+      builder: EasyLoading.init(builder: (context, child){
+        return MediaQuery(data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(1)), child: child!);
+      }),
       supportedLocales: context.supportedLocales,
       locale: context.locale,
       // localizationsDelegates: context.localizationDelegates

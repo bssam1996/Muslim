@@ -107,21 +107,25 @@ class _MonthsPageClassState extends State<MonthsPageClass> {
           onPanEnd: (details) {
             // Swiping in right direction (Previous month).
             if (details.velocity.pixelsPerSecond.dx > 0) {
+              EasyLoading.showInfo("Months_Loading_Timetable".tr());
               currentDate = DateTime(
                   currentDate.year,
                   currentDate.month - 1,
                   1
               );
               updateTable("${currentDate.year}/${currentDate.month}");
+              EasyLoading.dismiss();
             }
             // Swiping in left direction (Next month).
             if (details.velocity.pixelsPerSecond.dx < 0) {
+              EasyLoading.showInfo("Months_Loading_Timetable".tr());
               currentDate = DateTime(
                   currentDate.year,
                   currentDate.month + 1,
                   1
               );
               updateTable("${currentDate.year}/${currentDate.month}");
+              EasyLoading.dismiss();
             }
           },
           child: SfDataGridTheme(

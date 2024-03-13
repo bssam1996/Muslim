@@ -7,7 +7,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart';
 import 'package:muslim/UI/month/months_page.dart';
 import 'package:muslim/UI/contact/contact.dart';
 import 'package:muslim/UI/qiblah/qiblah_page.dart';
@@ -61,9 +60,9 @@ class _MyHomePageState extends State<MyHomePage> {
   // static const detailsStyle =
   //     TextStyle(fontSize: 20, fontWeight: FontWeight.w500, color: Colors.white);
   static const prayerStyle =
-      TextStyle(fontSize: 20, fontWeight: FontWeight.w500, color: textColor);
+      TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: textColor);
   static const highlightedDetailsStyle = TextStyle(
-      fontSize: 20, fontWeight: FontWeight.w500, color: highlightedColor);
+      fontSize: 18, fontWeight: FontWeight.w500, color: highlightedColor);
 
   Widget metaData = DataTable(
       columns: [DataColumn(label: Text("")), DataColumn(label: Text(""))],
@@ -473,15 +472,15 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
         ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: _fetchAPI,
-          tooltip: 'Reload'.tr(),
-          child: const Icon(
-            Icons.get_app,
-            color: textColor,
-          ),
-          backgroundColor: primaryColor,
-        ),
+        // floatingActionButton: FloatingActionButton(
+        //   onPressed: _fetchAPI,
+        //   tooltip: 'Reload'.tr(),
+        //   child: const Icon(
+        //     Icons.get_app,
+        //     color: textColor,
+        //   ),
+        //   backgroundColor: primaryColor,
+        // ),
       ),
     );
   }
@@ -526,14 +525,31 @@ class _MyHomePageState extends State<MyHomePage> {
                         (jsonDataDate[daynumber]["gregorian"]?["month"]?["en"] ?? "Month")
                             .toString()
                             .tr(),
-                        style: headlineStyle.copyWith(fontSize: 20),
+                          style: const TextStyle(color: textColor, fontWeight: FontWeight.bold),
+                        maxLines: 1,
                       ),
                       AutoSizeText(
                         jsonDataDate[daynumber]["gregorian"]?["date"] ?? "gregorian",
-                        style: headlineStyle.copyWith(fontSize: 20),
+                          style: const TextStyle(color: textColor, fontWeight: FontWeight.bold),
+                        maxLines: 1,
                       ),
                     ],
                   )),
+                ),
+                Expanded(
+                  flex: 1,
+                  child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          AutoSizeText(
+                            (jsonDataDate[daynumber]["gregorian"]?["weekday"]?["en"]?.toString().substring(0, 3) ?? "Day")
+                                .toString()
+                                .tr(),
+                              style: const TextStyle(color: textColor, fontWeight: FontWeight.bold)
+                          ),
+                        ],
+                      )),
                 ),
                 Expanded(
                   flex: 1,
@@ -545,11 +561,13 @@ class _MyHomePageState extends State<MyHomePage> {
                         (jsonDataDate[daynumber]["hijri"]?["month"]?["en"] ?? "Month")
                             .toString()
                             .tr(),
-                        style: headlineStyle.copyWith(fontSize: 20),
+                          style: const TextStyle(color: textColor, fontWeight: FontWeight.bold),
+                        maxLines: 1,
                       ),
                       AutoSizeText(
                         jsonDataDate[daynumber]["hijri"]?["date"] ?? "hijri",
-                        style: headlineStyle.copyWith(fontSize: 20),
+                        style: const TextStyle(color: textColor, fontWeight: FontWeight.bold),
+                        maxLines: 1,
                       ),
                     ],
                   )),
@@ -624,10 +642,10 @@ class _MyHomePageState extends State<MyHomePage> {
               child: SizedBox(
                 width: MediaQuery.of(context).size.width * 0.3,
                 child: Center(
-                  child: Text("${headText.tr()}:",
+                  child: AutoSizeText("${headText.tr()}:",
                       style: nextPray == headText
                           ? (dayNumber==0)?highlightedDetailsStyle:prayerStyle
-                          : prayerStyle),
+                          : prayerStyle, maxLines: 1,),
                 ),
               ),
             ),
@@ -636,11 +654,11 @@ class _MyHomePageState extends State<MyHomePage> {
               child: SizedBox(
                 width: MediaQuery.of(context).size.width / 2 * 3,
                 child: Center(
-                  child: Text(detailsText,
+                  child: AutoSizeText(detailsText,
                       textDirection: TextDirection.ltr,
                       style: nextPray == headText
                           ? (dayNumber==0)?highlightedDetailsStyle:prayerStyle
-                          : prayerStyle),
+                          : prayerStyle, maxLines: 1),
                 ),
               ),
             ),
@@ -693,7 +711,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           child: Text(
             time,
-            style: highlightedDetailsStyle.copyWith(fontSize: 25),
+            style: highlightedDetailsStyle.copyWith(fontSize: 20),
           ),
         )
       ],

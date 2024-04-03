@@ -61,8 +61,30 @@ class _MonthsPageClassState extends State<MonthsPageClass> {
           centerTitle: true,
           title: FittedBox(
               fit: BoxFit.fitWidth,
-              child: Text("${"Months_Title".tr()}(${helpermodal.convertGregorianMonthToString(currentDate.month)?.tr()} - ${currentDate.year})",
-                style: const TextStyle(color: textColor))),
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: () {
+                      navigateTable(false);
+                    },
+                    icon: const Icon(
+                      Icons.arrow_back_ios_new,
+                      color: Colors.white54,
+                    ),
+                  ),
+                  Text("${"Months_Title".tr()}(${helpermodal.convertGregorianMonthToString(currentDate.month)?.tr()} - ${currentDate.year})",
+                    style: const TextStyle(color: textColor)),
+                  IconButton(
+                    onPressed: () {
+                      navigateTable(true);
+                    },
+                    icon: const Icon(
+                      Icons.arrow_forward_ios,
+                      color: Colors.white54,
+                    ),
+                  ),
+                ],
+              )),
           backgroundColor: primaryColor,
           iconTheme: const IconThemeData(color: textColor),
           actions: [
@@ -107,25 +129,11 @@ class _MonthsPageClassState extends State<MonthsPageClass> {
           onPanEnd: (details) {
             // Swiping in right direction (Previous month).
             if (details.velocity.pixelsPerSecond.dx > 0) {
-              EasyLoading.showInfo("Months_Loading_Timetable".tr());
-              currentDate = DateTime(
-                  currentDate.year,
-                  currentDate.month - 1,
-                  1
-              );
-              updateTable("${currentDate.year}/${currentDate.month}");
-              EasyLoading.dismiss();
+              navigateTable(false);
             }
             // Swiping in left direction (Next month).
             if (details.velocity.pixelsPerSecond.dx < 0) {
-              EasyLoading.showInfo("Months_Loading_Timetable".tr());
-              currentDate = DateTime(
-                  currentDate.year,
-                  currentDate.month + 1,
-                  1
-              );
-              updateTable("${currentDate.year}/${currentDate.month}");
-              EasyLoading.dismiss();
+              navigateTable(true);
             }
           },
           child: SfDataGridTheme(
@@ -224,6 +232,25 @@ class _MonthsPageClassState extends State<MonthsPageClass> {
       detailsDates.add(detailedDates);
     }
     return detailsDates;
+  }
+
+  void navigateTable(bool forward) {
+    EasyLoading.showInfo("Months_Loading_Timetable".tr());
+    if(forward){
+      currentDate = DateTime(
+          currentDate.year,
+          currentDate.month + 1,
+          1
+      );
+    }else{
+      currentDate = DateTime(
+          currentDate.year,
+          currentDate.month - 1,
+          1
+      );
+    }
+    updateTable("${currentDate.year}/${currentDate.month}");
+    EasyLoading.dismiss();
   }
 }
 String constructTime(String time) {

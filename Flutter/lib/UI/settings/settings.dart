@@ -2,11 +2,13 @@ import 'dart:convert';
 
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:muslim/shared/constants.dart';
 import 'package:number_inc_dec/number_inc_dec.dart';
+import 'package:seeip_client/seeip_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../utils/shared_preference_methods.dart' as shared_preference_methods;
 import 'package:csc_picker/csc_picker.dart';
@@ -23,7 +25,7 @@ class SettingsPageClass extends StatefulWidget {
 class _SettingsPageClassState extends State<SettingsPageClass> {
 
   static const detailsStyle =
-  TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: textColor);
+  TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: textColor);
   bool is24 = true;
   String countryValue = "";
   String stateValue = "";
@@ -79,7 +81,7 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
       selectedSchool = school;
     }
     var adjustment = await shared_preference_methods.getIntegerData(
-        widget.prefs, 'adjustment', 1);
+        widget.prefs, 'adjustment', 0);
     adjustmentsController.text = adjustment.toString();
     setState(() {
       is24 = shared24;
@@ -110,6 +112,11 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
         backgroundColor: primaryColor,
         centerTitle: true,
         iconTheme: const IconThemeData(color: textColor),
+        // actions: [
+        //   IconButton(onPressed: (){
+        //     _updateSettings();
+        //   }, icon: const Icon(Icons.save, color: Colors.white54,))
+        // ],
       ),
       backgroundColor: thirdColor,
       body: SingleChildScrollView(
@@ -134,7 +141,7 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                   ),
                   items: const ["العربية", "English"],
                   dropdownDecoratorProps: DropDownDecoratorProps(
-                    baseStyle: const TextStyle(color: textColor, fontSize: 16),
+                    baseStyle: const TextStyle(color: textColor, fontSize: 14),
                     dropdownSearchDecoration: InputDecoration(
                       labelText: "Settings_Language_Title".tr(),
                       labelStyle: const TextStyle(color: textColor),
@@ -245,30 +252,58 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                 },
               ),
               const SizedBox(height: 10,),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                    borderRadius: const BorderRadius.all(Radius.circular(10)),
-                    color: fourthColor,
-                    border:
-                    Border.all(color: boxesBorderColor, width: 1)),
-                child: TextFormField(
-                  textCapitalization: TextCapitalization.words,
-                  decoration: InputDecoration(
-                      fillColor: fourthColor,
-                      filled: true,
-                      helperText: "Settings_ManualLocation_Desc".tr(),
-                      helperStyle: const TextStyle(color: highlightedColor),
-                      suffixIconColor: textColor,
+              Row(
+                children: [
+                  Expanded(
+                    flex: 8,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                          borderRadius: const BorderRadius.all(Radius.circular(10)),
+                          color: fourthColor,
+                          border:
+                          Border.all(color: boxesBorderColor, width: 1)),
+                      child: TextFormField(
+                        textCapitalization: TextCapitalization.words,
+                        decoration: InputDecoration(
+                            fillColor: fourthColor,
+                            filled: true,
+                            helperText: "Settings_ManualLocation_Desc".tr(),
+                            helperStyle: const TextStyle(color: highlightedColor),
+                            suffixIconColor: textColor,
+                        ),
+                        style: detailsStyle,
+                        controller: locationController,
+                        textInputAction: TextInputAction.done,
+                        onEditingComplete: () {
+                          saveLocationAddress();
+                          helper.invalidateTodayCachedData(widget.prefs);
+                        },
+                      ),
+                    ),
                   ),
-                  style: detailsStyle,
-                  controller: locationController,
-                  textInputAction: TextInputAction.done,
-                  onEditingComplete: () {
-                    saveLocationAddress();
-                    helper.invalidateTodayCachedData(widget.prefs);
-                  },
-                ),
+                  Expanded(
+                    flex: 2,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(8.0, 0, 8.0, 0),
+                      child: IconButton(
+                        onPressed: () async{
+                          EasyLoading.showInfo("Settings_Saving_Location".tr());
+                          var seeip = SeeipClient();
+                          var ip = await seeip.getIP();
+                          var geoLocation = await seeip.getGeoIP(ip.ip);
+                          String loc = "${geoLocation.city}, ${geoLocation.region}, ${geoLocation.country}";
+                          locationController.text = loc;
+                          saveLocationAddress();
+                        },
+                        icon: const Icon(
+                          Icons.language,
+                          color: Colors.white54,
+                        ),
+                      ),
+                    ),
+                  )
+                ],
               ),
               const Divider(
                 height: 20,
@@ -292,7 +327,7 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                   ),
                   items: authorities.keys.toList(),
                   dropdownDecoratorProps: DropDownDecoratorProps(
-                    baseStyle: const TextStyle(color: textColor, fontSize: 16),
+                    baseStyle: const TextStyle(color: textColor, fontSize: 14),
                     dropdownSearchDecoration: InputDecoration(
                       labelText: "Settings_Method".tr(),
                       labelStyle: const TextStyle(color: textColor),
@@ -328,7 +363,7 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                   ),
                   items: schools.keys.toList(),
                   dropdownDecoratorProps: DropDownDecoratorProps(
-                    baseStyle: const TextStyle(color: textColor, fontSize: 16),
+                    baseStyle: const TextStyle(color: textColor, fontSize: 14),
                     dropdownSearchDecoration: InputDecoration(
                       labelText: "Settings_School".tr(),
                       labelStyle: const TextStyle(color: textColor),
@@ -356,7 +391,7 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                 child: Column(
                   children: [
                     Padding(
-                      padding: EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.only(bottom: 8),
                       child: Row(
                         children: [
                           const Text("Settings_Adj_Hij_Desc",style: TextStyle(color: textColor),).tr(),

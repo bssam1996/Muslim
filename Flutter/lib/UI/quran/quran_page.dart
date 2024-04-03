@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:launch_review/launch_review.dart';
 import 'package:muslim/shared/constants.dart';
@@ -31,11 +32,16 @@ class _QuranPageClassState extends State<QuranPageClass> {
                   ListTile(
                     title: const Text('Quran Link', style: TextStyle(fontSize:24, color: textColor),),
                     onTap: (){
-                      LaunchReview.launch(
-                          androidAppId: "com.qortoba.quran.link",
-                          iOSAppId: "1425763263",
-                        writeReview: false
-                      );
+                      if(kIsWeb){
+                        // https://play.google.com/store/apps/details?id=com.qortoba.quran.link
+                        
+                      }else{
+                        LaunchReview.launch(
+                            androidAppId: "com.qortoba.quran.link",
+                            iOSAppId: "1425763263",
+                          writeReview: false
+                        );
+                      }
                     },
                   ),
                   const Divider(color: textColor,)

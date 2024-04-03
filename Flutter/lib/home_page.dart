@@ -7,6 +7,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:muslim/UI/month/months_page.dart';
 import 'package:muslim/UI/contact/contact.dart';
 import 'package:muslim/UI/qiblah/qiblah_page.dart';
@@ -34,13 +35,33 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    if (Platform.isAndroid) {
-      HomeWidget.setAppGroupId(HOME_WIDGET_GROUP_ID);
+    if(!kIsWeb){
+      if (Platform.isAndroid) {
+        HomeWidget.setAppGroupId(HOME_WIDGET_GROUP_ID);
+      }
     }
     EasyLoading.showInfo("Loading settings...");
     try {
       WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-        _fetchAPI();
+        _fetchAPI().then((value) async{
+          if(value==false){
+            stopTimer();
+            await Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) =>
+                      SettingsPageClass(prefs: _prefs)),
+            );
+            var location = await shared_preference_methods
+                .getStringData(_prefs, 'location', true);
+            if (location != null) {
+              _fetchAPI();
+            }else{
+              EasyLoading.showError("Location_Missing_Error".tr(),
+                  duration: const Duration(seconds: 10), dismissOnTap: true);
+            }
+          }
+        });
       });
     } catch (e) {
       EasyLoading.dismiss();
@@ -215,8 +236,10 @@ class _MyHomePageState extends State<MyHomePage> {
             jsonDataDate[dayNumber] = jsonData['data']['date'];
             jsonTimings[dayNumber] = jsonData['data']['timings'];
             metaData = processMetaData(jsonData['data']['meta']);
-            if (Platform.isAndroid && dayNumber == 0){
-              updateHomePage(jsonTimings[0], jsonDataDate[0]);
+            if(!kIsWeb){
+              if (Platform.isAndroid && dayNumber == 0){
+                updateHomePage(jsonTimings[0], jsonDataDate[0]);
+              }
             }
           });
           resetTimer();
@@ -262,7 +285,7 @@ class _MyHomePageState extends State<MyHomePage> {
     arrowColor: textColor,
   );
 
-  final controller = PageController(viewportFraction: 0.8, keepPage: true);
+  final pageController = PageController(viewportFraction: 0.8, keepPage: true);
   final pages = List.generate(7, (index) => Container());
 
   @override
@@ -279,29 +302,33 @@ class _MyHomePageState extends State<MyHomePage> {
             padding: EdgeInsets.zero,
             children: [
               drawerHeader,
-              Column(
-                children: [
-                  ListTile(
-                    title: const Text(
-                      'Home_Panel_Qiblah',
-                      style: TextStyle(color: textColor),
-                    ).tr(),
-                    trailing: Image.asset(
-                      "assets/qiblah/compass.png",
-                      width: 24,
+
+              Visibility(
+                visible: !kIsWeb,
+                child: Column(
+                  children: [
+                    ListTile(
+                      title: const Text(
+                        'Home_Panel_Qiblah',
+                        style: TextStyle(color: textColor),
+                      ).tr(),
+                      trailing: Image.asset(
+                        "assets/qiblah/compass.png",
+                        width: 24,
+                      ),
+                      onTap: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const QiblahClass()),
+                        );
+                      },
                     ),
-                    onTap: () async {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const QiblahClass()),
-                      );
-                    },
-                  ),
-                  const Divider(
-                    color: textColor,
-                  ),
-                ],
+                    const Divider(
+                      color: textColor,
+                    ),
+                  ],
+                ),
               ),
               Column(
                 children: [
@@ -371,7 +398,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             builder: (context) =>
                                 SettingsPageClass(prefs: _prefs)),
                       );
-                      helper.invalidateTodayCachedData(_prefs);
+                      // helper.invalidateTodayCachedData(_prefs);
                       var location = await shared_preference_methods
                           .getStringData(_prefs, 'location', true);
                       if (location != null) {
@@ -425,7 +452,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 SizedBox(
                   height: 455,
                   child: PageView.builder(
-                    controller: controller,
+                    controller: pageController,
                     itemCount: 7,
                     itemBuilder: (_, index) {
                       return prayerTimingPage(index);
@@ -434,13 +461,16 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 // prayerTimingPage(0),
                 SmoothPageIndicator(
-                  controller: controller,
+                  controller: pageController,
                   count: 7,
                   effect: const JumpingDotEffect(
                     dotHeight: 16,
                     dotWidth: 16,
                     activeDotColor: highlightedColor
                   ),
+                  onDotClicked: (index){
+                    pageController.animateToPage(index, duration: const Duration(milliseconds: 300), curve: Curves.easeIn);
+                  },
                 ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -472,15 +502,6 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
         ),
-        // floatingActionButton: FloatingActionButton(
-        //   onPressed: _fetchAPI,
-        //   tooltip: 'Reload'.tr(),
-        //   child: const Icon(
-        //     Icons.get_app,
-        //     color: textColor,
-        //   ),
-        //   backgroundColor: primaryColor,
-        // ),
       ),
     );
   }

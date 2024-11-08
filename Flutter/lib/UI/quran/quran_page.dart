@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:launch_review/launch_review.dart';
+// import 'package:app_launcher/app_launcher.dart';
+import 'package:flutter_launch_store/flutter_launch_store.dart';
 import 'package:muslim/shared/constants.dart';
 import 'package:easy_localization/easy_localization.dart';
 class QuranPageClass extends StatefulWidget {
@@ -31,16 +32,14 @@ class _QuranPageClassState extends State<QuranPageClass> {
                 children: [
                   ListTile(
                     title: const Text('Quran Link', style: TextStyle(fontSize:24, color: textColor),),
-                    onTap: (){
+                    onTap: () async{
                       if(kIsWeb){
                         // https://play.google.com/store/apps/details?id=com.qortoba.quran.link
                         
                       }else{
-                        LaunchReview.launch(
-                            androidAppId: "com.qortoba.quran.link",
-                            iOSAppId: "1425763263",
-                          writeReview: false
-                        );
+                        StoreLauncher.openWithStore("com.qortoba.quran.link").catchError((e) {
+                          print('ERROR> $e');
+                        });
                       }
                     },
                   ),

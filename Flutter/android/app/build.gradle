@@ -40,7 +40,7 @@ if (keystorePropertiesFile.exists()) {
 android {
     compileSdkVersion flutter.compileSdkVersion
     ndkVersion flutter.ndkVersion
-
+    namespace "com.bplusplus.muslim"
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8

@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.25.0+23
+version: 1.27.0+26
 
 environment:
   sdk: '>=2.19.0 <3.0.0'
@@ -35,28 +35,31 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.6
-  flutter_launcher_icons: ^0.13.1
+  flutter_launcher_icons: ^0.14.1
   http: ^1.1.0
-  intl: ^0.18.1
+  intl: ^0.19.0
   flutter_easyloading: ^3.0.5
-  shared_preferences: ^2.2.2
+  shared_preferences: ^2.3.2
   auto_size_text: ^3.0.0
   csc_picker: ^0.2.7
   dropdown_search: ^5.0.6
-  flutter_qiblah: ^2.2.0
+  flutter_qiblah: ^3.0.4
   flutter_svg: ^2.0.9
-  launch_review: ^3.0.1
   number_inc_dec: ^0.8.0
   syncfusion_flutter_datagrid: ^24.2.8
   syncfusion_flutter_core: ^24.2.8
-  month_year_picker: ^0.3.0+1
-  flutter_localization: ^0.2.0
+  month_year_picker: ^0.4.0+1
+  flutter_localization: ^0.2.2
   device_preview: ^1.1.0
-  home_widget: 0.4.0-alpha.0
-  easy_localization: ^3.0.3
+  home_widget: 0.6.0
+  easy_localization: ^3.0.7
   seeip_client: ^1.1.0
   smooth_page_indicator: ^1.1.0
   contactus: ^1.2.3
+  win32: 5.8.0
+  upgrader: ^11.3.0
+  flutter_launch_store: ^1.0.8
+#  app_launcher: 1.0.1
 
 dev_dependencies:
   flutter_test:
@@ -102,9 +105,18 @@ flutter:
     - "assets/qiblah/needle.svg"
     - "assets/quran/quran.png"
     - "assets/prayercalender/prayercalender.png"
+    - "assets/dua/dua.png"
     - "assets/icon/main.png"
     - "assets/translations/"
-
+  fonts:
+    - family: Uthman
+      fonts:
+        - asset: assets/fonts/Uthman-Taha-Naskh-Regular.otf
+        - asset: assets/fonts/Uthman-Taha-Naskh-Bold.otf
+          weight: 700
+    - family: Jameel
+      fonts:
+        - asset: assets/fonts/jameel.ttf
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
 

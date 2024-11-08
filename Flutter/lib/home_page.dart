@@ -7,6 +7,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
+import 'package:muslim/UI/dua/dua_page.dart';
 import 'package:muslim/UI/month/months_page.dart';
 import 'package:muslim/UI/contact/contact.dart';
 import 'package:muslim/UI/qiblah/qiblah_page.dart';
@@ -21,6 +23,7 @@ import 'utils/shared_preference_methods.dart' as shared_preference_methods;
 import 'package:home_widget/home_widget.dart';
 import 'package:easy_localization/easy_localization.dart' as easy_Localization;
 import 'package:seeip_client/seeip_client.dart';
+import 'package:upgrader/upgrader.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
@@ -34,13 +37,33 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    if (Platform.isAndroid) {
-      HomeWidget.setAppGroupId(HOME_WIDGET_GROUP_ID);
+    if(!kIsWeb){
+      if (Platform.isAndroid) {
+        HomeWidget.setAppGroupId(HOME_WIDGET_GROUP_ID);
+      }
     }
     EasyLoading.showInfo("Loading settings...");
     try {
       WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-        _fetchAPI();
+        _fetchAPI().then((value) async{
+          if(value==false){
+            stopTimer();
+            await Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) =>
+                      SettingsPageClass(prefs: _prefs)),
+            );
+            var location = await shared_preference_methods
+                .getStringData(_prefs, 'location', true);
+            if (location != null) {
+              _fetchAPI();
+            }else{
+              EasyLoading.showError("Location_Missing_Error".tr(),
+                  duration: const Duration(seconds: 10), dismissOnTap: true);
+            }
+          }
+        });
       });
     } catch (e) {
       EasyLoading.dismiss();
@@ -215,8 +238,10 @@ class _MyHomePageState extends State<MyHomePage> {
             jsonDataDate[dayNumber] = jsonData['data']['date'];
             jsonTimings[dayNumber] = jsonData['data']['timings'];
             metaData = processMetaData(jsonData['data']['meta']);
-            if (Platform.isAndroid && dayNumber == 0){
-              updateHomePage(jsonTimings[0], jsonDataDate[0]);
+            if(!kIsWeb){
+              if (Platform.isAndroid && dayNumber == 0){
+                updateHomePage(jsonTimings[0], jsonDataDate[0]);
+              }
             }
           });
           resetTimer();
@@ -262,225 +287,261 @@ class _MyHomePageState extends State<MyHomePage> {
     arrowColor: textColor,
   );
 
-  final controller = PageController(viewportFraction: 0.8, keepPage: true);
+  final pageController = PageController(viewportFraction: 0.8, keepPage: true);
   final pages = List.generate(7, (index) => Container());
 
   @override
   Widget build(BuildContext context) {
-    return RefreshIndicator(
-      onRefresh: () {
-        return _fetchAPI();
-      },
-      child: Scaffold(
-        backgroundColor: thirdColor,
-        drawer: Drawer(
-          backgroundColor: fourthColor,
-          child: ListView(
-            padding: EdgeInsets.zero,
-            children: [
-              drawerHeader,
-              Column(
-                children: [
-                  ListTile(
-                    title: const Text(
-                      'Home_Panel_Qiblah',
-                      style: TextStyle(color: textColor),
-                    ).tr(),
-                    trailing: Image.asset(
-                      "assets/qiblah/compass.png",
-                      width: 24,
-                    ),
-                    onTap: () async {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const QiblahClass()),
-                      );
-                    },
-                  ),
-                  const Divider(
-                    color: textColor,
-                  ),
-                ],
-              ),
-              Column(
-                children: [
-                  ListTile(
-                    title: const Text(
-                      'Home_Panel_Quran',
-                      style: TextStyle(color: textColor),
-                    ).tr(),
-                    trailing: Image.asset(
-                      "assets/quran/quran.png",
-                      width: 24,
-                      color: textColor,
-                    ),
-                    onTap: () async {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const QuranPageClass()),
-                      );
-                    },
-                  ),
-                  const Divider(
-                    color: textColor,
-                  ),
-                ],
-              ),
-              Column(
-                children: [
-                  ListTile(
-                    title: const Text(
-                      'Home_Panel_Prayer_Calendar',
-                      style: TextStyle(color: textColor),
-                    ).tr(),
-                    trailing: Image.asset(
-                      "assets/prayercalender/prayercalender.png",
-                      width: 24,
-                    ),
-                    onTap: () async {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const MonthsPageClass()),
-                      );
-                    },
-                  ),
-                  const Divider(
-                    color: textColor,
-                  ),
-                ],
-              ),
-              Column(
-                children: [
-                  ListTile(
-                    title: const Text('Home_Panel_Settings',
-                            style: TextStyle(color: textColor))
-                        .tr(),
-                    trailing: const Icon(
-                      Icons.settings,
-                      color: textColor,
-                      size: 24,
-                    ),
-                    onTap: () async {
-                      stopTimer();
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) =>
-                                SettingsPageClass(prefs: _prefs)),
-                      );
-                      helper.invalidateTodayCachedData(_prefs);
-                      var location = await shared_preference_methods
-                          .getStringData(_prefs, 'location', true);
-                      if (location != null) {
-                        _fetchAPI();
-                      }
-                    },
-                  ),
-                  const Divider(
-                    color: textColor,
-                  ),
-                  ListTile(
-                    title: const Text('Home_Panel_Contact',
-                        style: TextStyle(color: textColor))
-                        .tr(),
-                    trailing: const Icon(
-                      Icons.contact_support,
-                      color: textColor,
-                      size: 24,
-                    ),
-                    onTap: () async {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const ContactPageClass()),
-                      );
-                    },
-                  ),
-                  const Divider(
-                    color: textColor,
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        appBar: AppBar(
-          backgroundColor: primaryColor,
-          title: Text(
-            widget.title.tr(),
-            style: const TextStyle(color: textColor),
-          ),
-          centerTitle: true,
-          iconTheme: const IconThemeData(color: textColor),
-        ),
-        body: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: <Widget>[
-                SizedBox(
-                  height: 455,
-                  child: PageView.builder(
-                    controller: controller,
-                    itemCount: 7,
-                    itemBuilder: (_, index) {
-                      return prayerTimingPage(index);
-                    },
-                  ),
-                ),
-                // prayerTimingPage(0),
-                SmoothPageIndicator(
-                  controller: controller,
-                  count: 7,
-                  effect: const JumpingDotEffect(
-                    dotHeight: 16,
-                    dotWidth: 16,
-                    activeDotColor: highlightedColor
+    return UpgradeAlert(
+      child: RefreshIndicator(
+        onRefresh: () {
+          return _fetchAPI();
+        },
+        child: Scaffold(
+          backgroundColor: thirdColor,
+          drawer: Drawer(
+            backgroundColor: fourthColor,
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                drawerHeader,
+
+                Visibility(
+                  visible: !kIsWeb,
+                  child: Column(
+                    children: [
+                      ListTile(
+                        title: const Text(
+                          'Home_Panel_Qiblah',
+                          style: TextStyle(color: textColor),
+                        ).tr(),
+                        trailing: Image.asset(
+                          "assets/qiblah/compass.png",
+                          width: 24,
+                        ),
+                        onTap: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const QiblahClass()),
+                          );
+                        },
+                      ),
+                      const Divider(
+                        color: textColor,
+                      ),
+                    ],
                   ),
                 ),
                 Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Divider(),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Card(
-                            elevation: 20,
-                            color: fourthColor,
-                            shadowColor: thirdColor,
-                            child: Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: metaData,
-                            ),
-                          ),
-                        ),
-                      ],
+                    ListTile(
+                      title: const Text(
+                        'Home_Panel_Quran',
+                        style: TextStyle(color: textColor),
+                      ).tr(),
+                      trailing: Image.asset(
+                        "assets/quran/quran.png",
+                        width: 24,
+                        color: textColor,
+                      ),
+                      onTap: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const QuranPageClass()),
+                        );
+                      },
                     ),
-                    const Divider(),
-                    Text(
-                      "Home_Page_Declaration".tr(),
-                      style: highlightedDetailsStyle.copyWith(fontSize: 12),
+                    const Divider(
+                      color: textColor,
                     ),
                   ],
-                )
+                ),
+                Column(
+                  children: [
+                    ListTile(
+                      title: const Text(
+                        'Home_Panel_Prayer_Calendar',
+                        style: TextStyle(color: textColor),
+                      ).tr(),
+                      trailing: Image.asset(
+                        "assets/prayercalender/prayercalender.png",
+                        width: 24,
+                      ),
+                      onTap: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const MonthsPageClass()),
+                        );
+                      },
+                    ),
+                    const Divider(
+                      color: textColor,
+                    ),
+                  ],
+                ),
+                Column(
+                  children: [
+                    ListTile(
+                      title: const Text(
+                        'Home_Panel_Dua',
+                        style: TextStyle(color: textColor),
+                      ).tr(),
+                      trailing: Image.asset(
+                        "assets/dua/dua.png",
+                        width: 24,
+                      ),
+                      onTap: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const DuaPageClass()),
+                        );
+                      },
+                    ),
+                    const Divider(
+                      color: textColor,
+                    ),
+                  ],
+                ),
+                Column(
+                  children: [
+                    ListTile(
+                      title: const Text('Home_Panel_Settings',
+                              style: TextStyle(color: textColor))
+                          .tr(),
+                      trailing: const Icon(
+                        Icons.settings,
+                        color: textColor,
+                        size: 24,
+                      ),
+                      onTap: () async {
+                        stopTimer();
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) =>
+                                  SettingsPageClass(prefs: _prefs)),
+                        );
+                        // helper.invalidateTodayCachedData(_prefs);
+                        var location = await shared_preference_methods
+                            .getStringData(_prefs, 'location', true);
+                        if (location != null) {
+                          _fetchAPI();
+                        }
+                      },
+                    ),
+                    const Divider(
+                      color: textColor,
+                    ),
+                    ListTile(
+                      title: const Text('Home_Panel_Contact',
+                          style: TextStyle(color: textColor))
+                          .tr(),
+                      trailing: const Icon(
+                        Icons.contact_support,
+                        color: textColor,
+                        size: 24,
+                      ),
+                      onTap: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const ContactPageClass()),
+                        );
+                      },
+                    ),
+                    const Divider(
+                      color: textColor,
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
+          appBar: AppBar(
+            backgroundColor: primaryColor,
+            title: Text(
+              widget.title.tr(),
+              style: const TextStyle(color: textColor),
+            ),
+            centerTitle: true,
+            iconTheme: const IconThemeData(color: textColor),
+          ),
+          body: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: <Widget>[
+                  SizedBox(
+                    width: 600,
+                    height: 455,
+                    child: PageView.builder(
+                      controller: pageController,
+                      itemCount: 7,
+                      itemBuilder: (_, index) {
+                        return prayerTimingPage(index);
+                      },
+                    ),
+                  ),
+                  // prayerTimingPage(0),
+                  SmoothPageIndicator(
+                    controller: pageController,
+                    count: 7,
+                    effect: const JumpingDotEffect(
+                      dotHeight: 16,
+                      dotWidth: 16,
+                      activeDotColor: highlightedColor
+                    ),
+                    onDotClicked: (index){
+                      pageController.animateToPage(index, duration: const Duration(milliseconds: 300), curve: Curves.easeIn);
+                    },
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Divider(),
+                      Text(
+                        "Home_Page_Declaration".tr(),
+                        style: highlightedDetailsStyle.copyWith(fontSize: 12),
+                      ),
+                      const Divider(),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ExpansionTile(
+                              title: const Text("Home_Page_Meta_Title", style: TextStyle(color: textColor),).tr(),
+                              textColor: textColor,
+                              collapsedTextColor: textColor,
+                              collapsedIconColor: textColor,
+                              iconColor: textColor,
+                              children: [
+                                Card(
+                                  elevation: 20,
+                                  color: fourthColor,
+                                  shadowColor: thirdColor,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: metaData,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                        ],
+                      ),
+
+                    ],
+                  )
+                ],
+              ),
+            ),
+          ),
         ),
-        // floatingActionButton: FloatingActionButton(
-        //   onPressed: _fetchAPI,
-        //   tooltip: 'Reload'.tr(),
-        //   child: const Icon(
-        //     Icons.get_app,
-        //     color: textColor,
-        //   ),
-        //   backgroundColor: primaryColor,
-        // ),
       ),
     );
   }
@@ -722,10 +783,10 @@ class _MyHomePageState extends State<MyHomePage> {
     List<DataRow> datarows = [];
     datarows.add(buildMetaRow(
         "Home_Page_Meta_Timezone".tr(), meta["timezone"]?.toString() ?? ""));
-    datarows.add(buildMetaRow(
-        "Home_Page_Meta_Longitude".tr(), meta["longitude"]?.toString() ?? ""));
-    datarows.add(buildMetaRow(
-        "Home_Page_Meta_Latitude".tr(), meta["latitude"]?.toString() ?? ""));
+    // datarows.add(buildMetaRow(
+    //     "Home_Page_Meta_Longitude".tr(), meta["longitude"]?.toString() ?? ""));
+    // datarows.add(buildMetaRow(
+    //     "Home_Page_Meta_Latitude".tr(), meta["latitude"]?.toString() ?? ""));
     datarows.add(buildMetaRow("Home_Page_Meta_Method".tr(),
         meta["method"]["name"]?.toString() ?? ""));
     datarows.add(buildMetaRow(
@@ -825,14 +886,5 @@ class _MyHomePageState extends State<MyHomePage> {
         androidName: "HomeAppWidgetWide",
       );
     });
-
-    // HomeWidget.renderFlutterWidget(
-    //   const Icon(
-    //     Icons.flutter_dash,
-    //     size: 200,
-    //   ),
-    //   logicalSize: const Size(200, 200),
-    //   key: 'dashIcon',
-    // );
   }
 }

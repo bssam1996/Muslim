@@ -7,6 +7,7 @@ import 'package:muslim/utils/helper.dart';
 import 'package:muslim/shared/constants.dart' as constants;
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:easy_localization/easy_localization.dart';
+
 // import 'dart:io' show Platform;
 
 void main() async{

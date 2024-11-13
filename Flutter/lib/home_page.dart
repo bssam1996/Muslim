@@ -477,7 +477,7 @@ class _MyHomePageState extends State<MyHomePage> {
               child: Column(
                 children: <Widget>[
                   SizedBox(
-                    width: 600,
+                    width: 900,
                     height: 455,
                     child: PageView.builder(
                       controller: pageController,

@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:muslim/UI/azkar/azkar_page.dart';
 import 'package:muslim/UI/dua/dua_page.dart';
 import 'package:muslim/UI/month/months_page.dart';
 import 'package:muslim/UI/contact/contact.dart';
@@ -398,6 +399,30 @@ class _MyHomePageState extends State<MyHomePage> {
                           context,
                           MaterialPageRoute(
                               builder: (context) => const DuaPageClass()),
+                        );
+                      },
+                    ),
+                    const Divider(
+                      color: textColor,
+                    ),
+                  ],
+                ),
+                Column(
+                  children: [
+                    ListTile(
+                      title: const Text(
+                        'Home_Panel_Azkar',
+                        style: TextStyle(color: textColor),
+                      ).tr(),
+                      trailing: Image.asset(
+                        "assets/azkar/azkar.png",
+                        width: 24,
+                      ),
+                      onTap: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const AzkarPageClass()),
                         );
                       },
                     ),

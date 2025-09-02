@@ -1,14 +1,28 @@
 import 'package:flutter/material.dart';
 
-const primaryColor = Color.fromRGBO(4, 28, 50, 1);
+const MUSLIM_API_URL = "https://muslim-api-mu.vercel.app/";
+const MUSLIM_GOOGLE_PLAY_URI = "https://play.google.com/store/apps/details?id=com.bplusplus.muslim";
+const primaryColor = Color.fromRGBO(23, 21, 59, 1.0);
 const secondaryColor = Color.fromRGBO(40, 42, 58, 1);
-const thirdColor = Color.fromRGBO(4, 41, 85, 1);
-const fourthColor = Color.fromRGBO(6, 70, 99, 1);
+const thirdColor = Color.fromRGBO(55, 48, 107, 1.0);
+const fourthColor = Color.fromRGBO(122, 133, 193, 1.0);
+const interpolatedColor1 = Color.fromRGBO(68, 65, 124, 1.0);
+const interpolatedColor2 = Color.fromRGBO(82, 82, 141, 1.0);
+const interpolatedColor3 = Color.fromRGBO(95, 99, 159, 1.0);
+const interpolatedColor4 = Color.fromRGBO(109, 116, 176, 1.0);
+const interpolatedColor5 = Color.fromRGBO(31, 28, 71, 1.0);
+const interpolatedColor6 = Color.fromRGBO(39, 35, 83, 1.0);
+const interpolatedColor7 = Color.fromRGBO(47, 41, 95, 1.0);
 const highlightedMonthDayColor = Color.fromRGBO(14, 107, 159, 1.0);
-const highlightedColor = Color.fromRGBO(236, 179, 101, 1);
+const highlightedColor = Color.fromRGBO(99, 164, 175, 1.0);
+const highlightedTextColor = Color.fromRGBO(146, 232, 246, 1.0);
 const textColor = Color.fromRGBO(255, 255, 255, 1);
 const dividerColor = Colors.white24;
-const boxesBorderColor = Color.fromRGBO(10, 98, 140, 1.0);
+const highlightedBoxesBorderColor = Color.fromRGBO(146, 232, 246, 1.0);
+const boxesBorderColor = Color.fromRGBO(7, 88, 126, 1.0);
+
+const settingsWidgetBGColor = Color.fromRGBO(39, 35, 83, 1.0);
+
 const gloabalAppName = "Muslim";
 const HOME_WIDGET_GROUP_ID = "com.bplusplus.muslim";
 
@@ -49,3 +63,13 @@ Map<int, String> hijriMonthsNames = {
   11: "Dhu al-Qadah",
   12: "Dhu al-Hijjah",
 };
+int NUMBER_OF_DAYS = 7;
+
+List<String> PRAYER_NAMES = [
+  'Fajr',
+  'Sunrise',
+  'Dhuhr',
+  'Asr',
+  'Maghrib',
+  'Isha'
+];

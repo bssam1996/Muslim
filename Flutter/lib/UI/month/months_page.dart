@@ -316,21 +316,21 @@ class DatesDetailsDataSource extends DataGridSource {
 
   @override
   DataGridRowAdapter buildRow(DataGridRow row) {
-    Color backgroundColor = fourthColor;
+    Color backgroundColor = interpolatedColor3;
     List<String> splittedGregorianDate = row.getCells()[1].value.toString().split("-");
     if(splittedGregorianDate.length != 2){
-      backgroundColor = fourthColor;
+      backgroundColor = interpolatedColor3;
     }else{
       if(int.parse(splittedGregorianDate[0]) == DateTime.now().day && int.parse(splittedGregorianDate[1]) == DateTime.now().month){
         backgroundColor = highlightedMonthDayColor;
       }else{
-        backgroundColor = fourthColor;
+        backgroundColor = interpolatedColor3;
       }
     }
     return DataGridRowAdapter(
         cells: row.getCells().map<Widget>((e) {
           return Container(
-            color: e.columnName == "day"? thirdColor:backgroundColor,
+            color: (e.columnName == "day" || e.columnName == "gregorian" || e.columnName == "hijri")? thirdColor:backgroundColor,
             alignment: Alignment.center,
             // padding: const EdgeInsets.all(8.0),
             child: FittedBox(

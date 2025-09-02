@@ -7,6 +7,8 @@
   "Home_Panel_Contact": "تواصل",
   "Home_Panel_Dua": "أدعية",
   "Home_Panel_Azkar": "أذكار",
+  "Home_Panel_Share": "مشاركه التطبيق",
+  "Home_Panel_Hadiths": "احاديث",
   "Home_Page_Declaration": "*يرجى ملاحظة أن مواقيت الصلاة قد لا تتطابق دائمًا مع المسجد المحلي أو السلطة الحكومية. من المحتمل أن تم ضبط توقيتاتهم أو تعديلها.",
   "Home_Page_Meta_Timezone": "منطقة زمنية",
   "Home_Page_Meta_Longitude": "خط الطول",
@@ -141,5 +143,18 @@
   "Dhuhr": "ظهر",
   "Asr": "عصر",
   "Maghrib": "مغرب",
-  "Isha": "عشاء"
+  "Isha": "عشاء",
+  "Today": "اليوم",
+  "Home_Page_Next_Prayer": "الصلاه التالية خلال",
+  "HOME_HADITH_TITLE": "حديث اليوم",
+  "OK": "حسنا",
+  "Hadith_Home_Page_Title": "احاديث",
+  "Hadith_Home_Page_Custom_Search_Button": "بحث عن حديث",
+  "Hadith_CustomSearch_Page_Title": "بحث عن حديث",
+  "Custom_Search_Landing_Page_Text": "الرجاء الضغط على زر البحث لبدء البحث",
+  "Hadith_CustomSerach_Dialogue_Title": "البحث عن حديث",
+  "Cancel": "الغاء",
+  "Search": "بحث",
+  "Hadith_CustomSearch_Dialogue_TextField": "ادخل جزء من الحديث",
+  "Custom_Search_Empty_Page_Text": "لم يتم العثور على حديث يطابق بحثك"
 }

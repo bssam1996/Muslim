@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -5,6 +6,9 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/shared_preference_methods.dart' as shared_preference_methods;
 import '../shared/constants.dart' as constants;
+
+const String _lastFetchedDateKey = 'last_fetched_date';
+
 String dateFormatter(DateTime d){
   DateFormat formatter = DateFormat('dd-MM-yyyy');
   String formattedDate = formatter.format(d);
@@ -144,4 +148,42 @@ MaterialColor getMaterialColor(Color color) {
   };
 
   return MaterialColor(color.value, shades);
+}
+
+Future<bool> shouldFetchDailyData(SharedPreferences prefs) async {
+  final String? lastFetchedDateString = prefs.getString(_lastFetchedDateKey);
+  if (lastFetchedDateString == null) {
+    return true; // Never fetched before
+  }
+  final DateTime lastFetchedDate = DateTime.parse(lastFetchedDateString);
+  final DateTime today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+  return !lastFetchedDate.isAtSameMomentAs(today);
+}
+
+Future<void> updateLastFetchedDate(SharedPreferences prefs) async {
+  final DateTime today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+  await prefs.setString(_lastFetchedDateKey, today.toIso8601String());
+}
+String getNowMinutes(){
+  DateTime now = DateTime.now();
+  return now.minute.toString().padLeft(2, '0');
+}
+
+String getAddressLocation(Map<String, dynamic> savedLocation){
+  if(savedLocation["type"] == "address"){
+    return savedLocation["location"]??"-";
+  }else{
+    return "-";
+  }
+}
+
+String constructDateFormat(String month, String fullDate){
+  List<String> fullDateSplitted = fullDate.split("-");
+  if(fullDateSplitted.length != 3){
+    return "Month";
+  }
+  String year = fullDateSplitted[2];
+  String day = fullDateSplitted[0];
+  month = month.tr();
+  return "$month $day, $year";
 }

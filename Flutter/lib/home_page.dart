@@ -1,30 +1,34 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:core';
 import 'dart:io' show Platform;
 import 'package:auto_size_text/auto_size_text.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:background_fetch/background_fetch.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart';
 import 'package:muslim/UI/azkar/azkar_page.dart';
 import 'package:muslim/UI/dua/dua_page.dart';
+import 'package:muslim/UI/hadith/main_page.dart';
 import 'package:muslim/UI/month/months_page.dart';
 import 'package:muslim/UI/contact/contact.dart';
 import 'package:muslim/UI/qiblah/qiblah_page.dart';
 import 'package:muslim/UI/quran/quran_page.dart';
 import 'package:muslim/shared/constants.dart';
+import 'package:muslim/utils/api_utils.dart' as api_utils;
+import 'package:muslim/utils/hadith_utils.dart';
+import 'package:muslim/utils/share_utils.dart' as share_utils;
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
+import 'UI/hadith/quick_hadith_card.dart';
 import 'UI/settings/settings.dart';
 import 'utils/helper.dart' as helper;
+import 'utils/homewidget_utils.dart' as homewidget_utils;
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'utils/shared_preference_methods.dart' as shared_preference_methods;
 import 'package:home_widget/home_widget.dart';
-import 'package:easy_localization/easy_localization.dart' as easy_Localization;
-import 'package:seeip_client/seeip_client.dart';
+import 'package:easy_localization/easy_localization.dart' as easy_localization;
 import 'package:upgrader/upgrader.dart';
+import 'package:muslim/shared/rainbow_button.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
@@ -38,7 +42,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    if(!kIsWeb){
+    if (!kIsWeb) {
       if (Platform.isAndroid) {
         HomeWidget.setAppGroupId(HOME_WIDGET_GROUP_ID);
       }
@@ -46,24 +50,29 @@ class _MyHomePageState extends State<MyHomePage> {
     EasyLoading.showInfo("Loading settings...");
     try {
       WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-        _fetchAPI().then((value) async{
-          if(value==false){
+        FetchAPI().then((value) async {
+          if (value == false) {
             stopTimer();
             await Navigator.push(
               context,
               MaterialPageRoute(
-                  builder: (context) =>
-                      SettingsPageClass(prefs: _prefs)),
+                  builder: (context) => SettingsPageClass(prefs: _prefs)),
             );
-            var location = await shared_preference_methods
-                .getStringData(_prefs, 'location', true);
+            var location = await shared_preference_methods.getStringData(
+                _prefs, 'location', true);
             if (location != null) {
-              _fetchAPI();
-            }else{
+              FetchAPI();
+            } else {
               EasyLoading.showError("Location_Missing_Error".tr(),
                   duration: const Duration(seconds: 10), dismissOnTap: true);
             }
           }
+        });
+      });
+      getRandomHadith().then((value){
+        if (!mounted) return;
+        setState(() {
+          hadithOfTheDay = value;
         });
       });
     } catch (e) {
@@ -74,6 +83,8 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  String savedLocationAddress = "-";
+  int _selectedDayIndex = 0;
   Timer? refreshTimer;
   Duration refreshDuration = const Duration(seconds: 1);
 
@@ -81,185 +92,129 @@ class _MyHomePageState extends State<MyHomePage> {
 
   static const headlineStyle =
       TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: Colors.white);
+  static const headline2Style =
+      TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white);
+  static const savedAddressLocationStyle =
+  TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white);
   // static const detailsStyle =
   //     TextStyle(fontSize: 20, fontWeight: FontWeight.w500, color: Colors.white);
   static const prayerStyle =
       TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: textColor);
   static const highlightedDetailsStyle = TextStyle(
-      fontSize: 18, fontWeight: FontWeight.w500, color: highlightedColor);
+      fontSize: 18, fontWeight: FontWeight.w500, color: highlightedTextColor);
+
+  String hadithOfTheDay = "";
 
   Widget metaData = DataTable(
       columns: [DataColumn(label: Text("")), DataColumn(label: Text(""))],
       rows: []);
 
-  List<Map<String, dynamic>> jsonTimings = List<Map<String, dynamic>>.filled(7, <String,dynamic>{});
+  List<Map<String, dynamic>> jsonTimings =
+      List<Map<String, dynamic>>.filled(7, <String, dynamic>{});
 
-  List<String> prayerNames = [
-    'Fajr',
-    'Sunrise',
-    'Dhuhr',
-    'Asr',
-    'Maghrib',
-    'Isha'
-  ];
   String nextPray = 'Fajr';
   DateTime? nextPrayTime;
 
-  List<Map<String, dynamic>> jsonDataDate = List<Map<String, dynamic>>.filled(7, {});
+  List<Map<String, dynamic>> jsonDataDate =
+      List<Map<String, dynamic>>.filled(7, {});
 
-  Future<bool> _fetchAPI() async {
+  Future<bool> FetchAPI() async {
     EasyLoading.show(status: 'loading...', dismissOnTap: false);
+
+    // Get Saved location from IP or shared preferences
+    final SharedPreferences prefs = await _prefs;
+    Map<String, dynamic> savedLocation = await api_utils.getSavedLocation();
+    if (savedLocation["error"] != "") {
+      EasyLoading.showError("Location_Missing_Error".tr(),
+          duration: const Duration(seconds: 10), dismissOnTap: true);
+      return false;
+    }
+
     try {
-      var savedLocation = await shared_preference_methods.getStringData(
-          _prefs, 'location', true);
-      if (savedLocation == null) {
-        try {
-          var seeip = SeeipClient();
-          var ip = await seeip.getIP();
-          var geoLocation = await seeip.getGeoIP(ip.ip);
-          Map<String, dynamic> location = {
-            "location":
-                "${geoLocation.city}, ${geoLocation.region}, ${geoLocation.country}",
-            "type": "address"
-          };
-          bool result = await shared_preference_methods.setStringData(
-              _prefs, "location", json.encode(location));
-          if (!result) {
-            EasyLoading.showError("Location_Missing_Error".tr(),
-                duration: const Duration(seconds: 10), dismissOnTap: true);
-            return false;
-          }
-          savedLocation = location;
-        } catch (e) {
-          EasyLoading.showError("Location_Missing_Error".tr(),
-              duration: const Duration(seconds: 10), dismissOnTap: true);
-          return false;
-        }
-      }
-      int numberOfDays = 7;
-
-      for (int dayNumber = 0; dayNumber < numberOfDays; dayNumber++){
+      for (int dayNumber = 0;
+          dayNumber < NUMBER_OF_DAYS;
+          dayNumber++) {
         dynamic jsonData;
-        String? jsonEncoded = "";
-        bool fetchedFromSharedPreferences = false;
-        // Format today's date and next 6 days
-        DateTime d = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day + dayNumber);
-        String formattedDate = helper.dateFormatter(d);
-        // Construct API url from helpers
-        String? sharedKey = await helper.constructAPIParameters("", formattedDate, savedLocation, _prefs);
-        if (sharedKey == null){
-          EasyLoading.dismiss();
-          EasyLoading.showError("Something went wrong: Couldn't construct shared key", dismissOnTap: true);
+        Map<String, dynamic> dataFromDay =
+            await api_utils.getDataFromDay(dayNumber, savedLocation);
+        if (dataFromDay["error"] != "") {
+          EasyLoading.showError("Something went wrong $dataFromDay",
+              dismissOnTap: true);
           return false;
         }
-        var sharedData = await shared_preference_methods.getStringData(
-            _prefs, sharedKey, true);
-        if (sharedData != null) {
-          fetchedFromSharedPreferences = true;
-          if (kDebugMode) {
-            print("Fetching from shared-preferences");
-          }
-          jsonData = sharedData;
-        } else {
-          if (kDebugMode) {
-            print("Fetching from API");
-          }
-          var r =
-          await helper.fetchData("", formattedDate, savedLocation, _prefs);
-          jsonEncoded = r?.body;
-          jsonData = jsonDecode(jsonEncoded!);
-        }
-        if (jsonData != null && jsonData['code'] == 200) {
-          if (!fetchedFromSharedPreferences) {
-            if (kDebugMode) {
-              print("Setting in shared-preferences");
-            }
-            bool result = await shared_preference_methods.setStringData(
-                _prefs, sharedKey, jsonEncoded);
-            if (!result) {
-              EasyLoading.showError("Couldn't save data", dismissOnTap: true);
-            }
-          }
-          Map<String, dynamic> timings = jsonData['data']['timings'];
+        jsonData = dataFromDay["jsonData"];
 
-          // Calculate next prayer times for next praying
-          if(dayNumber == 0){
-            int prayerIndex = 0;
-            bool found = false;
-            DateTime currentDateTime = DateTime.now();
-            for (prayerIndex = 0; prayerIndex < prayerNames.length; prayerIndex++) {
-              String name = prayerNames[prayerIndex];
-              DateTime constructedDateTime =
-              helper.constructDateTime(timings[name].toString());
-              if (constructedDateTime.compareTo(currentDateTime) > 0) {
-                found = true;
-                nextPrayTime = constructedDateTime;
-                break;
-              }
-            }
-            if (found) {
-              nextPray = prayerNames[prayerIndex];
-            } else {
-              nextPray = prayerNames[0];
-              nextPrayTime =
-                  helper.constructDateTime(timings[prayerNames[0]].toString());
-              nextPrayTime = nextPrayTime?.add(const Duration(days: 1));
+        Map<String, dynamic> timings = jsonData['data']['timings'];
+
+        // Calculate next prayer times for next praying
+        if (dayNumber == 0) {
+          int prayerIndex = 0;
+          bool found = false;
+          DateTime currentDateTime = DateTime.now();
+          for (prayerIndex = 0;
+              prayerIndex < PRAYER_NAMES.length;
+              prayerIndex++) {
+            String name = PRAYER_NAMES[prayerIndex];
+            DateTime constructedDateTime =
+                helper.constructDateTime(timings[name].toString());
+            if (constructedDateTime.compareTo(currentDateTime) > 0) {
+              found = true;
+              nextPrayTime = constructedDateTime;
+              break;
             }
           }
-
-          //24 System check
-          var exists = await shared_preference_methods.checkExistenceData(
-              _prefs, '24system');
-          if (exists) {
-            var shared24 =
-            await shared_preference_methods.getBoolData(_prefs, '24system');
-            if (shared24 != null && shared24 == false) {
-              // Convert to 12 system
-              timings.forEach((timingName, timingValue) {
-                List<String> timingWhole = timingValue.toString().split(":");
-                int timingHour = int.parse(timingWhole[0]);
-                int timingMinute = int.parse(timingWhole[1]);
-                DateTime constructedDateTime = DateTime(
-                    DateTime.now().year,
-                    DateTime.now().month,
-                    DateTime.now().day,
-                    timingHour,
-                    timingMinute,
-                    DateTime.now().second);
-                var newValue =
-                helper.customtimeFormatter("h:mm a", constructedDateTime);
-                jsonData['data']['timings'][timingName] = newValue;
-              });
-            }
+          if (found) {
+            nextPray = PRAYER_NAMES[prayerIndex];
           } else {
-            await shared_preference_methods.setBoolData(_prefs, '24system', true);
+            nextPray = PRAYER_NAMES[0];
+            nextPrayTime = helper.constructDateTime(
+                timings[PRAYER_NAMES[0]].toString());
+            nextPrayTime = nextPrayTime?.add(const Duration(days: 1));
           }
+        }
+
+        //24 System check
+        jsonData['data']['timings'] =
+            await api_utils.getTimings24System(timings);
+
+        if (!kIsWeb) {
+          if (Platform.isAndroid && dayNumber == 0) {
+            homewidget_utils.updateHomePage(
+                jsonData['data']['timings'], jsonData['data']['date']);
+          }
+        }
+        try {
           setState(() {
             // Only call setstate once
             jsonDataDate[dayNumber] = jsonData['data']['date'];
             jsonTimings[dayNumber] = jsonData['data']['timings'];
             metaData = processMetaData(jsonData['data']['meta']);
-            if(!kIsWeb){
-              if (Platform.isAndroid && dayNumber == 0){
-                updateHomePage(jsonTimings[0], jsonDataDate[0]);
-              }
-            }
+            savedLocationAddress = helper.getAddressLocation(savedLocation);
           });
           resetTimer();
           EasyLoading.dismiss();
-        } else {
-          EasyLoading.showError("API didn't return any data!",
-              dismissOnTap: true);
-          if (fetchedFromSharedPreferences) {
-            shared_preference_methods.invalidateSharedData(_prefs, formattedDate);
-          }
-          return false;
+        } catch (e) {
+          print("Something went wrong $e");
         }
       }
+      await helper.updateLastFetchedDate(prefs);
+      BackgroundFetch.start().then((int status) {
+        if (kDebugMode) {
+          print('[BackgroundFetch] start success: $status');
+        }
+      }).catchError((e) {
+        if (kDebugMode) {
+          print('[BackgroundFetch] start FAILURE: $e');
+        }
+      });
       return true;
     } catch (e) {
-      EasyLoading.dismiss();
-      EasyLoading.showError("Something went wrong $e", dismissOnTap: true);
+      try {
+        EasyLoading.dismiss();
+        EasyLoading.showError("Something went wrong $e", dismissOnTap: true);
+      } catch (e) {
+        print("Something went wrong $e");
+      }
       return false;
     }
   }
@@ -289,24 +244,25 @@ class _MyHomePageState extends State<MyHomePage> {
   );
 
   final pageController = PageController(viewportFraction: 0.8, keepPage: true);
+  final daysListViewController = ScrollController();
   final pages = List.generate(7, (index) => Container());
 
   @override
   Widget build(BuildContext context) {
     return UpgradeAlert(
+      dialogStyle: UpgradeDialogStyle.cupertino,
       child: RefreshIndicator(
         onRefresh: () {
-          return _fetchAPI();
+          return FetchAPI();
         },
         child: Scaffold(
-          backgroundColor: thirdColor,
+          backgroundColor: interpolatedColor3,
           drawer: Drawer(
-            backgroundColor: fourthColor,
+            backgroundColor: thirdColor,
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
                 drawerHeader,
-
                 Visibility(
                   visible: !kIsWeb,
                   child: Column(
@@ -454,7 +410,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         var location = await shared_preference_methods
                             .getStringData(_prefs, 'location', true);
                         if (location != null) {
-                          _fetchAPI();
+                          FetchAPI();
                         }
                       },
                     ),
@@ -463,7 +419,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                     ListTile(
                       title: const Text('Home_Panel_Contact',
-                          style: TextStyle(color: textColor))
+                              style: TextStyle(color: textColor))
                           .tr(),
                       trailing: const Icon(
                         Icons.contact_support,
@@ -481,6 +437,46 @@ class _MyHomePageState extends State<MyHomePage> {
                     const Divider(
                       color: textColor,
                     ),
+                    ListTile(
+                      title: const Text('Home_Panel_Hadiths',
+                          style: TextStyle(color: textColor))
+                          .tr(),
+                      trailing: Image.asset(
+                        "assets/hadith/hadith.png",
+                        width: 24,
+                      ),
+                      onTap: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const HadithHomePageClass()),
+                        );
+                      },
+                    ),
+                    const Divider(
+                      color: textColor,
+                    ),
+                    Column(
+                      children: [
+                        ListTile(
+                          title: const Text(
+                            'Home_Panel_Share',
+                            style: TextStyle(color: textColor),
+                          ).tr(),
+                          trailing: const Icon(
+                            Icons.share,
+                            color: textColor,
+                            size: 24,
+                          ),
+                          onTap: () async {
+                            share_utils.shareApp();
+                          },
+                        ),
+                        const Divider(
+                          color: textColor,
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ],
@@ -494,75 +490,181 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             centerTitle: true,
             iconTheme: const IconThemeData(color: textColor),
-          ),
-          body: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: <Widget>[
-                  SizedBox(
-                    width: 900,
-                    height: 455,
-                    child: PageView.builder(
-                      controller: pageController,
-                      itemCount: 7,
-                      itemBuilder: (_, index) {
-                        return prayerTimingPage(index);
-                      },
-                    ),
-                  ),
-                  // prayerTimingPage(0),
-                  SmoothPageIndicator(
-                    controller: pageController,
-                    count: 7,
-                    effect: const JumpingDotEffect(
-                      dotHeight: 16,
-                      dotWidth: 16,
-                      activeDotColor: highlightedColor
-                    ),
-                    onDotClicked: (index){
-                      pageController.animateToPage(index, duration: const Duration(milliseconds: 300), curve: Curves.easeIn);
-                    },
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Divider(),
-                      Text(
-                        "Home_Page_Declaration".tr(),
-                        style: highlightedDetailsStyle.copyWith(fontSize: 12),
-                      ),
-                      const Divider(),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ExpansionTile(
-                              title: const Text("Home_Page_Meta_Title", style: TextStyle(color: textColor),).tr(),
-                              textColor: textColor,
-                              collapsedTextColor: textColor,
-                              collapsedIconColor: textColor,
-                              iconColor: textColor,
-                              children: [
-                                Card(
-                                  elevation: 20,
-                                  color: fourthColor,
-                                  shadowColor: thirdColor,
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: metaData,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
+            actions: [
+              Visibility(
+                visible: hadithOfTheDay != "",
+                child: AdvancedRainbowGlowButton(
+                    assetPath: "assets/hadith/bubble.png",
+                    onPressed: () => showDialog<String>(
+                      context: context,
+                      builder: (BuildContext context) => AlertDialog(
+                        shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(16.0))),
+                        backgroundColor: Colors.grey[200],
+                        title: Column(
+                          children: [
+                            Center(child: Text('HOME_HADITH_TITLE'.tr())),
+                            const Divider(),
+                          ],
+                        ),
+                        content: QuickHadithCardPageClass(hadith: hadithOfTheDay,),
+                        actions: <Widget>[
+                          TextButton(onPressed: () => Navigator.pop(context, 'X'), child: const Text('X')),
                         ],
                       ),
-
-                    ],
-                  )
+                    ),
+                    size: 35,
+                    maxGlowRadius: 15,
+                    animationDuration: const Duration(seconds: 10),
+                ),
+              )
+            ],
+          ),
+          body: DecoratedBox(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  primaryColor,
+                  interpolatedColor5,
+                  interpolatedColor6,
+                  interpolatedColor7,
+                  thirdColor,
+                  interpolatedColor1,
+                  interpolatedColor2,
+                  interpolatedColor3,
+                  // interpolatedColor4,
                 ],
+              ),
+            ),
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: <Widget>[
+                    // Head for location
+                    SizedBox(
+                      width: MediaQuery.of(context).size.width - 20,
+                      child: Row(
+                        children: [
+                          const Expanded(
+                            child: Text(""),
+                          ),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () {
+                                showModalBottomSheet(
+                                    context: context,
+                                    shape: const RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.vertical(
+                                          top: Radius.circular(25)),
+                                    ),
+                                    backgroundColor: thirdColor,
+                                    builder: (BuildContext context) {
+                                      return Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Align(
+                                            alignment: Alignment.center,
+                                            heightFactor: 2,
+                                            child: AutoSizeText(
+                                              "Home_Page_Meta_Title".tr(),
+                                              style: headline2Style,
+                                            ),
+                                          ),
+                                          Card(
+                                            elevation: 20,
+                                            color: primaryColor,
+                                            shadowColor: thirdColor,
+                                            child: Padding(
+                                              padding: const EdgeInsets.all(8.0),
+                                              child: metaData,
+                                            ),
+                                          ),
+                                          const Divider(
+                                            height: 50,
+                                          ),
+                                        ],
+                                      );
+                                    });
+                              },
+                              child: Align(
+                                alignment: Alignment.center,
+                                child: AutoSizeText(
+                                  savedLocationAddress,
+                                  style: savedAddressLocationStyle,
+                                  textAlign: TextAlign.center,
+                                  maxLines: 1,
+                                ),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: IconButton(
+                                  onPressed: () async {
+                                    stopTimer();
+                                    await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) =>
+                                              SettingsPageClass(prefs: _prefs)),
+                                    );
+                                    // helper.invalidateTodayCachedData(_prefs);
+                                    var location = await shared_preference_methods
+                                        .getStringData(_prefs, 'location', true);
+                                    if (location != null) {
+                                      FetchAPI();
+                                    }
+                                  },
+                                  icon: const Icon(
+                                    Icons.settings,
+                                    color: textColor,
+                                    size: 24,
+                                  )),
+                            ),
+                          )
+                        ],
+                      ),
+                    ),
+                    daysOfWeekWidget(),
+                    // Page view for prayer times
+                    SizedBox(
+                      width: 800,
+                      height: 520,
+                      child: PageView.builder(
+                        controller: pageController,
+                        itemCount: 7,
+                        itemBuilder: (_, index) {
+                          return prayerTimingPage(index);
+                        },
+                        onPageChanged: (value){
+                          if (!mounted) return;
+                          setState(() {
+                            _selectedDayIndex = value;
+                            double convertedValue = daysListViewController.position.maxScrollExtent / 7;
+                            daysListViewController.animateTo(convertedValue*((value==0)?0:value+1), duration: const Duration(milliseconds: 200), curve: Curves.easeIn);
+                          });
+                        },
+                      ),
+                    ),
+                    // Disclaimer
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Home_Page_Declaration".tr(),
+                          style: const TextStyle(color: textColor,fontSize: 12),
+                        ),
+                      ],
+                    )
+                  ],
+                ),
               ),
             ),
           ),
@@ -571,52 +673,125 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  Widget daysOfWeekWidget() {
+    return SizedBox(
+      height: 85, // Adjust height to fit content + margin
+      child: ListView.builder(
+        controller: daysListViewController,
+        shrinkWrap: true,
+        scrollDirection: Axis.horizontal,
+        itemCount: 7,
+        itemBuilder: (BuildContext context, int index) {
+          return _buildDayItem(index);
+        },
+      ),
+    );
+  }
+
+  Widget _buildDayItem(int index) {
+    DateTime today = DateTime.now();
+    DateTime itemDate = today.add(Duration(days: index));
+    String dayText;
+    String dayNumberText = itemDate.day.toString();
+    List<String> shortWeekdays = [
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri",
+      "Sat",
+      "Sun"
+    ];
+    if (index == 0) {
+      dayText = "Today".tr();
+    } else {
+      // DateTime.weekday returns 1 for Monday, 7 for Sunday.
+      dayText = shortWeekdays[itemDate.weekday - 1].tr();
+    }
+    bool isSelected = _selectedDayIndex == index;
+    return GestureDetector(
+      onTap: () {
+        if (!mounted) return;
+        setState(() {
+          _selectedDayIndex = index;
+        });
+        pageController.animateToPage(
+          index,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeIn,
+        );
+      },
+      child: Container(
+        width: 70, // Adjust width as needed
+        margin: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 8.0),
+        padding: const EdgeInsets.all(8.0),
+        decoration: BoxDecoration(
+          color: isSelected ? highlightedColor : primaryColor.withOpacity(0.7),
+          borderRadius: BorderRadius.circular(15.0),
+          border: Border.all(
+            color: isSelected ? highlightedColor : primaryColor,
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              spreadRadius: 1,
+              blurRadius: 3,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            AutoSizeText(
+              dayText,
+              style: TextStyle(
+                color: isSelected ? Colors.white : textColor,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 2),
+            AutoSizeText(
+              dayNumberText,
+              style: TextStyle(
+                color: isSelected ? Colors.white : textColor.withOpacity(0.8),
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget prayerTimingPage(int daynumber) {
     return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            thirdColor,
-            fourthColor,
-            thirdColor,
-          ],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: primaryColor,
-            spreadRadius: 1,
-            blurRadius: 10,// changes position of shadow
-          ),
-        ],
-      ),
+      color: Colors.transparent,
       child: Card(
-
+        borderOnForeground: false,
+        shadowColor: Colors.transparent,
         color: Colors.transparent,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(4, 10, 4, 4),
+          padding: const EdgeInsets.fromLTRB(4, 8, 4, 4),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
+              mainAxisSize: MainAxisSize.min, children: <Widget>[
             Row(
               children: [
                 Expanded(
                   flex: 1,
                   child: Center(
                       child: Column(
-                        mainAxisSize: MainAxisSize.min,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       AutoSizeText(
-                        (jsonDataDate[daynumber]["gregorian"]?["month"]?["en"] ?? "Month")
-                            .toString()
-                            .tr(),
-                          style: const TextStyle(color: textColor, fontWeight: FontWeight.bold),
-                        maxLines: 1,
-                      ),
-                      AutoSizeText(
-                        jsonDataDate[daynumber]["gregorian"]?["date"] ?? "gregorian",
-                          style: const TextStyle(color: textColor, fontWeight: FontWeight.bold),
+                        helper.constructDateFormat(jsonDataDate[daynumber]["gregorian"]?["month"]?["en"] ?? "Month",
+                          jsonDataDate[daynumber]["gregorian"]?["date"] ??
+                              "gregorian"),
+                        style: const TextStyle(
+                            color: textColor, fontWeight: FontWeight.bold),
                         maxLines: 1,
                       ),
                     ],
@@ -626,33 +801,14 @@ class _MyHomePageState extends State<MyHomePage> {
                   flex: 1,
                   child: Center(
                       child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          AutoSizeText(
-                            (jsonDataDate[daynumber]["gregorian"]?["weekday"]?["en"]?.toString().substring(0, 3) ?? "Day")
-                                .toString()
-                                .tr(),
-                              style: const TextStyle(color: textColor, fontWeight: FontWeight.bold)
-                          ),
-                        ],
-                      )),
-                ),
-                Expanded(
-                  flex: 1,
-                  child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       AutoSizeText(
-                        (jsonDataDate[daynumber]["hijri"]?["month"]?["en"] ?? "Month")
-                            .toString()
-                            .tr(),
-                          style: const TextStyle(color: textColor, fontWeight: FontWeight.bold),
-                        maxLines: 1,
-                      ),
-                      AutoSizeText(
-                        jsonDataDate[daynumber]["hijri"]?["date"] ?? "hijri",
-                        style: const TextStyle(color: textColor, fontWeight: FontWeight.bold),
+                        helper.constructDateFormat((jsonDataDate[daynumber]["hijri"]?["month"]?["en"] ??
+                            "Month")
+                            , jsonDataDate[daynumber]["hijri"]?["date"] ?? "hijri"),
+                        style: const TextStyle(
+                            color: textColor, fontWeight: FontWeight.bold),
                         maxLines: 1,
                       ),
                     ],
@@ -661,7 +817,16 @@ class _MyHomePageState extends State<MyHomePage> {
               ],
             ),
             Visibility(
-              visible: daynumber==0,
+              visible: daynumber == 0,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(0,8.0,0,8.0),
+                child: Center(
+                  child: AutoSizeText("${"Home_Page_Next_Prayer".tr()}:", style: prayerStyle,),
+                ),
+              )
+            ),
+            Visibility(
+              visible: daynumber == 0,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 textDirection: TextDirection.ltr,
@@ -682,24 +847,28 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
             ),
             const Divider(
-              height: 20,
+              height: 15,
               thickness: 5,
               color: dividerColor,
             ),
             RefreshIndicator(
                 child: ListView.builder(
                     shrinkWrap: true,
-                    itemCount: prayerNames.length,
+                    itemCount: PRAYER_NAMES.length,
                     itemBuilder: (BuildContext context, int index) {
                       return Column(
                         children: [
-                          detailsRow(prayerNames[index],
-                              jsonTimings[daynumber][prayerNames[index]] ?? "-", daynumber),
+                          detailsRow(
+                              PRAYER_NAMES[index],
+                              jsonTimings[daynumber]
+                                      [PRAYER_NAMES[index]] ??
+                                  "-",
+                              daynumber),
                         ],
                       );
                     }),
                 onRefresh: () {
-                  return _fetchAPI();
+                  return FetchAPI();
                 }),
           ]),
         ),
@@ -709,16 +878,16 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Widget detailsRow(String headText, String detailsText, int dayNumber) {
     return SizedBox(
-      height: 50,
+      height: 55,
       child: Card(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10.0),
-          side: const BorderSide(
-            color: boxesBorderColor,
+          side: BorderSide(
+            color: nextPray == headText ? (dayNumber == 0) ? highlightedBoxesBorderColor: boxesBorderColor : boxesBorderColor,
           ),
         ),
-        shadowColor: Colors.blueGrey,
-        color: fourthColor,
+        // shadowColor: Colors.blueGrey,
+        color: primaryColor,
         elevation: 15,
         margin: const EdgeInsets.all(5),
         child: Row(
@@ -728,10 +897,15 @@ class _MyHomePageState extends State<MyHomePage> {
               child: SizedBox(
                 width: MediaQuery.of(context).size.width * 0.3,
                 child: Center(
-                  child: AutoSizeText("${headText.tr()}:",
-                      style: nextPray == headText
-                          ? (dayNumber==0)?highlightedDetailsStyle:prayerStyle
-                          : prayerStyle, maxLines: 1,),
+                  child: AutoSizeText(
+                    "${headText.tr()}:",
+                    style: nextPray == headText
+                        ? (dayNumber == 0)
+                            ? highlightedDetailsStyle
+                            : prayerStyle
+                        : prayerStyle,
+                    maxLines: 1,
+                  ),
                 ),
               ),
             ),
@@ -743,8 +917,11 @@ class _MyHomePageState extends State<MyHomePage> {
                   child: AutoSizeText(detailsText,
                       textDirection: TextDirection.ltr,
                       style: nextPray == headText
-                          ? (dayNumber==0)?highlightedDetailsStyle:prayerStyle
-                          : prayerStyle, maxLines: 1),
+                          ? (dayNumber == 0)
+                              ? highlightedDetailsStyle
+                              : prayerStyle
+                          : prayerStyle,
+                      maxLines: 1),
                 ),
               ),
             ),
@@ -758,8 +935,9 @@ class _MyHomePageState extends State<MyHomePage> {
     refreshTimer = Timer.periodic(refreshDuration, (_) {
       if (nextPrayTime != null) {
         if (nextPrayTime!.isBefore(DateTime.now())) {
+          if (!mounted) return;
           setState(() async {
-            await _fetchAPI();
+            await FetchAPI();
           });
         } else {
           setState(() {});
@@ -771,6 +949,7 @@ class _MyHomePageState extends State<MyHomePage> {
   // Step 4
   void stopTimer() {
     if (refreshTimer != null) {
+      if (!mounted) return;
       setState(() => refreshTimer!.cancel());
     }
   }
@@ -792,7 +971,7 @@ class _MyHomePageState extends State<MyHomePage> {
             border: Border.all(
               color: boxesBorderColor,
             ),
-            color: fourthColor,
+            color: primaryColor,
             borderRadius: BorderRadius.circular(15),
           ),
           child: Text(
@@ -874,42 +1053,5 @@ class _MyHomePageState extends State<MyHomePage> {
         ],
       ),
     ));
-  }
-
-  void updateHomePage(
-      Map<String, dynamic> jsonTimings, Map<String, dynamic> jsonData) async {
-    Future.wait<bool?>([
-      HomeWidget.saveWidgetData<String>(
-          "fajr_text", jsonTimings["Fajr"].toString()),
-      HomeWidget.saveWidgetData<String>("fajr_label", "Fajr".tr()),
-      HomeWidget.saveWidgetData<String>(
-          "sunrise_text", jsonTimings["Sunrise"].toString()),
-      HomeWidget.saveWidgetData<String>("sunrise_label", "Sunrise".tr()),
-      HomeWidget.saveWidgetData<String>(
-          "dhuhr_text", jsonTimings["Dhuhr"].toString()),
-      HomeWidget.saveWidgetData<String>("dhuhr_label", "Dhuhr".tr()),
-      HomeWidget.saveWidgetData<String>(
-          "asr_text", jsonTimings["Asr"].toString()),
-      HomeWidget.saveWidgetData<String>("asr_label", "Asr".tr()),
-      HomeWidget.saveWidgetData<String>(
-          "maghrib_text", jsonTimings["Maghrib"].toString()),
-      HomeWidget.saveWidgetData<String>("maghrib_label", "Maghrib".tr()),
-      HomeWidget.saveWidgetData<String>(
-          "isha_text", jsonTimings["Isha"].toString()),
-      HomeWidget.saveWidgetData<String>("isha_label", "Isha".tr()),
-      HomeWidget.saveWidgetData<String>(
-          "gregorianDate_text", jsonData["gregorian"]?["date"] ?? "Month"),
-      HomeWidget.saveWidgetData<String>(
-          "hijriDate_text", jsonData["hijri"]?["date"] ?? "Month"),
-    ]).then((value) {
-      HomeWidget.updateWidget(
-        name: "HomeAppWidget",
-        androidName: "HomeAppWidget",
-      );
-      HomeWidget.updateWidget(
-        name: "HomeAppWidgetWide",
-        androidName: "HomeAppWidgetWide",
-      );
-    });
   }
 }

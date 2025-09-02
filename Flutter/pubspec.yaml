@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.27.1+27
+version: 2.3.0+36
 
 environment:
   sdk: '>=2.19.0 <3.0.0'
@@ -37,28 +37,30 @@ dependencies:
   cupertino_icons: ^1.0.6
   flutter_launcher_icons: ^0.14.1
   http: ^1.1.0
-  intl: ^0.19.0
+  intl: ^0.20.2
   flutter_easyloading: ^3.0.5
   shared_preferences: ^2.3.2
   auto_size_text: ^3.0.0
   csc_picker: ^0.2.7
-  dropdown_search: ^5.0.6
-  flutter_qiblah: ^3.0.4
+  dropdown_search: ^6.0.2
+  flutter_qiblah: ^3.1.0+1
   flutter_svg: ^2.0.9
   number_inc_dec: ^0.8.0
   syncfusion_flutter_datagrid: ^24.2.8
   syncfusion_flutter_core: ^24.2.8
-  month_year_picker: ^0.4.0+1
-  flutter_localization: ^0.2.2
+  month_year_picker: ^0.5.0+1
+  flutter_localization: ^0.3.3
   device_preview: ^1.1.0
-  home_widget: 0.6.0
+  home_widget: 0.8.0
   easy_localization: ^3.0.7
   seeip_client: ^1.1.0
   smooth_page_indicator: ^1.1.0
   contactus: ^1.2.3
   win32: 5.8.0
-  upgrader: ^11.3.0
+  upgrader: ^11.5.0
   flutter_launch_store: ^1.0.8
+  background_fetch: ^1.4.0
+  share_plus: ^11.1.0
 #  app_launcher: 1.0.1
 
 dev_dependencies:
@@ -106,6 +108,9 @@ flutter:
     - "assets/quran/quran.png"
     - "assets/prayercalender/prayercalender.png"
     - "assets/dua/dua.png"
+    - "assets/azkar/azkar.png"
+    - "assets/hadith/bubble.png"
+    - "assets/hadith/hadith.png"
     - "assets/icon/main.png"
     - "assets/translations/"
   fonts:

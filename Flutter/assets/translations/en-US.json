@@ -7,6 +7,8 @@
   "Home_Panel_Contact": "Contact",
   "Home_Panel_Dua": "Duaa",
   "Home_Panel_Azkar": "Azkar",
+  "Home_Panel_Share": "Share App",
+  "Home_Panel_Hadiths": "Hadiths",
   "Home_Page_Declaration": "*Please note that prayer timings might not always match your local mosque or government authority. Their timings are likely tuned or adjusted.",
   "Home_Page_Meta_Timezone": "Timezone",
   "Home_Page_Meta_Longitude": "Longitude",
@@ -141,5 +143,18 @@
   "Dhuhr": "Dhuhr",
   "Asr": "Asr",
   "Maghrib": "Maghrib",
-  "Isha": "Isha"
+  "Isha": "Isha",
+  "Today": "Today",
+  "Home_Page_Next_Prayer": "Next prayer in",
+  "HOME_HADITH_TITLE": "Hadith of the Day",
+  "OK": "Ok",
+  "Hadith_Home_Page_Title": "Hadiths",
+  "Hadith_Home_Page_Custom_Search_Button": "Search For Hadith",
+  "Hadith_CustomSearch_Page_Title": "Search For Hadith",
+  "Custom_Search_Landing_Page_Text": "Please click on the search button to start searching",
+  "Hadith_CustomSerach_Dialogue_Title": "Search For Hadith",
+  "Cancel": "Cancel",
+  "Search": "Search",
+  "Hadith_CustomSearch_Dialogue_TextField": "Enter part of hadith",
+  "Custom_Search_Empty_Page_Text": "Couldn't find hadith matching your search"
 }

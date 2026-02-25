@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:easy_localization/easy_localization.dart' as easy_Localization;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:workmanager/workmanager.dart';
 import 'api_utils.dart' as api_utils;
 import 'helper.dart' as helper;
 
@@ -113,7 +114,21 @@ Future<void> onBackgroundFetchPrayerTimes() async{
   jsonData = dataFromDay["jsonData"];
 
   jsonData['data']['timings'] = await api_utils.getTimings24System(jsonData['data']['timings']);
+
+  print("onBackgroundFetchPrayerTimes");
   if(!kIsWeb && Platform.isAndroid){
     updateHomePage(jsonData['data']['timings'], jsonData['data']['date']);
+    List<Map<String, dynamic>> jsonTimings = [jsonData['data']['timings']];
+    print("onBackgroundFetchPrayerTimes2");
+    await helper.handleNotifications(_prefs, jsonTimings);
   }
+}
+@pragma("vm:entry-point")
+void WorkManagercallbackDispatcher(){
+  Workmanager().executeTask((task, inputData) async {
+    print("Workmanager task $task");
+    print("Workmanager inputData $inputData");
+    await onBackgroundFetchPrayerTimes();
+    return Future.value(true);
+  });
 }

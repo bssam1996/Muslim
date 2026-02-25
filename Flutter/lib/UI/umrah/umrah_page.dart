@@ -1,24 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:muslim/UI/azkar/azkar_card_page.dart';
-import 'package:muslim/UI/azkar/azkar_list.dart';
+import 'package:muslim/UI/umrah/umrah_card_page.dart';
+import 'package:muslim/UI/umrah/umrah_list.dart';
 import 'package:muslim/shared/constants.dart';
-import 'package:muslim/shared/step_counter.dart';
 
-class AzkarPageClass extends StatefulWidget {
-  const AzkarPageClass({super.key});
+class UmrahPageClass extends StatefulWidget {
+  const UmrahPageClass({super.key});
 
   @override
-  State<AzkarPageClass> createState() => _AzkarPageClassState();
+  State<UmrahPageClass> createState() => _UmrahPageClassState();
 }
 
-class _AzkarPageClassState extends State<AzkarPageClass> {
+class _UmrahPageClassState extends State<UmrahPageClass> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Azkar_Page_Title',
+          'Umrah_Page_Title',
           style: TextStyle(color: textColor),
         ).tr(),
         iconTheme: const IconThemeData(color: textColor),
@@ -31,22 +30,22 @@ class _AzkarPageClassState extends State<AzkarPageClass> {
             physics: const AlwaysScrollableScrollPhysics(),
             shrinkWrap: true,
             padding: EdgeInsets.zero,
-            itemCount: AzkarCategories.length,
+            itemCount: umrahItems.length,
             itemBuilder: (BuildContext context, int index) {
-              String key = AzkarCategories.keys.elementAt(index);
               return Column(
                 children: [
                   Card(
                     shadowColor: Colors.grey.shade300,
                     color: fourthColor,
                     child: ListTile(
-                      title: Text(key, style: const TextStyle(fontSize:24, color: textColor),).tr(),
+                      title: Text(umrahItems[index].title, style: const TextStyle(fontSize:24, color: textColor),).tr(),
                       onTap: (){
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => AzkarCardPageClass(
-                              keyname: key
+                            builder: (context) => UmrahCardPageClass(
+                              title: umrahItems[index].title.tr(),
+                              data: umrahItems[index].data,
                             ),
                           ),
                         );

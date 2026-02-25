@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/shared_preference_methods.dart' as shared_preference_methods;
 import '../shared/constants.dart' as constants;
+import 'notification_service.dart';
 
 const String _lastFetchedDateKey = 'last_fetched_date';
 
@@ -48,11 +49,21 @@ Future<String?> constructAPIParameters(String callType, String requiredDate, Map
       String mappedSchool = constants.schools[sharedSchool].toString();
       constructedParameters = '$constructedParameters&school=$mappedSchool';
     }
-    var sharedAdjustment = await shared_preference_methods.getIntegerData(
+    var calendarMethod = await shared_preference_methods.getStringData(
+        prefs, "calendarMethod", false);
+    if(calendarMethod != null && calendarMethod != ""){
+      String mappedCalendarMethod = constants.CalendarMethods[calendarMethod].toString();
+      constructedParameters = '$constructedParameters&calendarMethod=$mappedCalendarMethod';
+      if (calendarMethod.toString() == "MATHEMATICAL") {
+        var sharedAdjustment = await shared_preference_methods.getIntegerData(
         prefs, "adjustment", 1);
-    if(sharedAdjustment != null){
-      constructedParameters = '$constructedParameters&adjustment=${sharedAdjustment.toString()}';
+        if(sharedAdjustment != null){
+          constructedParameters = '$constructedParameters&adjustment=${sharedAdjustment.toString()}';
+        }
+      }
     }
+
+
     return '$callType/$requiredDate?$constructedParameters';
   }catch(e){
     if (kDebugMode) {
@@ -183,7 +194,65 @@ String constructDateFormat(String month, String fullDate){
     return "Month";
   }
   String year = fullDateSplitted[2];
+  String monthNum = fullDateSplitted[1];
   String day = fullDateSplitted[0];
-  month = month.tr();
-  return "$month $day, $year";
+  // month = month.tr();
+  return "$day-$monthNum-$year";
+}
+Future<void> handleNotifications(Future<SharedPreferences> prefs, List<Map<String, dynamic>> jsonTimings) async {
+  var sharedprayerNotification = await shared_preference_methods.checkExistenceData(prefs, 'prayerNotification');
+  var prayerNotificationValue = false;
+  if(sharedprayerNotification){
+    var prayerNotificationSettings = await shared_preference_methods.getBoolData(prefs, 'prayerNotification');
+    prayerNotificationValue = prayerNotificationSettings;
+  }else{
+    return;
+  }
+  if (!prayerNotificationValue){
+    return;
+  }
+  try{
+    await NotificationService().init();
+    // NotificationService().clearAllNotifications();
+    for (int i = 0; i < constants.PRAYER_NAMES.length; i++) {
+      if (i == 1){
+        continue; // Skip Sunrise
+      }
+      String time = jsonTimings[0][constants.PRAYER_NAMES[i]];
+      bool is24HourSystem = !time.contains("m");
+      if (!is24HourSystem) {
+        time = time.replaceAll(" am", "");
+        time = time.replaceAll(" pm", "");
+      }
+      List<String> splittedTime = time.split(":");
+      String hourString = splittedTime[0];
+      String minuteString = splittedTime[1];
+      if(!is24HourSystem){
+        hourString = (int.parse(hourString) + 12).toString();
+      }
+      DateTime selectedTime = DateTime(
+          DateTime.now().year,
+          DateTime.now().month,
+          DateTime.now().day,
+          int.parse(hourString),
+          int.parse(minuteString),
+          0);
+      if(selectedTime.isBefore(DateTime.now())){
+        continue;
+      }
+      var r = await NotificationService().scheduleDailyNotification(selectedTime, i, "Muslim", constants.PRAYER_NAMES[i], "${"Don't forget praying".tr()} ${constants.PRAYER_NAMES[i].tr()}");
+      if (r != ""){
+        if (kDebugMode) {
+          print(r);
+        }return;
+      }
+    }
+
+    return;
+  }catch (e){
+    if (kDebugMode) {
+      print(e.toString());
+
+    }return;
+  }
 }

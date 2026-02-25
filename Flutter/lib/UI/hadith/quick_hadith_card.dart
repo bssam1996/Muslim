@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
 
+import '../../shared/constants.dart' as constants;
+
 class QuickHadithCardPageClass extends StatefulWidget {
   final String hadith;
   const QuickHadithCardPageClass({Key? key, required this.hadith})
@@ -28,6 +30,7 @@ class _QuickHadithCardPageClassState extends State<QuickHadithCardPageClass> {
       fit:BoxFit.fitHeight,
       child: Center(
         child: Card(
+          color: constants.fourthColor,
           elevation: 8.0, // Shadow depth for the card
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16.0), // Rounded corners
@@ -40,7 +43,7 @@ class _QuickHadithCardPageClassState extends State<QuickHadithCardPageClass> {
                 width: MediaQuery.of(context).size.width - 10,
                 child: SelectableText(
                   widget.hadith,
-                  style: TextStyle(fontSize: fontSize, fontFamily: 'Uthman', overflow: TextOverflow.ellipsis),
+                  style: TextStyle(fontSize: fontSize, fontFamily: 'Uthman', overflow: TextOverflow.ellipsis, color: constants.textColor),
                   textAlign: TextAlign.center,
                   textDirection: ui.TextDirection.rtl,
                   // maxLines: 50,

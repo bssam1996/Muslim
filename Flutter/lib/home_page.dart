@@ -17,9 +17,9 @@ import 'package:muslim/shared/constants.dart';
 import 'package:muslim/utils/api_utils.dart' as api_utils;
 import 'package:muslim/utils/hadith_utils.dart';
 import 'package:muslim/utils/share_utils.dart' as share_utils;
-import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'UI/hadith/quick_hadith_card.dart';
 import 'UI/settings/settings.dart';
+import 'UI/umrah/umrah_page.dart';
 import 'utils/helper.dart' as helper;
 import 'utils/homewidget_utils.dart' as homewidget_utils;
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -28,7 +28,8 @@ import 'utils/shared_preference_methods.dart' as shared_preference_methods;
 import 'package:home_widget/home_widget.dart';
 import 'package:easy_localization/easy_localization.dart' as easy_localization;
 import 'package:upgrader/upgrader.dart';
-import 'package:muslim/shared/rainbow_button.dart';
+// import 'package:muslim/shared/rainbow_button.dart';
+import 'package:muslim/UI/month/helper.dart' as prayer_calendar_model;
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
@@ -39,6 +40,12 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+    @override
+    void dispose() {
+      // pageController.dispose();
+      daysListViewController.dispose();
+      super.dispose();
+    }
   @override
   void initState() {
     super.initState();
@@ -50,6 +57,7 @@ class _MyHomePageState extends State<MyHomePage> {
     EasyLoading.showInfo("Loading settings...");
     try {
       WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+        if (!mounted) return;
         FetchAPI().then((value) async {
           if (value == false) {
             stopTimer();
@@ -207,6 +215,8 @@ class _MyHomePageState extends State<MyHomePage> {
           print('[BackgroundFetch] start FAILURE: $e');
         }
       });
+      // Handle Notification
+      await helper.handleNotifications(_prefs, jsonTimings);
       return true;
     } catch (e) {
       try {
@@ -243,12 +253,13 @@ class _MyHomePageState extends State<MyHomePage> {
     arrowColor: textColor,
   );
 
-  final pageController = PageController(viewportFraction: 0.8, keepPage: true);
+  // final pageController = PageController(viewportFraction: 0.8, keepPage: true);
   final daysListViewController = ScrollController();
-  final pages = List.generate(7, (index) => Container());
+  // final pages = List.generate(7, (index) => Container());
 
   @override
   Widget build(BuildContext context) {
+    PageController pageController = PageController(viewportFraction: 0.8, keepPage: true);
     return UpgradeAlert(
       dialogStyle: UpgradeDialogStyle.cupertino,
       child: RefreshIndicator(
@@ -390,6 +401,30 @@ class _MyHomePageState extends State<MyHomePage> {
                 Column(
                   children: [
                     ListTile(
+                      title: const Text(
+                        'Home_Panel_Umrah',
+                        style: TextStyle(color: textColor),
+                      ).tr(),
+                      trailing: Image.asset(
+                        "assets/umrah/main.png",
+                        width: 24,
+                      ),
+                      onTap: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const UmrahPageClass()),
+                        );
+                      },
+                    ),
+                    const Divider(
+                      color: textColor,
+                    ),
+                  ],
+                ),
+                Column(
+                  children: [
+                    ListTile(
                       title: const Text('Home_Panel_Settings',
                               style: TextStyle(color: textColor))
                           .tr(),
@@ -490,35 +525,35 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             centerTitle: true,
             iconTheme: const IconThemeData(color: textColor),
-            actions: [
-              Visibility(
-                visible: hadithOfTheDay != "",
-                child: AdvancedRainbowGlowButton(
-                    assetPath: "assets/hadith/bubble.png",
-                    onPressed: () => showDialog<String>(
-                      context: context,
-                      builder: (BuildContext context) => AlertDialog(
-                        shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.all(Radius.circular(16.0))),
-                        backgroundColor: Colors.grey[200],
-                        title: Column(
-                          children: [
-                            Center(child: Text('HOME_HADITH_TITLE'.tr())),
-                            const Divider(),
-                          ],
-                        ),
-                        content: QuickHadithCardPageClass(hadith: hadithOfTheDay,),
-                        actions: <Widget>[
-                          TextButton(onPressed: () => Navigator.pop(context, 'X'), child: const Text('X')),
-                        ],
-                      ),
-                    ),
-                    size: 35,
-                    maxGlowRadius: 15,
-                    animationDuration: const Duration(seconds: 10),
-                ),
-              )
-            ],
+            // actions: [
+            //   Visibility(
+            //     visible: hadithOfTheDay != "",
+            //     child: AdvancedRainbowGlowButton(
+            //         assetPath: "assets/hadith/bubble.png",
+            //         onPressed: () => showDialog<String>(
+            //           context: context,
+            //           builder: (BuildContext context) => AlertDialog(
+            //             shape: const RoundedRectangleBorder(
+            //                 borderRadius: BorderRadius.all(Radius.circular(16.0))),
+            //             backgroundColor: Colors.grey[200],
+            //             title: Column(
+            //               children: [
+            //                 Center(child: Text('HOME_HADITH_TITLE'.tr())),
+            //                 const Divider(),
+            //               ],
+            //             ),
+            //             content: QuickHadithCardPageClass(hadith: hadithOfTheDay,),
+            //             actions: <Widget>[
+            //               TextButton(onPressed: () => Navigator.pop(context, 'X'), child: const Text('X')),
+            //             ],
+            //           ),
+            //         ),
+            //         size: 35,
+            //         maxGlowRadius: 15,
+            //         animationDuration: const Duration(seconds: 10),
+            //     ),
+            //   )
+            // ],
           ),
           body: DecoratedBox(
             decoration: const BoxDecoration(
@@ -538,132 +573,143 @@ class _MyHomePageState extends State<MyHomePage> {
                 ],
               ),
             ),
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: <Widget>[
-                    // Head for location
-                    SizedBox(
-                      width: MediaQuery.of(context).size.width - 20,
-                      child: Row(
-                        children: [
-                          const Expanded(
-                            child: Text(""),
-                          ),
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () {
-                                showModalBottomSheet(
-                                    context: context,
-                                    shape: const RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.vertical(
-                                          top: Radius.circular(25)),
-                                    ),
-                                    backgroundColor: thirdColor,
-                                    builder: (BuildContext context) {
-                                      return Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Align(
-                                            alignment: Alignment.center,
-                                            heightFactor: 2,
-                                            child: AutoSizeText(
-                                              "Home_Page_Meta_Title".tr(),
-                                              style: headline2Style,
+            child: SafeArea(
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: <Widget>[
+                      // Head for location
+                      SizedBox(
+                        width: MediaQuery.of(context).size.width - 20,
+                        child: Row(
+                          children: [
+                            const Expanded(
+                              child: Text(""),
+                            ),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  showModalBottomSheet(
+                                      context: context,
+                                      shape: const RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.vertical(
+                                            top: Radius.circular(25)),
+                                      ),
+                                      backgroundColor: thirdColor,
+                                      builder: (BuildContext context) {
+                                        return Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Align(
+                                              alignment: Alignment.center,
+                                              heightFactor: 2,
+                                              child: AutoSizeText(
+                                                "Home_Page_Meta_Title".tr(),
+                                                style: headline2Style,
+                                              ),
                                             ),
-                                          ),
-                                          Card(
-                                            elevation: 20,
-                                            color: primaryColor,
-                                            shadowColor: thirdColor,
-                                            child: Padding(
-                                              padding: const EdgeInsets.all(8.0),
-                                              child: metaData,
+                                            Card(
+                                              elevation: 20,
+                                              color: primaryColor,
+                                              shadowColor: thirdColor,
+                                              child: Padding(
+                                                padding: const EdgeInsets.all(8.0),
+                                                child: metaData,
+                                              ),
                                             ),
-                                          ),
-                                          const Divider(
-                                            height: 50,
-                                          ),
-                                        ],
-                                      );
-                                    });
-                              },
-                              child: Align(
-                                alignment: Alignment.center,
-                                child: AutoSizeText(
-                                  savedLocationAddress,
-                                  style: savedAddressLocationStyle,
-                                  textAlign: TextAlign.center,
-                                  maxLines: 1,
+                                            const Divider(
+                                              height: 50,
+                                            ),
+                                          ],
+                                        );
+                                      });
+                                },
+                                child: Align(
+                                  alignment: Alignment.center,
+                                  child: AutoSizeText(
+                                    savedLocationAddress,
+                                    style: savedAddressLocationStyle,
+                                    textAlign: TextAlign.center,
+                                    maxLines: 1,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                          Expanded(
-                            child: Align(
-                              alignment: Alignment.centerRight,
-                              child: IconButton(
-                                  onPressed: () async {
-                                    stopTimer();
-                                    await Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (context) =>
-                                              SettingsPageClass(prefs: _prefs)),
-                                    );
-                                    // helper.invalidateTodayCachedData(_prefs);
-                                    var location = await shared_preference_methods
-                                        .getStringData(_prefs, 'location', true);
-                                    if (location != null) {
-                                      FetchAPI();
-                                    }
-                                  },
-                                  icon: const Icon(
-                                    Icons.settings,
-                                    color: textColor,
-                                    size: 24,
-                                  )),
-                            ),
-                          )
-                        ],
-                      ),
-                    ),
-                    daysOfWeekWidget(),
-                    // Page view for prayer times
-                    SizedBox(
-                      width: 800,
-                      height: 520,
-                      child: PageView.builder(
-                        controller: pageController,
-                        itemCount: 7,
-                        itemBuilder: (_, index) {
-                          return prayerTimingPage(index);
-                        },
-                        onPageChanged: (value){
-                          if (!mounted) return;
-                          setState(() {
-                            _selectedDayIndex = value;
-                            double convertedValue = daysListViewController.position.maxScrollExtent / 7;
-                            daysListViewController.animateTo(convertedValue*((value==0)?0:value+1), duration: const Duration(milliseconds: 200), curve: Curves.easeIn);
-                          });
-                        },
-                      ),
-                    ),
-                    // Disclaimer
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Home_Page_Declaration".tr(),
-                          style: const TextStyle(color: textColor,fontSize: 12),
+                            Expanded(
+                              child: Align(
+                                alignment: Alignment.centerRight,
+                                child: IconButton(
+                                    onPressed: () async {
+                                      stopTimer();
+                                      await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (context) =>
+                                                SettingsPageClass(prefs: _prefs)),
+                                      );
+                                      // helper.invalidateTodayCachedData(_prefs);
+                                      var location = await shared_preference_methods
+                                          .getStringData(_prefs, 'location', true);
+                                      if (location != null) {
+                                        FetchAPI();
+                                      }
+                                    },
+                                    icon: const Icon(
+                                      Icons.settings,
+                                      color: textColor,
+                                      size: 24,
+                                    )),
+                              ),
+                            )
+                          ],
                         ),
-                      ],
-                    )
-                  ],
+                      ),
+                      daysOfWeekWidget(pageController),
+                      // Page view for prayer times
+                      SizedBox(
+                        width: 800,
+                        height: 520,
+                        child: PageView.builder(
+                          controller: pageController,
+                          itemCount: 7,
+                          itemBuilder: (_, index) {
+                            return prayerTimingPage(index);
+                          },
+                          onPageChanged: (value){
+                            if (!mounted) return;
+                            setState(() {
+                              _selectedDayIndex = value;
+                              double convertedValue = daysListViewController.position.maxScrollExtent / 7;
+                              daysListViewController.animateTo(convertedValue*((value==0)?0:value+1), duration: const Duration(milliseconds: 200), curve: Curves.easeIn);
+                            });
+                          },
+                        ),
+                      ),
+                      // Disclaimer
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          AnimatedOpacity(
+                            opacity: hadithOfTheDay != "" ? 1.0 : 0.0,
+                            duration: const Duration(milliseconds: 750),
+                            child: QuickHadithCardPageClass(hadith: hadithOfTheDay,),
+                          )
+                          // Visibility(
+                          //   visible: hadithOfTheDay != "",
+                          //   child: QuickHadithCardPageClass(hadith: hadithOfTheDay,),
+                          // ),
+                          // Text(
+                          //   "Home_Page_Declaration".tr(),
+                          //   style: const TextStyle(color: textColor,fontSize: 12),
+                          // ),
+                        ],
+                      )
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -673,22 +719,23 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  Widget daysOfWeekWidget() {
+  Widget daysOfWeekWidget(PageController pageController) {
     return SizedBox(
       height: 85, // Adjust height to fit content + margin
       child: ListView.builder(
+        key: ValueKey("days_of_week"),
         controller: daysListViewController,
         shrinkWrap: true,
         scrollDirection: Axis.horizontal,
         itemCount: 7,
         itemBuilder: (BuildContext context, int index) {
-          return _buildDayItem(index);
+          return _buildDayItem(index, pageController);
         },
       ),
     );
   }
 
-  Widget _buildDayItem(int index) {
+  Widget _buildDayItem(int index, PageController pageController) {
     DateTime today = DateTime.now();
     DateTime itemDate = today.add(Duration(days: index));
     String dayText;
@@ -711,7 +758,6 @@ class _MyHomePageState extends State<MyHomePage> {
     bool isSelected = _selectedDayIndex == index;
     return GestureDetector(
       onTap: () {
-        if (!mounted) return;
         setState(() {
           _selectedDayIndex = index;
         });
@@ -722,6 +768,7 @@ class _MyHomePageState extends State<MyHomePage> {
         );
       },
       child: Container(
+        key: ValueKey("buildDayItem_$index"),
         width: 70, // Adjust width as needed
         margin: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 8.0),
         padding: const EdgeInsets.all(8.0),
@@ -769,6 +816,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Widget prayerTimingPage(int daynumber) {
     return Container(
+      key: ValueKey("prayer_timing_page_$daynumber"),
       color: Colors.transparent,
       child: Card(
         borderOnForeground: false,
@@ -803,13 +851,20 @@ class _MyHomePageState extends State<MyHomePage> {
                       child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      AutoSizeText(
-                        helper.constructDateFormat((jsonDataDate[daynumber]["hijri"]?["month"]?["en"] ??
-                            "Month")
-                            , jsonDataDate[daynumber]["hijri"]?["date"] ?? "hijri"),
-                        style: const TextStyle(
-                            color: textColor, fontWeight: FontWeight.bold),
-                        maxLines: 1,
+                      GestureDetector(
+                        onTap: (){
+                          showDialog(context: context, builder: (BuildContext context){
+                            return prayer_calendar_model.showdialog();
+                          });
+                        },
+                        child: AutoSizeText(
+                          helper.constructDateFormat((jsonDataDate[daynumber]["hijri"]?["month"]?["en"] ??
+                              "Month")
+                              , jsonDataDate[daynumber]["hijri"]?["date"] ?? "hijri"),
+                          style: const TextStyle(
+                              color: textColor, fontWeight: FontWeight.bold),
+                          maxLines: 1,
+                        ),
                       ),
                     ],
                   )),
@@ -853,10 +908,12 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             RefreshIndicator(
                 child: ListView.builder(
+                    key: const ValueKey("refresh_indicator"),
                     shrinkWrap: true,
                     itemCount: PRAYER_NAMES.length,
                     itemBuilder: (BuildContext context, int index) {
                       return Column(
+                        key: ValueKey("refresh_indicator_$index"),
                         children: [
                           detailsRow(
                               PRAYER_NAMES[index],
@@ -936,9 +993,10 @@ class _MyHomePageState extends State<MyHomePage> {
       if (nextPrayTime != null) {
         if (nextPrayTime!.isBefore(DateTime.now())) {
           if (!mounted) return;
-          setState(() async {
-            await FetchAPI();
-          });
+          FetchAPI();
+
+          // setState(() async {
+          // });
         } else {
           setState(() {});
         }

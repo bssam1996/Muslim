@@ -669,14 +669,18 @@ class _MyHomePageState extends State<MyHomePage> {
                         ),
                       ),
                       daysOfWeekWidget(pageController),
+                      timeLeftWidget(),
                       // Page view for prayer times
                       SizedBox(
                         width: 800,
-                        height: 520,
+                        height: 400,
                         child: PageView.builder(
                           controller: pageController,
                           itemCount: 7,
                           itemBuilder: (_, index) {
+                            if (jsonTimings[index].isEmpty || jsonDataDate[index].isEmpty) {
+                              return const Center(child: CircularProgressIndicator());
+                            }
                             return prayerTimingPage(index);
                           },
                           onPageChanged: (value){
@@ -719,6 +723,39 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  Widget timeLeftWidget() {
+    if (nextPrayTime == null) {
+      return Container();
+    }
+    return Column(
+      children: [
+        Padding(
+              padding: const EdgeInsets.fromLTRB(0,8.0,0,8.0),
+              child: Center(
+                child: AutoSizeText("${"Home_Page_Next_Prayer".tr()}:", style: prayerStyle,),
+              ),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              textDirection: TextDirection.ltr,
+              children: [
+                buildTimeCard(nextPrayTime != null
+                    ? (helper.constructTimeLeftSplitted(
+                        nextPrayTime!.difference(DateTime.now()), "hour"))
+                    : "-"),
+                buildTimeCard(nextPrayTime != null
+                    ? (helper.constructTimeLeftSplitted(
+                        nextPrayTime!.difference(DateTime.now()), "minute"))
+                    : "-"),
+                buildTimeCard(nextPrayTime != null
+                    ? (helper.constructTimeLeftSplitted(
+                        nextPrayTime!.difference(DateTime.now()), "second"))
+                    : "-"),
+              ],
+            ),
+      ],
+    );
+  }
   Widget daysOfWeekWidget(PageController pageController) {
     return SizedBox(
       height: 85, // Adjust height to fit content + margin
@@ -871,36 +908,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ],
             ),
-            Visibility(
-              visible: daynumber == 0,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(0,8.0,0,8.0),
-                child: Center(
-                  child: AutoSizeText("${"Home_Page_Next_Prayer".tr()}:", style: prayerStyle,),
-                ),
-              )
-            ),
-            Visibility(
-              visible: daynumber == 0,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                textDirection: TextDirection.ltr,
-                children: [
-                  buildTimeCard(nextPrayTime != null
-                      ? (helper.constructTimeLeftSplitted(
-                          nextPrayTime!.difference(DateTime.now()), "hour"))
-                      : "-"),
-                  buildTimeCard(nextPrayTime != null
-                      ? (helper.constructTimeLeftSplitted(
-                          nextPrayTime!.difference(DateTime.now()), "minute"))
-                      : "-"),
-                  buildTimeCard(nextPrayTime != null
-                      ? (helper.constructTimeLeftSplitted(
-                          nextPrayTime!.difference(DateTime.now()), "second"))
-                      : "-"),
-                ],
-              ),
-            ),
+            
             const Divider(
               height: 15,
               thickness: 5,

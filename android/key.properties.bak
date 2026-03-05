@@ -1,0 +1,4 @@
+storePassword=mustlim1996
+keyPassword=mustlim1996
+keyAlias=key
+storeFile=D:/FlutterApps/Muslim/key.jks

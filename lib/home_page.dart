@@ -76,13 +76,14 @@ class _MyHomePageState extends State<MyHomePage> {
             }
           }
         });
-      });
-      getRandomHadith().then((value){
-        if (!mounted) return;
-        setState(() {
-          hadithOfTheDay = value;
+        getRandomHadith().then((value){
+          if (!mounted) return;
+          setState(() {
+            hadithOfTheDay = value;
+          });
         });
       });
+      
     } catch (e) {
       EasyLoading.dismiss();
       if (kDebugMode) {

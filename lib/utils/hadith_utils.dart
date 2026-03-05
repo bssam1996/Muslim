@@ -15,11 +15,11 @@ class HadithCustomSearchObject{
 }
 
 Future<String> getRandomHadith() async {
-  http.Response r = await http.get(Uri.parse('${constants.MUSLIM_API_URL}hadith/get_random_hadith'), headers: {"Access-Control-Allow-Origin": "*"});
-  if(r.statusCode != 200){
-    return "";
-  }
   try{
+    http.Response r = await http.get(Uri.parse('${constants.MUSLIM_API_URL}hadith/get_random_hadith'), headers: {"Access-Control-Allow-Origin": "*"});
+    if(r.statusCode != 200){
+      return "";
+    }
     dynamic jsonData = jsonDecode(utf8.decode(r.bodyBytes));
     return jsonData["diacritics"];
   }catch(e){

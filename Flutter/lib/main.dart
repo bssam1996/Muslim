@@ -12,6 +12,7 @@ import 'package:muslim/shared/constants.dart' as constants;
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:muslim/utils/homewidget_utils.dart' as homewidget_utils;
+import 'package:workmanager/workmanager.dart' as workmanager;
 
 // import 'dart:io' show Platform;
 
@@ -46,6 +47,14 @@ void main() async{
       homewidget_utils.onBackgroundFetch,
       homewidget_utils.onBackgroundFetchTimeout);
   BackgroundFetch.registerHeadlessTask(homewidget_utils.backgroundFetchHeadlessTask);
+
+  // test with workmanager
+  workmanager.Workmanager().initialize(homewidget_utils.WorkManagercallbackDispatcher);
+  workmanager.Workmanager().registerPeriodicTask(
+    "Muslim",
+    "Refresh_Notification_Prayer_Times",
+    frequency: const Duration(minutes: 30),
+  );
   }
 }
 

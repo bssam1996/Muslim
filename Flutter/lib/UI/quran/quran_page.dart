@@ -32,6 +32,8 @@ class _QuranPageClassState extends State<QuranPageClass> {
                 children: [
                   ListTile(
                     title: const Text('Quran Link', style: TextStyle(fontSize:24, color: textColor),),
+                    trailing: const Icon(Icons.open_in_new, color: textColor),
+                    leading: const Icon(Icons.book, color: highlightedColor),
                     onTap: () async{
                       if(kIsWeb){
                         // https://play.google.com/store/apps/details?id=com.qortoba.quran.link

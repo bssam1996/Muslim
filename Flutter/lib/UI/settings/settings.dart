@@ -1,8 +1,7 @@
 import 'dart:convert';
-
+import 'dart:io';
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -10,9 +9,11 @@ import 'package:muslim/shared/constants.dart';
 import 'package:number_inc_dec/number_inc_dec.dart';
 import 'package:seeip_client/seeip_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../utils/notification_service.dart';
 import '../../utils/shared_preference_methods.dart' as shared_preference_methods;
 import 'package:csc_picker/csc_picker.dart';
 import '../../utils/helper.dart' as helper;
+import 'package:permission_handler/permission_handler.dart';
 
 class SettingsPageClass extends StatefulWidget {
   final Future<SharedPreferences> prefs;
@@ -27,6 +28,7 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
   static const detailsStyle =
   TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: textColor);
   bool is24 = true;
+  bool prayerNotification = false;
   String countryValue = "";
   String stateValue = "";
   String cityValue = "";
@@ -34,6 +36,7 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
   String selectedMethod = "Default";
   String selectedSchool = "Shafi (Standard)";
   String selectedlocale = "";
+  String selectedCalendarMethod = "High Judicial Council of Saudi Arabia";
   TextEditingController locationController = TextEditingController();
   TextEditingController adjustmentsController = TextEditingController();
 
@@ -58,12 +61,20 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
   void _updateSettings() async{
     // 24 System
     var shared24Exists = await shared_preference_methods.checkExistenceData(widget.prefs, '24system');
+    var sharedprayerNotification = await shared_preference_methods.checkExistenceData(widget.prefs, 'prayerNotification');
     var shared24 = true;
+    var prayerNotificationValue = false;
     if(shared24Exists){
       var shared24Setting = await shared_preference_methods.getBoolData(widget.prefs, '24system');
       shared24 = shared24Setting;
     }else{
       await shared_preference_methods.setBoolData(widget.prefs, '24system', shared24);
+    }
+    if(sharedprayerNotification){
+      var prayerNotificationSettings = await shared_preference_methods.getBoolData(widget.prefs, 'prayerNotification');
+      prayerNotificationValue = prayerNotificationSettings;
+    }else{
+      await shared_preference_methods.setBoolData(widget.prefs, 'prayerNotification', prayerNotificationValue);
     }
     var location = await shared_preference_methods.getStringData(
         widget.prefs, 'location', true);
@@ -80,11 +91,17 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
     if (school != null) {
       selectedSchool = school;
     }
+    var calendarMethod = await shared_preference_methods.getStringData(
+        widget.prefs, 'calendarMethod', false);
+    if (calendarMethod != null) {
+      selectedCalendarMethod = calendarMethod;
+    }
     var adjustment = await shared_preference_methods.getIntegerData(
         widget.prefs, 'adjustment', 0);
     adjustmentsController.text = adjustment.toString();
     setState(() {
       is24 = shared24;
+      prayerNotification = prayerNotificationValue;
     });
 
     if(context.locale.toString() == "ar_EG"){
@@ -97,6 +114,29 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
 
   void _change24HourSystem(value) async{
     var result = await shared_preference_methods.setBoolData(widget.prefs, '24system', value);
+    if(!result){
+      EasyLoading.showError("Couldn't save data".tr(),
+          dismissOnTap: true);
+    }
+    _updateSettings();
+  }
+  void _changePrayerNotification(value) async{
+    if (!Platform.isAndroid){
+      EasyLoading.showError("Prayer notifications are not supported on this device".tr(),
+          dismissOnTap: true);
+      return;
+    }
+    if (value){
+      var r = await Permission.notification.request().isGranted;
+      if (!r) {
+        EasyLoading.showError("Unable to get notifications permission".tr(),
+            dismissOnTap: true);
+        return;
+      }
+    }else{
+      NotificationService().clearAllNotifications();
+    }
+    var result = await shared_preference_methods.setBoolData(widget.prefs, 'prayerNotification', value);
     if(!result){
       EasyLoading.showError("Couldn't save data".tr(),
           dismissOnTap: true);
@@ -189,6 +229,30 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                         inactiveThumbColor: Colors.grey,
                         value: is24,
                         onChanged: _change24HourSystem,
+                      ))
+                    ],
+                  ),
+                ),
+                const Divider(
+                  height: 20,
+                  thickness: 5,
+                  color: dividerColor,
+                ),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                      borderRadius: const BorderRadius.all(Radius.circular(10)),
+                      color: settingsWidgetBGColor,
+                      border:
+                      Border.all(color: boxesBorderColor, width: 1)),
+                  child: Row(
+                    children: [
+                      Expanded(flex:4, child: const Text("Settings_PrayerTimes_Notification_Title", style: detailsStyle,).tr()),
+                      Expanded(flex:1, child: Switch(
+                        activeColor: textColor,
+                        inactiveThumbColor: Colors.grey,
+                        value: prayerNotification,
+                        onChanged: _changePrayerNotification,
                       ))
                     ],
                   ),
@@ -403,31 +467,66 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                       color: settingsWidgetBGColor,
                       border:
                       Border.all(color: boxesBorderColor, width: 1)),
-                  child: Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Row(
-                          children: [
-                            const Text("Settings_Adj_Hij_Desc",style: TextStyle(color: textColor),).tr(),
-                          ],
+                  child: DropdownSearch<String>(
+                    popupProps: const PopupProps.menu(
+                        menuProps: MenuProps(
+                          backgroundColor: settingsWidgetBGColor,
                         ),
+                        showSelectedItems: true,
+                        fit: FlexFit.loose
+                    ),
+                    items: (filter, infiniteScrollProps) => CalendarMethods.keys.toList(),
+                    decoratorProps: DropDownDecoratorProps(
+                      baseStyle: const TextStyle(color: textColor, fontSize: 14),
+                      decoration: InputDecoration(
+                        labelText: "Settings_Calendar_Methods".tr(),
+                        labelStyle: const TextStyle(color: textColor),
+                        helperText: "Settings_Calendar_Methods_Desc".tr(),
+                        helperStyle: const TextStyle(color: highlightedColor),
+                        suffixIconColor: textColor,
                       ),
-                      SizedBox(
-                        width: MediaQuery.of(context).size.width/2,
-                        child: NumberInputWithIncrementDecrement(
-                          controller: adjustmentsController,
-                          onChanged: saveAdjustmentValue,
-                          onDecrement: saveAdjustmentValue,
-                          onIncrement: saveAdjustmentValue,
-                          min: -100,
-                          incDecBgColor: textColor,
-                          style: const TextStyle(color: textColor),
-                        ),
-                      ),
-                    ],
+                    ),
+                    onChanged: saveCalendarMethodParameter,
+                    selectedItem: selectedCalendarMethod,
                   ),
                 ),
+                Visibility(
+                  visible: selectedCalendarMethod == "MATHEMATICAL",
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                        borderRadius: const BorderRadius.all(Radius.circular(10)),
+                        color: settingsWidgetBGColor,
+                        border:
+                        Border.all(color: boxesBorderColor, width: 1)),
+                    child: Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Row(
+                            children: [
+                              const Text("Settings_Adj_Hij_Desc",style: TextStyle(color: textColor),).tr(),
+                            ],
+                          ),
+                        ),
+                        SizedBox(
+                          width: MediaQuery.of(context).size.width/2,
+                          child: NumberInputWithIncrementDecrement(
+                            initialValue: int.parse((adjustmentsController.text == "")?"0":adjustmentsController.text),
+                            controller: adjustmentsController,
+                            onChanged: saveAdjustmentValue,
+                            onDecrement: saveAdjustmentValue,
+                            onIncrement: saveAdjustmentValue,
+                            min: -100,
+                            incDecBgColor: textColor,
+                            style: const TextStyle(color: textColor),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
                 const Divider(
                   height: 20,
                   thickness: 5,
@@ -492,12 +591,31 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
     }
   }
 
+  void saveCalendarMethodParameter(String? value) async{
+    if (value != null && value.isNotEmpty) {
+      EasyLoading.showInfo("Settings_Saving_Calendar_Method".tr());
+      if (kDebugMode) {
+        print("Saving Calendar method...");
+      }
+      bool result = await shared_preference_methods.setStringData(
+          widget.prefs, "calendarMethod", value);
+      if (!result) {
+        EasyLoading.showError("Couldn't save data".tr(), dismissOnTap: true);
+        return;
+      }
+      setState(() {
+        selectedCalendarMethod = value;
+        EasyLoading.showSuccess("Settings_Success_Save".tr());
+      });
+    }
+  }
+
 
   void saveAdjustmentValue(num? newValue) async{
     if(newValue != null) {
       EasyLoading.showInfo("Settings_Saving_Adjustment".tr());
       if (kDebugMode) {
-        print("Saving school...");
+        print("Saving Adjustment Value...");
       }
       bool result = await shared_preference_methods.setIntegerData(
           widget.prefs, "adjustment", newValue.toInt());

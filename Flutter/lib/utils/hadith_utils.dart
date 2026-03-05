@@ -15,7 +15,7 @@ class HadithCustomSearchObject{
 }
 
 Future<String> getRandomHadith() async {
-  http.Response r = await http.get(Uri.parse('${constants.MUSLIM_API_URL}/hadith/get_random_hadith'));
+  http.Response r = await http.get(Uri.parse('${constants.MUSLIM_API_URL}hadith/get_random_hadith'), headers: {"Access-Control-Allow-Origin": "*"});
   if(r.statusCode != 200){
     return "";
   }
@@ -31,7 +31,7 @@ Future<String> getRandomHadith() async {
 }
 
 Future<List<HadithCustomSearchObject>> getSimilarHadith(String key) async{
-  http.Response r = await http.get(Uri.parse('${constants.MUSLIM_API_URL}/hadith/find_hadith?searchQuery=$key'));
+  http.Response r = await http.get(Uri.parse('${constants.MUSLIM_API_URL}hadith/find_hadith?searchQuery=$key'), headers: {"Access-Control-Allow-Origin": "*"});
   if(r.statusCode != 200){
     return [];
   }

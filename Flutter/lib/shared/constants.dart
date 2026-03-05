@@ -42,6 +42,20 @@ const authorities = <String, int>{
   "Union Organization islamic de France":12,
   "Diyanet İşleri Başkanlığı, Turkey":13,
   "Spiritual Administration of Muslims of Russia":14,
+  "Jabatan Kemajuan Islam Malaysia": 17,
+  "Tunisia": 18,
+  "Algeria": 19,
+  "KEMENAG - Kementerian Agama Republik Indonesia": 20,
+  "Morocco": 21,
+  "Comunidade Islamica de Lisboa": 22,
+  "Ministry of Awqaf, Islamic Affairs and Holy Places, Jordan": 23
+};
+
+const CalendarMethods = <String, String>{
+  "High Judicial Council of Saudi Arabia": "HJCoSA",
+  "Umm al-Qura":  "UAQ",
+  "Diyanet İşleri Başkanlığı": "DIYANET",
+  "MATHEMATICAL": "MATHEMATICAL"
 };
 
 const schools = <String, int>{

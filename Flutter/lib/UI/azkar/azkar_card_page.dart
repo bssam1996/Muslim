@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:muslim/UI/azkar/azkar_items.dart';
 import 'package:muslim/home_page.dart';
 import 'package:muslim/shared/constants.dart';
+import 'package:muslim/shared/step_counter.dart';
 import 'azkar_list.dart';
 import 'dart:ui' as ui;
 
@@ -55,41 +56,52 @@ class _AzkarCardPageClassState extends State<AzkarCardPageClass> {
                 16.0), // Outer padding for the entire card area
             child: Column(
               children: azkaritems.map((azkarItem) {
-                return Card(
-                  elevation: 8.0, // Shadow depth for the card
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16.0), // Rounded corners
-                  ),
-                  margin: const EdgeInsets.only(bottom: 16.0), // Space between cards
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0), // Inner padding for the text
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Center(
-                          child: SelectableText(
-                            azkarItem.data,
-                            style: TextStyle(fontSize: fontSize, fontFamily: 'Uthman'),
-                            textAlign: TextAlign.center,
-                            textDirection: ui.TextDirection.rtl,
-                          ),
+                return Column(
+                  children: [
+                    Card(
+                      elevation: 8.0, // Shadow depth for the card
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16.0), // Rounded corners
+                      ),
+                      margin: const EdgeInsets.only(bottom: 16.0), // Space between cards
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0), // Inner padding for the text
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Center(
+                              child: SelectableText(
+                                azkarItem.data,
+                                style: TextStyle(fontSize: fontSize, fontFamily: 'Uthman'),
+                                textAlign: TextAlign.center,
+                                textDirection: ui.TextDirection.rtl,
+                              ),
+                            ),
+                            const SizedBox(height: 8.0), // Space between sections
+                            Visibility(
+                              visible: azkarItem.description!="",
+                              child: Text(
+                                "${"Azkar_Card_Description".tr()}: ${azkarItem.description}",
+                                style: TextStyle(fontSize: fontSize * 0.6),
+                              ),
+                            ),
+                            Text(
+                              "${"Azkar_Card_Repeat".tr()}: ${azkarItem.count}",
+                              style: TextStyle(fontSize: fontSize * 0.6),
+                              textDirection: ui.TextDirection.rtl,
+                            )
+                          ],
                         ),
-                        const SizedBox(height: 8.0), // Space between sections
-                        Visibility(
-                          visible: azkarItem.description!="",
-                          child: Text(
-                            "${"Azkar_Card_Description".tr()}: ${azkarItem.description}",
-                            style: TextStyle(fontSize: fontSize * 0.6),
-                          ),
-                        ),
-                        Text(
-                          "${"Azkar_Card_Repeat".tr()}: ${azkarItem.count}",
-                          style: TextStyle(fontSize: fontSize * 0.6),
-                          textDirection: ui.TextDirection.rtl,
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
+                    StepCounter(
+                      initialValue: 0,
+                      min: 0,
+                      max: azkarItem.count,
+                      backgroundColor: fourthColor,
+                    ),
+                    Divider(),
+                  ],
                 );
               }).toList(),
             ),

@@ -29,6 +29,8 @@
   "Prayer_Notifications_Desc": "Manage prayer time alerts on your device",
   "Prayer_Notifications_Enable_Title": "Enable prayer notifications",
   "Prayer_Notifications_Enable_Desc": "Receive alerts for the daily prayer times",
+  "Prayer_Notifications_Prayers_Title": "Prayer alerts",
+  "Prayer_Notifications_Prayers_Desc": "Choose which prayers should send notifications",
   "Prayer_Notifications_Loading_Tip": "Loading prayer notifications...",
   "Prayer_Notifications_Not_Supported": "Prayer notifications are not supported on this device",
   "Prayer_Notifications_Exact_Alarm_Info": "Exact alarm permission is not granted. Notifications still work, but may be slightly delayed in optimized battery mode.",

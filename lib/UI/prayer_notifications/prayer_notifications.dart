@@ -8,6 +8,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../shared/constants.dart';
+import '../../utils/helper.dart' as helper;
 import '../../utils/notification_service.dart';
 import '../../utils/shared_preference_methods.dart'
     as shared_preference_methods;
@@ -30,6 +31,9 @@ class _PrayerNotificationsPageClassState
       TextStyle(fontSize: 13, color: highlightedColor, height: 1.4);
 
   bool prayerNotification = false;
+  Map<String, bool> prayerNotifications = {
+    for (final prayerName in PRAYER_NOTIFICATION_NAMES) prayerName: false,
+  };
 
   @override
   void initState() {
@@ -67,6 +71,27 @@ class _PrayerNotificationsPageClassState
         prayerNotificationValue,
       );
     }
+    Map<String, bool> prayerNotificationValues =
+        await helper.getPrayerNotificationSettings(
+      widget.prefs,
+      prayerNotificationValue,
+    );
+    if (!prayerNotificationValue &&
+        prayerNotificationValues.values.any((enabled) => enabled)) {
+      prayerNotificationValues = {
+        for (final prayerName in PRAYER_NOTIFICATION_NAMES) prayerName: false,
+      };
+      await _savePrayerNotifications(prayerNotificationValues);
+    }
+    if (prayerNotificationValue &&
+        prayerNotificationValues.values.every((enabled) => !enabled)) {
+      prayerNotificationValue = false;
+      await shared_preference_methods.setBoolData(
+        widget.prefs,
+        'prayerNotification',
+        false,
+      );
+    }
 
     if (!mounted) {
       EasyLoading.dismiss();
@@ -75,8 +100,22 @@ class _PrayerNotificationsPageClassState
 
     setState(() {
       prayerNotification = prayerNotificationValue;
+      prayerNotifications = prayerNotificationValues;
     });
     EasyLoading.dismiss();
+  }
+
+  Future<bool> _savePrayerNotifications(Map<String, bool> values) async {
+    bool result = true;
+    for (final entry in values.entries) {
+      final bool saved = await shared_preference_methods.setBoolData(
+        widget.prefs,
+        prayerNotificationPreferenceKey(entry.key),
+        entry.value,
+      );
+      result = result && saved;
+    }
+    return result;
   }
 
   Future<void> _changePrayerNotification(bool value) async {
@@ -111,15 +150,66 @@ class _PrayerNotificationsPageClassState
       await NotificationService().clearAllNotifications();
     }
 
-    final bool result = await shared_preference_methods.setBoolData(
+    final Map<String, bool> nextPrayerNotifications = {
+      for (final prayerName in PRAYER_NOTIFICATION_NAMES) prayerName: value,
+    };
+    final bool mainSaved = await shared_preference_methods.setBoolData(
       widget.prefs,
       'prayerNotification',
       value,
     );
-    if (!result) {
+    final bool prayerSaved =
+        await _savePrayerNotifications(nextPrayerNotifications);
+    if (!mainSaved || !prayerSaved) {
       EasyLoading.showError("Couldn't save data".tr(), dismissOnTap: true);
     }
     await _updatePrayerNotifications();
+  }
+
+  Future<void> _changeSinglePrayerNotification(
+    String prayerName,
+    bool value,
+  ) async {
+    if (!prayerNotification) {
+      return;
+    }
+
+    final Map<String, bool> nextPrayerNotifications =
+        Map<String, bool>.from(prayerNotifications);
+    nextPrayerNotifications[prayerName] = value;
+    final bool hasEnabledPrayer =
+        nextPrayerNotifications.values.any((enabled) => enabled);
+
+    final bool prayerSaved = await shared_preference_methods.setBoolData(
+      widget.prefs,
+      prayerNotificationPreferenceKey(prayerName),
+      value,
+    );
+    final bool mainSaved = await shared_preference_methods.setBoolData(
+      widget.prefs,
+      'prayerNotification',
+      hasEnabledPrayer,
+    );
+    if (!prayerSaved || !mainSaved) {
+      EasyLoading.showError("Couldn't save data".tr(), dismissOnTap: true);
+      return;
+    }
+
+    if (!hasEnabledPrayer) {
+      await NotificationService().clearAllNotifications();
+    } else if (!value) {
+      await NotificationService().clearNotification(
+        PRAYER_NAMES.indexOf(prayerName),
+      );
+    }
+
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      prayerNotification = hasEnabledPrayer;
+      prayerNotifications = nextPrayerNotifications;
+    });
   }
 
   Widget _buildCard({required Widget child}) {
@@ -220,6 +310,68 @@ class _PrayerNotificationsPageClassState
                             onChanged: _changePrayerNotification,
                           ),
                         ),
+                      ],
+                    ),
+                  ),
+                  const Divider(
+                    height: 20,
+                    thickness: 5,
+                    color: dividerColor,
+                  ),
+                  _buildCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Prayer_Notifications_Prayers_Title".tr(),
+                          style: const TextStyle(
+                            color: textColor,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "Prayer_Notifications_Prayers_Desc".tr(),
+                          style: helperStyle,
+                        ),
+                        const SizedBox(height: 8),
+                        for (int i = 0;
+                            i < PRAYER_NOTIFICATION_NAMES.length;
+                            i++) ...[
+                          Row(
+                            children: [
+                              Expanded(
+                                flex: 4,
+                                child: Text(
+                                  PRAYER_NOTIFICATION_NAMES[i].tr(),
+                                  style: detailsStyle,
+                                ),
+                              ),
+                              Expanded(
+                                child: Switch(
+                                  activeThumbColor: textColor,
+                                  inactiveThumbColor: Colors.grey,
+                                  value: prayerNotifications[
+                                          PRAYER_NOTIFICATION_NAMES[i]] ??
+                                      false,
+                                  onChanged: prayerNotification
+                                      ? (value) =>
+                                          _changeSinglePrayerNotification(
+                                            PRAYER_NOTIFICATION_NAMES[i],
+                                            value,
+                                          )
+                                      : null,
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (i != PRAYER_NOTIFICATION_NAMES.length - 1)
+                            const Divider(
+                              color: dividerColor,
+                              height: 12,
+                            ),
+                        ],
                       ],
                     ),
                   ),

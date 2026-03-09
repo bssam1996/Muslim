@@ -10,76 +10,85 @@ import 'notification_service.dart';
 
 const String _lastFetchedDateKey = 'last_fetched_date';
 
-String dateFormatter(DateTime d){
+String dateFormatter(DateTime d) {
   DateFormat formatter = DateFormat('dd-MM-yyyy');
   String formattedDate = formatter.format(d);
   return formattedDate;
 }
 
-String customtimeFormatter(String customFormat,DateTime d){
+String customtimeFormatter(String customFormat, DateTime d) {
   DateFormat formatter = DateFormat(customFormat);
   String formattedDate = formatter.format(d);
   return formattedDate;
 }
 
-Future<String?> constructAPIParameters(String callType, String requiredDate, Map<String,dynamic> location, Future<SharedPreferences> prefs) async{
-  try{
+Future<String?> constructAPIParameters(String callType, String requiredDate,
+    Map<String, dynamic> location, Future<SharedPreferences> prefs) async {
+  try {
     String constructedParameters = "";
 
-    if(callType == ""){
-      if(location["type"] != "address"){
+    if (callType == "") {
+      if (location["type"] != "address") {
         callType = "timings";
         return null;
-      }else{
+      } else {
         callType = "timingsByAddress";
         constructedParameters = 'address=${location["location"]}';
       }
-    }else if(callType=="calendarByAddress"){
+    } else if (callType == "calendarByAddress") {
       constructedParameters = 'address=${location["location"]}';
     }
-    var sharedMethod = await shared_preference_methods.getStringData(
-        prefs, "method", false);
-    if(sharedMethod != null && sharedMethod != "" && sharedMethod != "Default"){
+    var sharedMethod =
+        await shared_preference_methods.getStringData(prefs, "method", false);
+    if (sharedMethod != null &&
+        sharedMethod != "" &&
+        sharedMethod != "Default") {
       String mappedMethod = constants.authorities[sharedMethod].toString();
       constructedParameters = '$constructedParameters&method=$mappedMethod';
     }
-    var sharedSchool = await shared_preference_methods.getStringData(
-        prefs, "school", false);
-    if(sharedSchool != null && sharedSchool != ""){
+    var sharedSchool =
+        await shared_preference_methods.getStringData(prefs, "school", false);
+    if (sharedSchool != null && sharedSchool != "") {
       String mappedSchool = constants.schools[sharedSchool].toString();
       constructedParameters = '$constructedParameters&school=$mappedSchool';
     }
     var calendarMethod = await shared_preference_methods.getStringData(
         prefs, "calendarMethod", false);
-    if(calendarMethod != null && calendarMethod != ""){
-      String mappedCalendarMethod = constants.CalendarMethods[calendarMethod].toString();
-      constructedParameters = '$constructedParameters&calendarMethod=$mappedCalendarMethod';
+    if (calendarMethod != null && calendarMethod != "") {
+      String mappedCalendarMethod =
+          constants.CalendarMethods[calendarMethod].toString();
+      constructedParameters =
+          '$constructedParameters&calendarMethod=$mappedCalendarMethod';
       if (calendarMethod.toString() == "MATHEMATICAL") {
         var sharedAdjustment = await shared_preference_methods.getIntegerData(
-        prefs, "adjustment", 1);
-        if(sharedAdjustment != null){
-          constructedParameters = '$constructedParameters&adjustment=${sharedAdjustment.toString()}';
+            prefs, "adjustment", 1);
+        if (sharedAdjustment != null) {
+          constructedParameters =
+              '$constructedParameters&adjustment=${sharedAdjustment.toString()}';
         }
       }
     }
 
-
     return '$callType/$requiredDate?$constructedParameters';
-  }catch(e){
+  } catch (e) {
     if (kDebugMode) {
       print(e);
     }
     return null;
   }
 }
-Future<http.Response?>? fetchData(String callType, String requiredDate, Map<String,dynamic> location, Future<SharedPreferences> prefs) async{
-  try{
-    String? constructedParameters = await constructAPIParameters(callType, requiredDate, location, prefs);
-    if(constructedParameters == null){
+
+Future<http.Response?>? fetchData(String callType, String requiredDate,
+    Map<String, dynamic> location, Future<SharedPreferences> prefs) async {
+  try {
+    String? constructedParameters =
+        await constructAPIParameters(callType, requiredDate, location, prefs);
+    if (constructedParameters == null) {
       return null;
     }
-    return http.get(Uri.parse('https://api.aladhan.com/v1/$constructedParameters'));
-  }catch(e){
+    return http
+        .get(Uri.parse('https://api.aladhan.com/v1/$constructedParameters'));
+  } catch (e) {
     if (kDebugMode) {
       print(e);
     }
@@ -87,32 +96,26 @@ Future<http.Response?>? fetchData(String callType, String requiredDate, Map<Stri
   }
 }
 
-void invalidateTodayCachedData(Future<SharedPreferences> prefs) async{
+void invalidateTodayCachedData(Future<SharedPreferences> prefs) async {
   String formattedDate = dateFormatter(DateTime.now());
-  var exists = await shared_preference_methods.checkExistenceData(
-      prefs, formattedDate);
-  if(exists){
+  var exists =
+      await shared_preference_methods.checkExistenceData(prefs, formattedDate);
+  if (exists) {
     shared_preference_methods.invalidateSharedData(prefs, formattedDate);
   }
 }
 
-
-DateTime constructDateTime(String timeString){
+DateTime constructDateTime(String timeString) {
   List<String> timingWhole = timeString.toString().split(":");
   int timingHour = int.parse(timingWhole[0]);
   int timingMinute = int.parse(timingWhole[1]);
-  DateTime constructedDateTime = DateTime(
-      DateTime.now().year,
-      DateTime.now().month,
-      DateTime.now().day,
-      timingHour,
-      timingMinute,
-      0);
+  DateTime constructedDateTime = DateTime(DateTime.now().year,
+      DateTime.now().month, DateTime.now().day, timingHour, timingMinute, 0);
   return constructedDateTime;
 }
 
-String constructTimeLeft(Duration? duration){
-  if(duration == null){
+String constructTimeLeft(Duration? duration) {
+  if (duration == null) {
     return "-";
   }
   String twoDigits(int n) => n.toString().padLeft(2, "0");
@@ -121,24 +124,23 @@ String constructTimeLeft(Duration? duration){
   return "${twoDigits(duration.inHours)}:$twoDigitMinutes:$twoDigitSeconds";
 }
 
-String constructTimeLeftSplitted(Duration? duration, String type){
-  if(duration == null){
+String constructTimeLeftSplitted(Duration? duration, String type) {
+  if (duration == null) {
     return "-";
   }
   String twoDigits(int n) => n.toString().padLeft(2, "0");
   String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
   String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
-  if(type == "hour"){
+  if (type == "hour") {
     return twoDigits(duration.inHours);
-  }else if(type == "minute"){
+  } else if (type == "minute") {
     return twoDigitMinutes;
-  }else if(type == "second"){
+  } else if (type == "second") {
     return twoDigitSeconds;
-  }else{
+  } else {
     return "-";
   }
 }
-
 
 MaterialColor getMaterialColor(Color color) {
   final int red = color.red;
@@ -167,30 +169,33 @@ Future<bool> shouldFetchDailyData(SharedPreferences prefs) async {
     return true; // Never fetched before
   }
   final DateTime lastFetchedDate = DateTime.parse(lastFetchedDateString);
-  final DateTime today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+  final DateTime today =
+      DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
   return !lastFetchedDate.isAtSameMomentAs(today);
 }
 
 Future<void> updateLastFetchedDate(SharedPreferences prefs) async {
-  final DateTime today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+  final DateTime today =
+      DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
   await prefs.setString(_lastFetchedDateKey, today.toIso8601String());
 }
-String getNowMinutes(){
+
+String getNowMinutes() {
   DateTime now = DateTime.now();
   return now.minute.toString().padLeft(2, '0');
 }
 
-String getAddressLocation(Map<String, dynamic> savedLocation){
-  if(savedLocation["type"] == "address"){
-    return savedLocation["location"]??"-";
-  }else{
+String getAddressLocation(Map<String, dynamic> savedLocation) {
+  if (savedLocation["type"] == "address") {
+    return savedLocation["location"] ?? "-";
+  } else {
     return "-";
   }
 }
 
-String constructDateFormat(String month, String fullDate){
+String constructDateFormat(String month, String fullDate) {
   List<String> fullDateSplitted = fullDate.split("-");
-  if(fullDateSplitted.length != 3){
+  if (fullDateSplitted.length != 3) {
     return "Month";
   }
   String year = fullDateSplitted[2];
@@ -199,26 +204,76 @@ String constructDateFormat(String month, String fullDate){
   // month = month.tr();
   return "$day-$monthNum-$year";
 }
-Future<void> handleNotifications(Future<SharedPreferences> prefs, List<Map<String, dynamic>> jsonTimings) async {
-  var sharedprayerNotification = await shared_preference_methods.checkExistenceData(prefs, 'prayerNotification');
+
+Future<Map<String, bool>> getPrayerNotificationSettings(
+    Future<SharedPreferences> prefs, bool defaultValue) async {
+  final Map<String, bool> notificationSettings = {};
+  for (final prayerName in constants.PRAYER_NOTIFICATION_NAMES) {
+    final String preferenceKey =
+        constants.prayerNotificationPreferenceKey(prayerName);
+    final bool preferenceExists =
+        await shared_preference_methods.checkExistenceData(
+      prefs,
+      preferenceKey,
+    );
+    bool enabled = defaultValue;
+    if (preferenceExists) {
+      enabled =
+          await shared_preference_methods.getBoolData(prefs, preferenceKey) ??
+              defaultValue;
+    } else {
+      await shared_preference_methods.setBoolData(
+        prefs,
+        preferenceKey,
+        defaultValue,
+      );
+    }
+    notificationSettings[prayerName] = enabled;
+  }
+  return notificationSettings;
+}
+
+Future<void> handleNotifications(Future<SharedPreferences> prefs,
+    List<Map<String, dynamic>> jsonTimings) async {
+  var sharedprayerNotification = await shared_preference_methods
+      .checkExistenceData(prefs, 'prayerNotification');
   var prayerNotificationValue = false;
-  if(sharedprayerNotification){
-    var prayerNotificationSettings = await shared_preference_methods.getBoolData(prefs, 'prayerNotification');
+  if (sharedprayerNotification) {
+    var prayerNotificationSettings = await shared_preference_methods
+        .getBoolData(prefs, 'prayerNotification');
     prayerNotificationValue = prayerNotificationSettings;
-  }else{
+  } else {
     return;
   }
-  if (!prayerNotificationValue){
+  final Map<String, bool> prayerNotificationSettings =
+      await getPrayerNotificationSettings(prefs, prayerNotificationValue);
+  if (prayerNotificationSettings.values.every((enabled) => !enabled)) {
+    prayerNotificationValue = false;
+    await shared_preference_methods.setBoolData(
+      prefs,
+      'prayerNotification',
+      false,
+    );
+  }
+  if (!prayerNotificationValue) {
+    try {
+      await NotificationService().init();
+      await NotificationService().clearAllNotifications();
+    } catch (_) {}
     return;
   }
-  try{
+  try {
     await NotificationService().init();
-    // NotificationService().clearAllNotifications();
+    await NotificationService().clearAllNotifications();
     for (int i = 0; i < constants.PRAYER_NAMES.length; i++) {
-      if (i == 1){
+      final String prayerName = constants.PRAYER_NAMES[i];
+      if (i == 1) {
         continue; // Skip Sunrise
       }
-      String time = jsonTimings[0][constants.PRAYER_NAMES[i]];
+      if (!(prayerNotificationSettings[prayerName] ?? false)) {
+        continue;
+      }
+      String time = jsonTimings[0][prayerName];
       final String lowerTime = time.toLowerCase();
       bool is24HourSystem = !lowerTime.contains("m");
       bool isPm = false;
@@ -229,7 +284,7 @@ Future<void> handleNotifications(Future<SharedPreferences> prefs, List<Map<Strin
       List<String> splittedTime = time.split(":");
       String hourString = splittedTime[0];
       String minuteString = splittedTime[1];
-      if(!is24HourSystem){
+      if (!is24HourSystem) {
         int parsedHour = int.parse(hourString) % 12;
         if (isPm) {
           parsedHour += 12;
@@ -243,22 +298,28 @@ Future<void> handleNotifications(Future<SharedPreferences> prefs, List<Map<Strin
           int.parse(hourString),
           int.parse(minuteString),
           0);
-      if(selectedTime.isBefore(DateTime.now())){
+      if (selectedTime.isBefore(DateTime.now())) {
         continue;
       }
-      var r = await NotificationService().scheduleDailyNotification(selectedTime, i, "Muslim", constants.PRAYER_NAMES[i], "${"Don't forget praying".tr()} ${constants.PRAYER_NAMES[i].tr()}");
-      if (r != ""){
+      var r = await NotificationService().scheduleDailyNotification(
+          selectedTime,
+          i,
+          "Muslim",
+          prayerName,
+          "${"Don't forget praying".tr()} ${prayerName.tr()}");
+      if (r != "") {
         if (kDebugMode) {
           print(r);
-        }return;
+        }
+        return;
       }
     }
 
     return;
-  }catch (e){
+  } catch (e) {
     if (kDebugMode) {
       print(e.toString());
-
-    }return;
+    }
+    return;
   }
 }

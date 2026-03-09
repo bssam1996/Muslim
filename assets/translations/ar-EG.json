@@ -29,6 +29,8 @@
   "Prayer_Notifications_Desc": "إدارة تنبيهات أوقات الصلاة على جهازك",
   "Prayer_Notifications_Enable_Title": "تفعيل إشعارات الصلاة",
   "Prayer_Notifications_Enable_Desc": "استقبال تنبيهات لأوقات الصلاة اليومية",
+  "Prayer_Notifications_Prayers_Title": "تنبيهات الصلوات",
+  "Prayer_Notifications_Prayers_Desc": "اختر الصلوات التي تريد استلام إشعاراتها",
   "Prayer_Notifications_Loading_Tip": "جار تحميل إعدادات إشعارات الصلاة...",
   "Prayer_Notifications_Not_Supported": "إشعارات الصلاة غير مدعومة على هذا الجهاز",
   "Prayer_Notifications_Exact_Alarm_Info": "لم يتم منح إذن المنبهات الدقيقة. ستستمر الإشعارات في العمل، لكن قد تتأخر قليلاً مع أوضاع تحسين البطارية.",

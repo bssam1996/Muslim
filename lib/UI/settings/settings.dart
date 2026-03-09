@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
@@ -9,11 +8,10 @@ import 'package:muslim/shared/constants.dart';
 import 'package:number_inc_dec/number_inc_dec.dart';
 import 'package:seeip_client/seeip_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../utils/notification_service.dart';
-import '../../utils/shared_preference_methods.dart' as shared_preference_methods;
+import '../../utils/shared_preference_methods.dart'
+    as shared_preference_methods;
 import 'package:csc_picker/csc_picker.dart';
 import '../../utils/helper.dart' as helper;
-import 'package:permission_handler/permission_handler.dart';
 
 class SettingsPageClass extends StatefulWidget {
   final Future<SharedPreferences> prefs;
@@ -24,11 +22,9 @@ class SettingsPageClass extends StatefulWidget {
 }
 
 class _SettingsPageClassState extends State<SettingsPageClass> {
-
   static const detailsStyle =
-  TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: textColor);
+      TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: textColor);
   bool is24 = true;
-  bool prayerNotification = false;
   String countryValue = "";
   String stateValue = "";
   String cityValue = "";
@@ -47,7 +43,6 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
     EasyLoading.showInfo("Settings_Loading_Tip");
     try {
       WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-
         _updateSettings();
       });
     } catch (e) {
@@ -58,23 +53,18 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
     }
   }
 
-  void _updateSettings() async{
+  void _updateSettings() async {
     // 24 System
-    var shared24Exists = await shared_preference_methods.checkExistenceData(widget.prefs, '24system');
-    var sharedprayerNotification = await shared_preference_methods.checkExistenceData(widget.prefs, 'prayerNotification');
+    var shared24Exists = await shared_preference_methods.checkExistenceData(
+        widget.prefs, '24system');
     var shared24 = true;
-    var prayerNotificationValue = false;
-    if(shared24Exists){
-      var shared24Setting = await shared_preference_methods.getBoolData(widget.prefs, '24system');
+    if (shared24Exists) {
+      var shared24Setting =
+          await shared_preference_methods.getBoolData(widget.prefs, '24system');
       shared24 = shared24Setting;
-    }else{
-      await shared_preference_methods.setBoolData(widget.prefs, '24system', shared24);
-    }
-    if(sharedprayerNotification){
-      var prayerNotificationSettings = await shared_preference_methods.getBoolData(widget.prefs, 'prayerNotification');
-      prayerNotificationValue = prayerNotificationSettings;
-    }else{
-      await shared_preference_methods.setBoolData(widget.prefs, 'prayerNotification', prayerNotificationValue);
+    } else {
+      await shared_preference_methods.setBoolData(
+          widget.prefs, '24system', shared24);
     }
     var location = await shared_preference_methods.getStringData(
         widget.prefs, 'location', true);
@@ -101,53 +91,21 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
     adjustmentsController.text = adjustment.toString();
     setState(() {
       is24 = shared24;
-      prayerNotification = prayerNotificationValue;
     });
 
-    if(context.locale.toString() == "ar_EG"){
+    if (context.locale.toString() == "ar_EG") {
       selectedlocale = "العربية";
-    }else if(context.locale.toString() == "en_US"){
+    } else if (context.locale.toString() == "en_US") {
       selectedlocale = "English";
     }
     EasyLoading.dismiss();
   }
 
-  void _change24HourSystem(value) async{
-    var result = await shared_preference_methods.setBoolData(widget.prefs, '24system', value);
-    if(!result){
-      EasyLoading.showError("Couldn't save data".tr(),
-          dismissOnTap: true);
-    }
-    _updateSettings();
-  }
-  void _changePrayerNotification(value) async{
-    if (!Platform.isAndroid){
-      EasyLoading.showError("Prayer notifications are not supported on this device".tr(),
-          dismissOnTap: true);
-      return;
-    }
-    if (value){
-      var r = await Permission.notification.request().isGranted;
-      if (!r) {
-        EasyLoading.showError("Unable to get notifications permission".tr(),
-            dismissOnTap: true);
-        return;
-      }
-      final bool exactAlarmGranted =
-          await NotificationService().requestExactAlarmPermissionIfNeeded();
-      if (!exactAlarmGranted) {
-        EasyLoading.showInfo(
-          "Exact alarm permission is not granted. Notifications still work, but may be slightly delayed in optimized battery mode.",
-          dismissOnTap: true,
-        );
-      }
-    }else{
-      NotificationService().clearAllNotifications();
-    }
-    var result = await shared_preference_methods.setBoolData(widget.prefs, 'prayerNotification', value);
-    if(!result){
-      EasyLoading.showError("Couldn't save data".tr(),
-          dismissOnTap: true);
+  void _change24HourSystem(value) async {
+    var result = await shared_preference_methods.setBoolData(
+        widget.prefs, '24system', value);
+    if (!result) {
+      EasyLoading.showError("Couldn't save data".tr(), dismissOnTap: true);
     }
     _updateSettings();
   }
@@ -156,7 +114,10 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Settings_Title".tr(), style: const TextStyle(color: textColor),),
+        title: Text(
+          "Settings_Title".tr(),
+          style: const TextStyle(color: textColor),
+        ),
         backgroundColor: primaryColor,
         centerTitle: true,
         iconTheme: const IconThemeData(color: textColor),
@@ -191,21 +152,23 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                        borderRadius: const BorderRadius.all(Radius.circular(10)),
+                        borderRadius:
+                            const BorderRadius.all(Radius.circular(10)),
                         color: settingsWidgetBGColor,
-                        border:
-                        Border.all(color: boxesBorderColor, width: 1)),
+                        border: Border.all(color: boxesBorderColor, width: 1)),
                     child: DropdownSearch<String>(
                       popupProps: const PopupProps.menu(
-                          menuProps: MenuProps(
-                            backgroundColor: settingsWidgetBGColor,
-                          ),
-                          showSelectedItems: true,
-                          fit: FlexFit.loose,
+                        menuProps: MenuProps(
+                          backgroundColor: settingsWidgetBGColor,
+                        ),
+                        showSelectedItems: true,
+                        fit: FlexFit.loose,
                       ),
-                      items: (filter, infiniteScrollProps) => ["العربية", "English"],
+                      items: (filter, infiniteScrollProps) =>
+                          ["العربية", "English"],
                       decoratorProps: DropDownDecoratorProps(
-                        baseStyle: const TextStyle(color: textColor, fontSize: 14),
+                        baseStyle:
+                            const TextStyle(color: textColor, fontSize: 14),
                         decoration: InputDecoration(
                           labelText: "Settings_Language_Title".tr(),
                           labelStyle: const TextStyle(color: textColor),
@@ -226,43 +189,26 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                        borderRadius: const BorderRadius.all(Radius.circular(10)),
+                        borderRadius:
+                            const BorderRadius.all(Radius.circular(10)),
                         color: settingsWidgetBGColor,
-                        border:
-                        Border.all(color: boxesBorderColor, width: 1)),
+                        border: Border.all(color: boxesBorderColor, width: 1)),
                     child: Row(
                       children: [
-                        Expanded(flex:4, child: const Text("Settings_Use24Hour", style: detailsStyle,).tr()),
-                        Expanded(flex:1, child: Switch(
-                          activeThumbColor: textColor,
-                          inactiveThumbColor: Colors.grey,
-                          value: is24,
-                          onChanged: _change24HourSystem,
-                        ))
-                      ],
-                    ),
-                  ),
-                  const Divider(
-                    height: 20,
-                    thickness: 5,
-                    color: dividerColor,
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                        borderRadius: const BorderRadius.all(Radius.circular(10)),
-                        color: settingsWidgetBGColor,
-                        border:
-                        Border.all(color: boxesBorderColor, width: 1)),
-                    child: Row(
-                      children: [
-                        Expanded(flex:4, child: const Text("Settings_PrayerTimes_Notification_Title", style: detailsStyle,).tr()),
-                        Expanded(flex:1, child: Switch(
-                          activeThumbColor: textColor,
-                          inactiveThumbColor: Colors.grey,
-                          value: prayerNotification,
-                          onChanged: _changePrayerNotification,
-                        ))
+                        Expanded(
+                            flex: 4,
+                            child: const Text(
+                              "Settings_Use24Hour",
+                              style: detailsStyle,
+                            ).tr()),
+                        Expanded(
+                            flex: 1,
+                            child: Switch(
+                              activeThumbColor: textColor,
+                              inactiveThumbColor: Colors.grey,
+                              value: is24,
+                              onChanged: _change24HourSystem,
+                            ))
                       ],
                     ),
                   ),
@@ -277,29 +223,25 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                     showCities: true,
                     flagState: CountryFlag.DISABLE,
                     dropdownDecoration: BoxDecoration(
-                        borderRadius: const BorderRadius.all(Radius.circular(10)),
+                        borderRadius:
+                            const BorderRadius.all(Radius.circular(10)),
                         color: settingsWidgetBGColor,
-                        border:
-                        Border.all(color: boxesBorderColor, width: 1)),
+                        border: Border.all(color: boxesBorderColor, width: 1)),
                     disabledDropdownDecoration: BoxDecoration(
-                        borderRadius: const BorderRadius.all(Radius.circular(10)),
+                        borderRadius:
+                            const BorderRadius.all(Radius.circular(10)),
                         color: settingsWidgetBGColor.withValues(alpha: 0.3),
-                        border:
-                        Border.all(color: boxesBorderColor, width: 1)),
-          
+                        border: Border.all(color: boxesBorderColor, width: 1)),
                     countrySearchPlaceholder: "Settings_Country".tr(),
                     stateSearchPlaceholder: "Settings_State".tr(),
                     citySearchPlaceholder: "Settings_City".tr(),
-          
                     countryDropdownLabel: "Settings_Country".tr(),
                     stateDropdownLabel: "Settings_State".tr(),
                     cityDropdownLabel: "Settings_City".tr(),
-          
                     selectedItemStyle: const TextStyle(
                       color: textColor,
                       fontSize: 14,
                     ),
-          
                     dropdownHeadingStyle: const TextStyle(
                         color: settingsWidgetBGColor,
                         fontSize: 17,
@@ -317,20 +259,20 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                     },
                     onStateChanged: (value) {
                       setState(() {
-                        stateValue = value??"";
+                        stateValue = value ?? "";
                       });
                     },
                     onCityChanged: (value) {
                       setState(() {
-                        cityValue = value??"";
+                        cityValue = value ?? "";
                         address = "";
-                        if(countryValue.isNotEmpty){
+                        if (countryValue.isNotEmpty) {
                           address = countryValue;
                         }
-                        if(stateValue.isNotEmpty){
+                        if (stateValue.isNotEmpty) {
                           address = "$stateValue, $countryValue";
                         }
-                        if(cityValue.isNotEmpty) {
+                        if (cityValue.isNotEmpty) {
                           address = "$cityValue, $stateValue, $countryValue";
                         }
                         locationController.text = address;
@@ -339,7 +281,9 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                       });
                     },
                   ),
-                  const SizedBox(height: 10,),
+                  const SizedBox(
+                    height: 10,
+                  ),
                   Row(
                     children: [
                       Expanded(
@@ -347,18 +291,20 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                         child: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                              borderRadius: const BorderRadius.all(Radius.circular(10)),
+                              borderRadius:
+                                  const BorderRadius.all(Radius.circular(10)),
                               color: settingsWidgetBGColor,
-                              border:
-                              Border.all(color: boxesBorderColor, width: 1)),
+                              border: Border.all(
+                                  color: boxesBorderColor, width: 1)),
                           child: TextFormField(
                             textCapitalization: TextCapitalization.words,
                             decoration: InputDecoration(
-                                fillColor: settingsWidgetBGColor,
-                                filled: true,
-                                helperText: "Settings_ManualLocation_Desc".tr(),
-                                helperStyle: const TextStyle(color: highlightedColor),
-                                suffixIconColor: textColor,
+                              fillColor: settingsWidgetBGColor,
+                              filled: true,
+                              helperText: "Settings_ManualLocation_Desc".tr(),
+                              helperStyle:
+                                  const TextStyle(color: highlightedColor),
+                              suffixIconColor: textColor,
                             ),
                             style: detailsStyle,
                             controller: locationController,
@@ -375,12 +321,14 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(8.0, 0, 8.0, 0),
                           child: IconButton(
-                            onPressed: () async{
-                              EasyLoading.showInfo("Settings_Saving_Location".tr());
+                            onPressed: () async {
+                              EasyLoading.showInfo(
+                                  "Settings_Saving_Location".tr());
                               var seeip = SeeipClient();
                               var ip = await seeip.getIP();
                               var geoLocation = await seeip.getGeoIP(ip.ip);
-                              String loc = "${geoLocation.city}, ${geoLocation.region}, ${geoLocation.country}";
+                              String loc =
+                                  "${geoLocation.city}, ${geoLocation.region}, ${geoLocation.country}";
                               locationController.text = loc;
                               saveLocationAddress();
                             },
@@ -401,21 +349,23 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                        borderRadius: const BorderRadius.all(Radius.circular(10)),
+                        borderRadius:
+                            const BorderRadius.all(Radius.circular(10)),
                         color: settingsWidgetBGColor,
-                        border:
-                        Border.all(color: boxesBorderColor, width: 1)),
+                        border: Border.all(color: boxesBorderColor, width: 1)),
                     child: DropdownSearch<String>(
                       popupProps: const PopupProps.menu(
-                          menuProps: MenuProps(
-                            backgroundColor: settingsWidgetBGColor,
-                          ),
-                          fit: FlexFit.loose,
-                          showSelectedItems: true,
+                        menuProps: MenuProps(
+                          backgroundColor: settingsWidgetBGColor,
+                        ),
+                        fit: FlexFit.loose,
+                        showSelectedItems: true,
                       ),
-                      items: (filter, infiniteScrollProps) => authorities.keys.toList(),
+                      items: (filter, infiniteScrollProps) =>
+                          authorities.keys.toList(),
                       decoratorProps: DropDownDecoratorProps(
-                        baseStyle: const TextStyle(color: textColor, fontSize: 14),
+                        baseStyle:
+                            const TextStyle(color: textColor, fontSize: 14),
                         decoration: InputDecoration(
                           labelText: "Settings_Method".tr(),
                           labelStyle: const TextStyle(color: textColor),
@@ -426,7 +376,6 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                       ),
                       onChanged: saveMethodParameter,
                       selectedItem: selectedMethod,
-          
                     ),
                   ),
                   const Divider(
@@ -437,21 +386,22 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                        borderRadius: const BorderRadius.all(Radius.circular(10)),
+                        borderRadius:
+                            const BorderRadius.all(Radius.circular(10)),
                         color: settingsWidgetBGColor,
-                        border:
-                        Border.all(color: boxesBorderColor, width: 1)),
+                        border: Border.all(color: boxesBorderColor, width: 1)),
                     child: DropdownSearch<String>(
                       popupProps: const PopupProps.menu(
-                        menuProps: MenuProps(
-                          backgroundColor: settingsWidgetBGColor,
-                        ),
-                        showSelectedItems: true,
-                        fit: FlexFit.loose
-                      ),
-                      items: (filter, infiniteScrollProps) => schools.keys.toList(),
+                          menuProps: MenuProps(
+                            backgroundColor: settingsWidgetBGColor,
+                          ),
+                          showSelectedItems: true,
+                          fit: FlexFit.loose),
+                      items: (filter, infiniteScrollProps) =>
+                          schools.keys.toList(),
                       decoratorProps: DropDownDecoratorProps(
-                        baseStyle: const TextStyle(color: textColor, fontSize: 14),
+                        baseStyle:
+                            const TextStyle(color: textColor, fontSize: 14),
                         decoration: InputDecoration(
                           labelText: "Settings_School".tr(),
                           labelStyle: const TextStyle(color: textColor),
@@ -472,21 +422,22 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                        borderRadius: const BorderRadius.all(Radius.circular(10)),
+                        borderRadius:
+                            const BorderRadius.all(Radius.circular(10)),
                         color: settingsWidgetBGColor,
-                        border:
-                        Border.all(color: boxesBorderColor, width: 1)),
+                        border: Border.all(color: boxesBorderColor, width: 1)),
                     child: DropdownSearch<String>(
                       popupProps: const PopupProps.menu(
                           menuProps: MenuProps(
                             backgroundColor: settingsWidgetBGColor,
                           ),
                           showSelectedItems: true,
-                          fit: FlexFit.loose
-                      ),
-                      items: (filter, infiniteScrollProps) => CalendarMethods.keys.toList(),
+                          fit: FlexFit.loose),
+                      items: (filter, infiniteScrollProps) =>
+                          CalendarMethods.keys.toList(),
                       decoratorProps: DropDownDecoratorProps(
-                        baseStyle: const TextStyle(color: textColor, fontSize: 14),
+                        baseStyle:
+                            const TextStyle(color: textColor, fontSize: 14),
                         decoration: InputDecoration(
                           labelText: "Settings_Calendar_Methods".tr(),
                           labelStyle: const TextStyle(color: textColor),
@@ -504,24 +455,31 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                     child: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                          borderRadius: const BorderRadius.all(Radius.circular(10)),
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(10)),
                           color: settingsWidgetBGColor,
                           border:
-                          Border.all(color: boxesBorderColor, width: 1)),
+                              Border.all(color: boxesBorderColor, width: 1)),
                       child: Column(
                         children: [
                           Padding(
                             padding: const EdgeInsets.only(bottom: 8),
                             child: Row(
                               children: [
-                                const Text("Settings_Adj_Hij_Desc",style: TextStyle(color: textColor),).tr(),
+                                const Text(
+                                  "Settings_Adj_Hij_Desc",
+                                  style: TextStyle(color: textColor),
+                                ).tr(),
                               ],
                             ),
                           ),
                           SizedBox(
-                            width: MediaQuery.of(context).size.width/2,
+                            width: MediaQuery.of(context).size.width / 2,
                             child: NumberInputWithIncrementDecrement(
-                              initialValue: int.parse((adjustmentsController.text == "")?"0":adjustmentsController.text),
+                              initialValue: int.parse(
+                                  (adjustmentsController.text == "")
+                                      ? "0"
+                                      : adjustmentsController.text),
                               controller: adjustmentsController,
                               onChanged: saveAdjustmentValue,
                               onDecrement: saveAdjustmentValue,
@@ -535,7 +493,6 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                       ),
                     ),
                   ),
-          
                   const Divider(
                     height: 20,
                     thickness: 5,
@@ -550,7 +507,7 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
     );
   }
 
-  void saveLocationAddress() async{
+  void saveLocationAddress() async {
     if (locationController.text.isNotEmpty) {
       EasyLoading.showInfo("Settings_Saving_Location".tr());
       if (kDebugMode) {
@@ -561,16 +518,17 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
         "type": "address"
       };
       bool result = await shared_preference_methods.setStringData(
-      widget.prefs, "location", json.encode(location));
+          widget.prefs, "location", json.encode(location));
       if (!result) {
-        EasyLoading.showError("Settings_Unable_To_Save".tr(), dismissOnTap: true);
+        EasyLoading.showError("Settings_Unable_To_Save".tr(),
+            dismissOnTap: true);
         return;
       }
       EasyLoading.showSuccess("Settings_Success_Save".tr());
     }
   }
 
-  void saveMethodParameter(String? value) async{
+  void saveMethodParameter(String? value) async {
     if (value != null && value.isNotEmpty) {
       EasyLoading.showInfo("Settings_Saving_Method".tr());
       if (kDebugMode) {
@@ -585,7 +543,8 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
       EasyLoading.showSuccess("Settings_Success_Save".tr());
     }
   }
-  void saveSchoolParameter(String? value) async{
+
+  void saveSchoolParameter(String? value) async {
     if (value != null && value.isNotEmpty) {
       EasyLoading.showInfo("Settings_Saving_School".tr());
       if (kDebugMode) {
@@ -601,7 +560,7 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
     }
   }
 
-  void saveCalendarMethodParameter(String? value) async{
+  void saveCalendarMethodParameter(String? value) async {
     if (value != null && value.isNotEmpty) {
       EasyLoading.showInfo("Settings_Saving_Calendar_Method".tr());
       if (kDebugMode) {
@@ -620,9 +579,8 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
     }
   }
 
-
-  void saveAdjustmentValue(num? newValue) async{
-    if(newValue != null) {
+  void saveAdjustmentValue(num? newValue) async {
+    if (newValue != null) {
       EasyLoading.showInfo("Settings_Saving_Adjustment".tr());
       if (kDebugMode) {
         print("Saving Adjustment Value...");
@@ -636,13 +594,13 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
       EasyLoading.showSuccess("Settings_Success_Save".tr());
     }
   }
+
   void _changelanguage(String? val) {
     print(val);
-    if(val == "English"){
-      context.setLocale(Locale("en","US"));
-    }else if(val == "العربية"){
-      context.setLocale(Locale("ar","EG"));
+    if (val == "English") {
+      context.setLocale(Locale("en", "US"));
+    } else if (val == "العربية") {
+      context.setLocale(Locale("ar", "EG"));
     }
   }
 }
-

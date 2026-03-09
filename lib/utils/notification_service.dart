@@ -94,7 +94,7 @@ class NotificationService {
         matchDateTimeComponents: DateTimeComponents.time,
         androidScheduleMode: preferredMode,
       );
-      print('Notification scheduled successfully');
+      print('Notification scheduled successfully for $scheduledTime with mode $preferredMode');
       return "";
     } on PlatformException catch (e) {
       if (e.code == "exact_alarms_not_permitted" &&

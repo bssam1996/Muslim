@@ -9,6 +9,7 @@ import 'package:muslim/UI/azkar/azkar_page.dart';
 import 'package:muslim/UI/dua/dua_page.dart';
 import 'package:muslim/UI/hadith/main_page.dart';
 import 'package:muslim/UI/month/months_page.dart';
+import 'package:muslim/UI/prayer_notifications/prayer_notifications.dart';
 import 'package:muslim/UI/contact/contact.dart';
 import 'package:muslim/UI/qiblah/qiblah_page.dart';
 import 'package:muslim/UI/quran/quran_page.dart';
@@ -39,12 +40,13 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-    @override
-    void dispose() {
-      // pageController.dispose();
-      daysListViewController.dispose();
-      super.dispose();
-    }
+  @override
+  void dispose() {
+    // pageController.dispose();
+    daysListViewController.dispose();
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -75,14 +77,13 @@ class _MyHomePageState extends State<MyHomePage> {
             }
           }
         });
-        getRandomHadith().then((value){
+        getRandomHadith().then((value) {
           if (!mounted) return;
           setState(() {
             hadithOfTheDay = value;
           });
         });
       });
-      
     } catch (e) {
       EasyLoading.dismiss();
       if (kDebugMode) {
@@ -103,7 +104,7 @@ class _MyHomePageState extends State<MyHomePage> {
   static const headline2Style =
       TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white);
   static const savedAddressLocationStyle =
-  TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white);
+      TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white);
   // static const detailsStyle =
   //     TextStyle(fontSize: 20, fontWeight: FontWeight.w500, color: Colors.white);
   static const prayerStyle =
@@ -139,9 +140,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }
 
     try {
-      for (int dayNumber = 0;
-          dayNumber < NUMBER_OF_DAYS;
-          dayNumber++) {
+      for (int dayNumber = 0; dayNumber < NUMBER_OF_DAYS; dayNumber++) {
         dynamic jsonData;
         Map<String, dynamic> dataFromDay =
             await api_utils.getDataFromDay(dayNumber, savedLocation);
@@ -175,8 +174,8 @@ class _MyHomePageState extends State<MyHomePage> {
             nextPray = PRAYER_NAMES[prayerIndex];
           } else {
             nextPray = PRAYER_NAMES[0];
-            nextPrayTime = helper.constructDateTime(
-                timings[PRAYER_NAMES[0]].toString());
+            nextPrayTime =
+                helper.constructDateTime(timings[PRAYER_NAMES[0]].toString());
             nextPrayTime = nextPrayTime?.add(const Duration(days: 1));
           }
         }
@@ -250,7 +249,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    PageController pageController = PageController(viewportFraction: 0.8, keepPage: true);
+    PageController pageController =
+        PageController(viewportFraction: 0.8, keepPage: true);
     return UpgradeAlert(
       dialogStyle: UpgradeDialogStyle.cupertino,
       child: RefreshIndicator(
@@ -444,6 +444,35 @@ class _MyHomePageState extends State<MyHomePage> {
                       color: textColor,
                     ),
                     ListTile(
+                      title: const Text(
+                        'Home_Panel_Prayer_Notifications',
+                        style: TextStyle(color: textColor),
+                      ).tr(),
+                      trailing: const Icon(
+                        Icons.notifications,
+                        color: textColor,
+                        size: 24,
+                      ),
+                      onTap: () async {
+                        stopTimer();
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                PrayerNotificationsPageClass(prefs: _prefs),
+                          ),
+                        );
+                        var location = await shared_preference_methods
+                            .getStringData(_prefs, 'location', true);
+                        if (location != null) {
+                          FetchAPI();
+                        }
+                      },
+                    ),
+                    const Divider(
+                      color: textColor,
+                    ),
+                    ListTile(
                       title: const Text('Home_Panel_Contact',
                               style: TextStyle(color: textColor))
                           .tr(),
@@ -465,7 +494,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                     ListTile(
                       title: const Text('Home_Panel_Hadiths',
-                          style: TextStyle(color: textColor))
+                              style: TextStyle(color: textColor))
                           .tr(),
                       trailing: Image.asset(
                         "assets/hadith/hadith.png",
@@ -475,7 +504,8 @@ class _MyHomePageState extends State<MyHomePage> {
                         await Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => const HadithHomePageClass()),
+                              builder: (context) =>
+                                  const HadithHomePageClass()),
                         );
                       },
                     ),
@@ -608,7 +638,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                               color: primaryColor,
                                               shadowColor: thirdColor,
                                               child: Padding(
-                                                padding: const EdgeInsets.all(8.0),
+                                                padding:
+                                                    const EdgeInsets.all(8.0),
                                                 child: metaData,
                                               ),
                                             ),
@@ -640,11 +671,14 @@ class _MyHomePageState extends State<MyHomePage> {
                                         context,
                                         MaterialPageRoute(
                                             builder: (context) =>
-                                                SettingsPageClass(prefs: _prefs)),
+                                                SettingsPageClass(
+                                                    prefs: _prefs)),
                                       );
                                       // helper.invalidateTodayCachedData(_prefs);
-                                      var location = await shared_preference_methods
-                                          .getStringData(_prefs, 'location', true);
+                                      var location =
+                                          await shared_preference_methods
+                                              .getStringData(
+                                                  _prefs, 'location', true);
                                       if (location != null) {
                                         FetchAPI();
                                       }
@@ -669,17 +703,25 @@ class _MyHomePageState extends State<MyHomePage> {
                           controller: pageController,
                           itemCount: 7,
                           itemBuilder: (_, index) {
-                            if (jsonTimings[index].isEmpty || jsonDataDate[index].isEmpty) {
-                              return const Center(child: CircularProgressIndicator());
+                            if (jsonTimings[index].isEmpty ||
+                                jsonDataDate[index].isEmpty) {
+                              return const Center(
+                                  child: CircularProgressIndicator());
                             }
                             return prayerTimingPage(index);
                           },
-                          onPageChanged: (value){
+                          onPageChanged: (value) {
                             if (!mounted) return;
                             setState(() {
                               _selectedDayIndex = value;
-                              double convertedValue = daysListViewController.position.maxScrollExtent / 7;
-                              daysListViewController.animateTo(convertedValue*((value==0)?0:value+1), duration: const Duration(milliseconds: 200), curve: Curves.easeIn);
+                              double convertedValue = daysListViewController
+                                      .position.maxScrollExtent /
+                                  7;
+                              daysListViewController.animateTo(
+                                  convertedValue *
+                                      ((value == 0) ? 0 : value + 1),
+                                  duration: const Duration(milliseconds: 200),
+                                  curve: Curves.easeIn);
                             });
                           },
                         ),
@@ -691,7 +733,9 @@ class _MyHomePageState extends State<MyHomePage> {
                           AnimatedOpacity(
                             opacity: hadithOfTheDay != "" ? 1.0 : 0.0,
                             duration: const Duration(milliseconds: 750),
-                            child: QuickHadithCardPageClass(hadith: hadithOfTheDay,),
+                            child: QuickHadithCardPageClass(
+                              hadith: hadithOfTheDay,
+                            ),
                           )
                           // Visibility(
                           //   visible: hadithOfTheDay != "",
@@ -721,32 +765,36 @@ class _MyHomePageState extends State<MyHomePage> {
     return Column(
       children: [
         Padding(
-              padding: const EdgeInsets.fromLTRB(0,8.0,0,8.0),
-              child: Center(
-                child: AutoSizeText("${"Home_Page_Next_Prayer".tr()}:", style: prayerStyle,),
-              ),
+          padding: const EdgeInsets.fromLTRB(0, 8.0, 0, 8.0),
+          child: Center(
+            child: AutoSizeText(
+              "${"Home_Page_Next_Prayer".tr()}:",
+              style: prayerStyle,
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              textDirection: TextDirection.ltr,
-              children: [
-                buildTimeCard(nextPrayTime != null
-                    ? (helper.constructTimeLeftSplitted(
-                        nextPrayTime!.difference(DateTime.now()), "hour"))
-                    : "-"),
-                buildTimeCard(nextPrayTime != null
-                    ? (helper.constructTimeLeftSplitted(
-                        nextPrayTime!.difference(DateTime.now()), "minute"))
-                    : "-"),
-                buildTimeCard(nextPrayTime != null
-                    ? (helper.constructTimeLeftSplitted(
-                        nextPrayTime!.difference(DateTime.now()), "second"))
-                    : "-"),
-              ],
-            ),
+          ),
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          textDirection: TextDirection.ltr,
+          children: [
+            buildTimeCard(nextPrayTime != null
+                ? (helper.constructTimeLeftSplitted(
+                    nextPrayTime!.difference(DateTime.now()), "hour"))
+                : "-"),
+            buildTimeCard(nextPrayTime != null
+                ? (helper.constructTimeLeftSplitted(
+                    nextPrayTime!.difference(DateTime.now()), "minute"))
+                : "-"),
+            buildTimeCard(nextPrayTime != null
+                ? (helper.constructTimeLeftSplitted(
+                    nextPrayTime!.difference(DateTime.now()), "second"))
+                : "-"),
+          ],
+        ),
       ],
     );
   }
+
   Widget daysOfWeekWidget(PageController pageController) {
     return SizedBox(
       height: 85, // Adjust height to fit content + margin
@@ -852,8 +900,7 @@ class _MyHomePageState extends State<MyHomePage> {
         color: Colors.transparent,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(4, 8, 4, 4),
-          child: Column(
-              mainAxisSize: MainAxisSize.min, children: <Widget>[
+          child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
             Row(
               children: [
                 Expanded(
@@ -863,9 +910,12 @@ class _MyHomePageState extends State<MyHomePage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       AutoSizeText(
-                        helper.constructDateFormat(jsonDataDate[daynumber]["gregorian"]?["month"]?["en"] ?? "Month",
-                          jsonDataDate[daynumber]["gregorian"]?["date"] ??
-                              "gregorian"),
+                        helper.constructDateFormat(
+                            jsonDataDate[daynumber]["gregorian"]?["month"]
+                                    ?["en"] ??
+                                "Month",
+                            jsonDataDate[daynumber]["gregorian"]?["date"] ??
+                                "gregorian"),
                         style: const TextStyle(
                             color: textColor, fontWeight: FontWeight.bold),
                         maxLines: 1,
@@ -880,15 +930,20 @@ class _MyHomePageState extends State<MyHomePage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       GestureDetector(
-                        onTap: (){
-                          showDialog(context: context, builder: (BuildContext context){
-                            return prayer_calendar_model.showdialog();
-                          });
+                        onTap: () {
+                          showDialog(
+                              context: context,
+                              builder: (BuildContext context) {
+                                return prayer_calendar_model.showdialog();
+                              });
                         },
                         child: AutoSizeText(
-                          helper.constructDateFormat((jsonDataDate[daynumber]["hijri"]?["month"]?["en"] ??
-                              "Month")
-                              , jsonDataDate[daynumber]["hijri"]?["date"] ?? "hijri"),
+                          helper.constructDateFormat(
+                              (jsonDataDate[daynumber]["hijri"]?["month"]
+                                      ?["en"] ??
+                                  "Month"),
+                              jsonDataDate[daynumber]["hijri"]?["date"] ??
+                                  "hijri"),
                           style: const TextStyle(
                               color: textColor, fontWeight: FontWeight.bold),
                           maxLines: 1,
@@ -899,7 +954,6 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ],
             ),
-            
             const Divider(
               height: 15,
               thickness: 5,
@@ -916,8 +970,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         children: [
                           detailsRow(
                               PRAYER_NAMES[index],
-                              jsonTimings[daynumber]
-                                      [PRAYER_NAMES[index]] ??
+                              jsonTimings[daynumber][PRAYER_NAMES[index]] ??
                                   "-",
                               daynumber),
                         ],
@@ -939,7 +992,11 @@ class _MyHomePageState extends State<MyHomePage> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10.0),
           side: BorderSide(
-            color: nextPray == headText ? (dayNumber == 0) ? highlightedBoxesBorderColor: boxesBorderColor : boxesBorderColor,
+            color: nextPray == headText
+                ? (dayNumber == 0)
+                    ? highlightedBoxesBorderColor
+                    : boxesBorderColor
+                : boxesBorderColor,
           ),
         ),
         // shadowColor: Colors.blueGrey,

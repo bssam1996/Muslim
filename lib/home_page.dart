@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:core';
 import 'dart:io' show Platform;
 import 'package:auto_size_text/auto_size_text.dart';
-import 'package:background_fetch/background_fetch.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -207,15 +206,6 @@ class _MyHomePageState extends State<MyHomePage> {
         }
       }
       await helper.updateLastFetchedDate(prefs);
-      BackgroundFetch.start().then((int status) {
-        if (kDebugMode) {
-          print('[BackgroundFetch] start success: $status');
-        }
-      }).catchError((e) {
-        if (kDebugMode) {
-          print('[BackgroundFetch] start FAILURE: $e');
-        }
-      });
       // Handle Notification
       await helper.handleNotifications(_prefs, jsonTimings);
       return true;

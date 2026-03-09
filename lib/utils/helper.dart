@@ -219,16 +219,22 @@ Future<void> handleNotifications(Future<SharedPreferences> prefs, List<Map<Strin
         continue; // Skip Sunrise
       }
       String time = jsonTimings[0][constants.PRAYER_NAMES[i]];
-      bool is24HourSystem = !time.contains("m");
+      final String lowerTime = time.toLowerCase();
+      bool is24HourSystem = !lowerTime.contains("m");
+      bool isPm = false;
       if (!is24HourSystem) {
-        time = time.replaceAll(" am", "");
-        time = time.replaceAll(" pm", "");
+        isPm = lowerTime.contains("pm");
+        time = lowerTime.replaceAll(" am", "").replaceAll(" pm", "");
       }
       List<String> splittedTime = time.split(":");
       String hourString = splittedTime[0];
       String minuteString = splittedTime[1];
       if(!is24HourSystem){
-        hourString = (int.parse(hourString) + 12).toString();
+        int parsedHour = int.parse(hourString) % 12;
+        if (isPm) {
+          parsedHour += 12;
+        }
+        hourString = parsedHour.toString();
       }
       DateTime selectedTime = DateTime(
           DateTime.now().year,

@@ -1,134 +1,125 @@
-
 import 'dart:io';
+import 'dart:ui';
 
-import 'package:background_fetch/background_fetch.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:home_widget/home_widget.dart';
-import 'package:easy_localization/easy_localization.dart' as easy_Localization;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
+
 import 'api_utils.dart' as api_utils;
 import 'helper.dart' as helper;
 
-void updateHomePage(
-    Map<String, dynamic> jsonTimings, Map<String, dynamic> jsonData) async {
-  Future.wait<bool?>([
-    HomeWidget.saveWidgetData<String>(
-        "fajr_text", jsonTimings["Fajr"].toString()),
+const String dailyRefreshUniqueName = 'daily_prayer_refresh';
+const String dailyRefreshTaskName = 'Refresh_Notification_Prayer_Times';
+
+Future<void> updateHomePage(
+  Map<String, dynamic> jsonTimings,
+  Map<String, dynamic> jsonData,
+) async {
+  await Future.wait<bool?>([
+    HomeWidget.saveWidgetData<String>("fajr_text", jsonTimings["Fajr"].toString()),
     HomeWidget.saveWidgetData<String>("fajr_label", "Fajr".tr()),
     HomeWidget.saveWidgetData<String>(
-        "sunrise_text", jsonTimings["Sunrise"].toString()),
+      "sunrise_text",
+      jsonTimings["Sunrise"].toString(),
+    ),
     HomeWidget.saveWidgetData<String>("sunrise_label", "Sunrise".tr()),
-    HomeWidget.saveWidgetData<String>(
-        "dhuhr_text", jsonTimings["Dhuhr"].toString()),
+    HomeWidget.saveWidgetData<String>("dhuhr_text", jsonTimings["Dhuhr"].toString()),
     HomeWidget.saveWidgetData<String>("dhuhr_label", "Dhuhr".tr()),
-    HomeWidget.saveWidgetData<String>(
-        "asr_text", jsonTimings["Asr"].toString()),
+    HomeWidget.saveWidgetData<String>("asr_text", jsonTimings["Asr"].toString()),
     HomeWidget.saveWidgetData<String>("asr_label", "Asr".tr()),
     HomeWidget.saveWidgetData<String>(
-        "maghrib_text", jsonTimings["Maghrib"].toString()),
+      "maghrib_text",
+      jsonTimings["Maghrib"].toString(),
+    ),
     HomeWidget.saveWidgetData<String>("maghrib_label", "Maghrib".tr()),
-    HomeWidget.saveWidgetData<String>(
-        "isha_text", jsonTimings["Isha"].toString()),
+    HomeWidget.saveWidgetData<String>("isha_text", jsonTimings["Isha"].toString()),
     HomeWidget.saveWidgetData<String>("isha_label", "Isha".tr()),
     HomeWidget.saveWidgetData<String>(
-        "gregorianDate_text", jsonData["gregorian"]?["date"] ?? "Month"),
+      "gregorianDate_text",
+      jsonData["gregorian"]?["date"] ?? "Month",
+    ),
     HomeWidget.saveWidgetData<String>(
-        "hijriDate_text", jsonData["hijri"]?["date"] ?? "Month"),
-  ]).then((value) {
-    HomeWidget.updateWidget(
-      name: "HomeAppWidget",
-      androidName: "HomeAppWidget",
-    );
-    HomeWidget.updateWidget(
-      name: "HomeAppWidgetWide",
-      androidName: "HomeAppWidgetWide",
-    );
-  });
+      "hijriDate_text",
+      jsonData["hijri"]?["date"] ?? "Month",
+    ),
+  ]);
+
+  await HomeWidget.updateWidget(
+    name: "HomeAppWidget",
+    androidName: "HomeAppWidget",
+  );
+  await HomeWidget.updateWidget(
+    name: "HomeAppWidgetWide",
+    androidName: "HomeAppWidgetWide",
+  );
 }
 
-void onBackgroundFetch(String taskId) async {
-  Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
-  final SharedPreferences prefs = await _prefs;
-  // Your daily task logic here.
-  if (await helper.shouldFetchDailyData(prefs)) {
+Future<bool> runDailyRefreshTask({String source = "unknown"}) async {
+  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  final bool shouldFetch = await helper.shouldFetchDailyData(prefs);
+  if (!shouldFetch) {
     if (kDebugMode) {
-      print("[BackgroundFetch] Fetching new daily data");
+      print("[$source] Daily refresh skipped (already refreshed today)");
     }
-    await onBackgroundFetchPrayerTimes();
-  } else {
+    return true;
+  }
+
+  final bool refreshed = await refreshPrayerTimesAndReschedule();
+  if (refreshed) {
+    await helper.updateLastFetchedDate(prefs);
+  }
+  return refreshed;
+}
+
+Future<bool> refreshPrayerTimesAndReschedule() async {
+  final Future<SharedPreferences> prefsFuture = SharedPreferences.getInstance();
+  try {
+    final Map<String, dynamic> savedLocation = await api_utils.getSavedLocation();
+    if (savedLocation["error"] != "") {
+      if (kDebugMode) {
+        print("Error getting saved location ${savedLocation["error"]}");
+      }
+      return false;
+    }
+
+    final Map<String, dynamic> dataFromDay =
+        await api_utils.getDataFromDay(0, savedLocation);
+    if (dataFromDay["error"] != "") {
+      if (kDebugMode) {
+        print("Error getting date from day ${dataFromDay["error"]}");
+      }
+      return false;
+    }
+
+    dynamic jsonData = dataFromDay["jsonData"];
+    jsonData['data']['timings'] =
+        await api_utils.getTimings24System(jsonData['data']['timings']);
+
+    if (!kIsWeb && Platform.isAndroid) {
+      await updateHomePage(jsonData['data']['timings'], jsonData['data']['date']);
+      final List<Map<String, dynamic>> jsonTimings = [jsonData['data']['timings']];
+      await helper.handleNotifications(prefsFuture, jsonTimings);
+    }
+
+    return true;
+  } catch (e) {
     if (kDebugMode) {
-      print("[BackgroundFetch] Data already fetched today");
+      print("refreshPrayerTimesAndReschedule failed: $e");
     }
-  }
-  BackgroundFetch.finish(taskId);
-}
-
-void onBackgroundFetchTimeout(String taskId) async {
-  if (kDebugMode) {
-    print("[BackgroundFetch] TIMEOUT: $taskId");
-  }
-  BackgroundFetch.finish(taskId);
-}
-@pragma('vm:entry-point')
-void backgroundFetchHeadlessTask(HeadlessTask task) async {
-  Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
-  final SharedPreferences prefs = await _prefs;
-  String taskId = task.taskId;
-  bool isTimeout = task.timeout;
-  if (isTimeout) {
-    // This task has exceeded its allowed running-time.
-    // You must stop what you're doing and immediately .finish(taskId)
-    print("[BackgroundFetch] Headless task timed-out: $taskId");
-    BackgroundFetch.finish(taskId);
-    return;
-  }
-  print('[BackgroundFetch] Headless event received.');
-  if (await helper.shouldFetchDailyData(prefs)) {
-    if (kDebugMode) {
-      print("[BackgroundFetch] Fetching new daily data");
-    }
-    await onBackgroundFetchPrayerTimes();
-  } else {
-    if (kDebugMode) {
-      print("[BackgroundFetch] Data already fetched today");
-    }
-  }
-  BackgroundFetch.finish(taskId);
-}
-
-Future<void> onBackgroundFetchPrayerTimes() async{
-  Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
-  final SharedPreferences prefs = await _prefs;
-  Map<String, dynamic> savedLocation = await api_utils.getSavedLocation();
-  if (savedLocation["error"] != ""){
-    print("Error getting saved location ${savedLocation["error"]}");
-    return;
-  }
-  dynamic jsonData;
-  Map<String, dynamic> dataFromDay = await api_utils.getDataFromDay(0, savedLocation);
-  if (dataFromDay["error"] != ""){
-    print("Error getting date from day ${dataFromDay["error"]}");
-    return;
-  }
-  jsonData = dataFromDay["jsonData"];
-
-  jsonData['data']['timings'] = await api_utils.getTimings24System(jsonData['data']['timings']);
-
-  print("onBackgroundFetchPrayerTimes");
-  if(!kIsWeb && Platform.isAndroid){
-    updateHomePage(jsonData['data']['timings'], jsonData['data']['date']);
-    List<Map<String, dynamic>> jsonTimings = [jsonData['data']['timings']];
-    print("onBackgroundFetchPrayerTimes2");
-    await helper.handleNotifications(_prefs, jsonTimings);
+    return false;
   }
 }
+
 @pragma("vm:entry-point")
-void WorkManagercallbackDispatcher(){
+void workManagerCallbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
-    print("Workmanager task $task");
-    print("Workmanager inputData $inputData");
-    await onBackgroundFetchPrayerTimes();
-    return Future.value(true);
+    DartPluginRegistrant.ensureInitialized();
+    if (kDebugMode) {
+      print("Workmanager task $task");
+      print("Workmanager inputData $inputData");
+    }
+    return runDailyRefreshTask(source: "WorkManager:$task");
   });
 }

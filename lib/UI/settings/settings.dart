@@ -133,6 +133,14 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
             dismissOnTap: true);
         return;
       }
+      final bool exactAlarmGranted =
+          await NotificationService().requestExactAlarmPermissionIfNeeded();
+      if (!exactAlarmGranted) {
+        EasyLoading.showInfo(
+          "Exact alarm permission is not granted. Notifications still work, but may be slightly delayed in optimized battery mode.",
+          dismissOnTap: true,
+        );
+      }
     }else{
       NotificationService().clearAllNotifications();
     }
@@ -174,365 +182,367 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
             ],
           ),
         ),
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                      borderRadius: const BorderRadius.all(Radius.circular(10)),
-                      color: settingsWidgetBGColor,
-                      border:
-                      Border.all(color: boxesBorderColor, width: 1)),
-                  child: DropdownSearch<String>(
-                    popupProps: const PopupProps.menu(
-                        menuProps: MenuProps(
-                          backgroundColor: settingsWidgetBGColor,
-                        ),
-                        showSelectedItems: true,
-                        fit: FlexFit.loose,
-                    ),
-                    items: (filter, infiniteScrollProps) => ["العربية", "English"],
-                    decoratorProps: DropDownDecoratorProps(
-                      baseStyle: const TextStyle(color: textColor, fontSize: 14),
-                      decoration: InputDecoration(
-                        labelText: "Settings_Language_Title".tr(),
-                        labelStyle: const TextStyle(color: textColor),
-                        helperText: "Settings_Language_Desc".tr(),
-                        helperStyle: const TextStyle(color: highlightedColor),
-                        suffixIconColor: textColor,
-                      ),
-                    ),
-                    onChanged: _changelanguage,
-                    selectedItem: selectedlocale,
-                  ),
-                ),
-                const Divider(
-                  height: 20,
-                  thickness: 5,
-                  color: dividerColor,
-                ),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                      borderRadius: const BorderRadius.all(Radius.circular(10)),
-                      color: settingsWidgetBGColor,
-                      border:
-                      Border.all(color: boxesBorderColor, width: 1)),
-                  child: Row(
-                    children: [
-                      Expanded(flex:4, child: const Text("Settings_Use24Hour", style: detailsStyle,).tr()),
-                      Expanded(flex:1, child: Switch(
-                        activeColor: textColor,
-                        inactiveThumbColor: Colors.grey,
-                        value: is24,
-                        onChanged: _change24HourSystem,
-                      ))
-                    ],
-                  ),
-                ),
-                const Divider(
-                  height: 20,
-                  thickness: 5,
-                  color: dividerColor,
-                ),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                      borderRadius: const BorderRadius.all(Radius.circular(10)),
-                      color: settingsWidgetBGColor,
-                      border:
-                      Border.all(color: boxesBorderColor, width: 1)),
-                  child: Row(
-                    children: [
-                      Expanded(flex:4, child: const Text("Settings_PrayerTimes_Notification_Title", style: detailsStyle,).tr()),
-                      Expanded(flex:1, child: Switch(
-                        activeColor: textColor,
-                        inactiveThumbColor: Colors.grey,
-                        value: prayerNotification,
-                        onChanged: _changePrayerNotification,
-                      ))
-                    ],
-                  ),
-                ),
-                const Divider(
-                  height: 20,
-                  thickness: 5,
-                  color: dividerColor,
-                ),
-                CSCPicker(
-                  key: _cscPickerKey,
-                  showStates: true,
-                  showCities: true,
-                  flagState: CountryFlag.DISABLE,
-                  dropdownDecoration: BoxDecoration(
-                      borderRadius: const BorderRadius.all(Radius.circular(10)),
-                      color: settingsWidgetBGColor,
-                      border:
-                      Border.all(color: boxesBorderColor, width: 1)),
-                  disabledDropdownDecoration: BoxDecoration(
-                      borderRadius: const BorderRadius.all(Radius.circular(10)),
-                      color: settingsWidgetBGColor.withOpacity(0.3),
-                      border:
-                      Border.all(color: boxesBorderColor, width: 1)),
-
-                  countrySearchPlaceholder: "Settings_Country".tr(),
-                  stateSearchPlaceholder: "Settings_State".tr(),
-                  citySearchPlaceholder: "Settings_City".tr(),
-
-                  countryDropdownLabel: "Settings_Country".tr(),
-                  stateDropdownLabel: "Settings_State".tr(),
-                  cityDropdownLabel: "Settings_City".tr(),
-
-                  selectedItemStyle: const TextStyle(
-                    color: textColor,
-                    fontSize: 14,
-                  ),
-
-                  dropdownHeadingStyle: const TextStyle(
-                      color: settingsWidgetBGColor,
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold),
-                  dropdownItemStyle: const TextStyle(
-                    color: settingsWidgetBGColor,
-                    fontSize: 14,
-                  ),
-                  dropdownDialogRadius: 10.0,
-                  searchBarRadius: 10.0,
-                  onCountryChanged: (value) {
-                    setState(() {
-                      countryValue = value;
-                    });
-                  },
-                  onStateChanged: (value) {
-                    setState(() {
-                      stateValue = value??"";
-                    });
-                  },
-                  onCityChanged: (value) {
-                    setState(() {
-                      cityValue = value??"";
-                      address = "";
-                      if(countryValue.isNotEmpty){
-                        address = countryValue;
-                      }
-                      if(stateValue.isNotEmpty){
-                        address = "$stateValue, $countryValue";
-                      }
-                      if(cityValue.isNotEmpty) {
-                        address = "$cityValue, $stateValue, $countryValue";
-                      }
-                      locationController.text = address;
-                      saveLocationAddress();
-                      helper.invalidateTodayCachedData(widget.prefs);
-                    });
-                  },
-                ),
-                const SizedBox(height: 10,),
-                Row(
-                  children: [
-                    Expanded(
-                      flex: 8,
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                            borderRadius: const BorderRadius.all(Radius.circular(10)),
-                            color: settingsWidgetBGColor,
-                            border:
-                            Border.all(color: boxesBorderColor, width: 1)),
-                        child: TextFormField(
-                          textCapitalization: TextCapitalization.words,
-                          decoration: InputDecoration(
-                              fillColor: settingsWidgetBGColor,
-                              filled: true,
-                              helperText: "Settings_ManualLocation_Desc".tr(),
-                              helperStyle: const TextStyle(color: highlightedColor),
-                              suffixIconColor: textColor,
-                          ),
-                          style: detailsStyle,
-                          controller: locationController,
-                          textInputAction: TextInputAction.done,
-                          onEditingComplete: () {
-                            saveLocationAddress();
-                            helper.invalidateTodayCachedData(widget.prefs);
-                          },
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 2,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(8.0, 0, 8.0, 0),
-                        child: IconButton(
-                          onPressed: () async{
-                            EasyLoading.showInfo("Settings_Saving_Location".tr());
-                            var seeip = SeeipClient();
-                            var ip = await seeip.getIP();
-                            var geoLocation = await seeip.getGeoIP(ip.ip);
-                            String loc = "${geoLocation.city}, ${geoLocation.region}, ${geoLocation.country}";
-                            locationController.text = loc;
-                            saveLocationAddress();
-                          },
-                          icon: const Icon(
-                            Icons.language,
-                            color: Colors.white54,
-                          ),
-                        ),
-                      ),
-                    )
-                  ],
-                ),
-                const Divider(
-                  height: 20,
-                  thickness: 5,
-                  color: dividerColor,
-                ),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                      borderRadius: const BorderRadius.all(Radius.circular(10)),
-                      color: settingsWidgetBGColor,
-                      border:
-                      Border.all(color: boxesBorderColor, width: 1)),
-                  child: DropdownSearch<String>(
-                    popupProps: const PopupProps.menu(
-                        menuProps: MenuProps(
-                          backgroundColor: settingsWidgetBGColor,
-                        ),
-                        fit: FlexFit.loose,
-                        showSelectedItems: true,
-                    ),
-                    items: (filter, infiniteScrollProps) => authorities.keys.toList(),
-                    decoratorProps: DropDownDecoratorProps(
-                      baseStyle: const TextStyle(color: textColor, fontSize: 14),
-                      decoration: InputDecoration(
-                        labelText: "Settings_Method".tr(),
-                        labelStyle: const TextStyle(color: textColor),
-                        helperText: "Settings_Method_Desc".tr(),
-                        helperStyle: const TextStyle(color: highlightedColor),
-                        suffixIconColor: textColor,
-                      ),
-                    ),
-                    onChanged: saveMethodParameter,
-                    selectedItem: selectedMethod,
-
-                  ),
-                ),
-                const Divider(
-                  height: 20,
-                  thickness: 5,
-                  color: dividerColor,
-                ),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                      borderRadius: const BorderRadius.all(Radius.circular(10)),
-                      color: settingsWidgetBGColor,
-                      border:
-                      Border.all(color: boxesBorderColor, width: 1)),
-                  child: DropdownSearch<String>(
-                    popupProps: const PopupProps.menu(
-                      menuProps: MenuProps(
-                        backgroundColor: settingsWidgetBGColor,
-                      ),
-                      showSelectedItems: true,
-                      fit: FlexFit.loose
-                    ),
-                    items: (filter, infiniteScrollProps) => schools.keys.toList(),
-                    decoratorProps: DropDownDecoratorProps(
-                      baseStyle: const TextStyle(color: textColor, fontSize: 14),
-                      decoration: InputDecoration(
-                        labelText: "Settings_School".tr(),
-                        labelStyle: const TextStyle(color: textColor),
-                        helperText: "Settings_School_Desc".tr(),
-                        helperStyle: const TextStyle(color: highlightedColor),
-                        suffixIconColor: textColor,
-                      ),
-                    ),
-                    onChanged: saveSchoolParameter,
-                    selectedItem: selectedSchool,
-                  ),
-                ),
-                const Divider(
-                  height: 20,
-                  thickness: 5,
-                  color: dividerColor,
-                ),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                      borderRadius: const BorderRadius.all(Radius.circular(10)),
-                      color: settingsWidgetBGColor,
-                      border:
-                      Border.all(color: boxesBorderColor, width: 1)),
-                  child: DropdownSearch<String>(
-                    popupProps: const PopupProps.menu(
-                        menuProps: MenuProps(
-                          backgroundColor: settingsWidgetBGColor,
-                        ),
-                        showSelectedItems: true,
-                        fit: FlexFit.loose
-                    ),
-                    items: (filter, infiniteScrollProps) => CalendarMethods.keys.toList(),
-                    decoratorProps: DropDownDecoratorProps(
-                      baseStyle: const TextStyle(color: textColor, fontSize: 14),
-                      decoration: InputDecoration(
-                        labelText: "Settings_Calendar_Methods".tr(),
-                        labelStyle: const TextStyle(color: textColor),
-                        helperText: "Settings_Calendar_Methods_Desc".tr(),
-                        helperStyle: const TextStyle(color: highlightedColor),
-                        suffixIconColor: textColor,
-                      ),
-                    ),
-                    onChanged: saveCalendarMethodParameter,
-                    selectedItem: selectedCalendarMethod,
-                  ),
-                ),
-                Visibility(
-                  visible: selectedCalendarMethod == "MATHEMATICAL",
-                  child: Container(
+        child: SafeArea(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                         borderRadius: const BorderRadius.all(Radius.circular(10)),
                         color: settingsWidgetBGColor,
                         border:
                         Border.all(color: boxesBorderColor, width: 1)),
-                    child: Column(
+                    child: DropdownSearch<String>(
+                      popupProps: const PopupProps.menu(
+                          menuProps: MenuProps(
+                            backgroundColor: settingsWidgetBGColor,
+                          ),
+                          showSelectedItems: true,
+                          fit: FlexFit.loose,
+                      ),
+                      items: (filter, infiniteScrollProps) => ["العربية", "English"],
+                      decoratorProps: DropDownDecoratorProps(
+                        baseStyle: const TextStyle(color: textColor, fontSize: 14),
+                        decoration: InputDecoration(
+                          labelText: "Settings_Language_Title".tr(),
+                          labelStyle: const TextStyle(color: textColor),
+                          helperText: "Settings_Language_Desc".tr(),
+                          helperStyle: const TextStyle(color: highlightedColor),
+                          suffixIconColor: textColor,
+                        ),
+                      ),
+                      onChanged: _changelanguage,
+                      selectedItem: selectedlocale,
+                    ),
+                  ),
+                  const Divider(
+                    height: 20,
+                    thickness: 5,
+                    color: dividerColor,
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                        borderRadius: const BorderRadius.all(Radius.circular(10)),
+                        color: settingsWidgetBGColor,
+                        border:
+                        Border.all(color: boxesBorderColor, width: 1)),
+                    child: Row(
                       children: [
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Row(
-                            children: [
-                              const Text("Settings_Adj_Hij_Desc",style: TextStyle(color: textColor),).tr(),
-                            ],
-                          ),
-                        ),
-                        SizedBox(
-                          width: MediaQuery.of(context).size.width/2,
-                          child: NumberInputWithIncrementDecrement(
-                            initialValue: int.parse((adjustmentsController.text == "")?"0":adjustmentsController.text),
-                            controller: adjustmentsController,
-                            onChanged: saveAdjustmentValue,
-                            onDecrement: saveAdjustmentValue,
-                            onIncrement: saveAdjustmentValue,
-                            min: -100,
-                            incDecBgColor: textColor,
-                            style: const TextStyle(color: textColor),
-                          ),
-                        ),
+                        Expanded(flex:4, child: const Text("Settings_Use24Hour", style: detailsStyle,).tr()),
+                        Expanded(flex:1, child: Switch(
+                          activeThumbColor: textColor,
+                          inactiveThumbColor: Colors.grey,
+                          value: is24,
+                          onChanged: _change24HourSystem,
+                        ))
                       ],
                     ),
                   ),
-                ),
-
-                const Divider(
-                  height: 20,
-                  thickness: 5,
-                  color: dividerColor,
-                ),
-              ],
+                  const Divider(
+                    height: 20,
+                    thickness: 5,
+                    color: dividerColor,
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                        borderRadius: const BorderRadius.all(Radius.circular(10)),
+                        color: settingsWidgetBGColor,
+                        border:
+                        Border.all(color: boxesBorderColor, width: 1)),
+                    child: Row(
+                      children: [
+                        Expanded(flex:4, child: const Text("Settings_PrayerTimes_Notification_Title", style: detailsStyle,).tr()),
+                        Expanded(flex:1, child: Switch(
+                          activeThumbColor: textColor,
+                          inactiveThumbColor: Colors.grey,
+                          value: prayerNotification,
+                          onChanged: _changePrayerNotification,
+                        ))
+                      ],
+                    ),
+                  ),
+                  const Divider(
+                    height: 20,
+                    thickness: 5,
+                    color: dividerColor,
+                  ),
+                  CSCPicker(
+                    key: _cscPickerKey,
+                    showStates: true,
+                    showCities: true,
+                    flagState: CountryFlag.DISABLE,
+                    dropdownDecoration: BoxDecoration(
+                        borderRadius: const BorderRadius.all(Radius.circular(10)),
+                        color: settingsWidgetBGColor,
+                        border:
+                        Border.all(color: boxesBorderColor, width: 1)),
+                    disabledDropdownDecoration: BoxDecoration(
+                        borderRadius: const BorderRadius.all(Radius.circular(10)),
+                        color: settingsWidgetBGColor.withValues(alpha: 0.3),
+                        border:
+                        Border.all(color: boxesBorderColor, width: 1)),
+          
+                    countrySearchPlaceholder: "Settings_Country".tr(),
+                    stateSearchPlaceholder: "Settings_State".tr(),
+                    citySearchPlaceholder: "Settings_City".tr(),
+          
+                    countryDropdownLabel: "Settings_Country".tr(),
+                    stateDropdownLabel: "Settings_State".tr(),
+                    cityDropdownLabel: "Settings_City".tr(),
+          
+                    selectedItemStyle: const TextStyle(
+                      color: textColor,
+                      fontSize: 14,
+                    ),
+          
+                    dropdownHeadingStyle: const TextStyle(
+                        color: settingsWidgetBGColor,
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold),
+                    dropdownItemStyle: const TextStyle(
+                      color: settingsWidgetBGColor,
+                      fontSize: 14,
+                    ),
+                    dropdownDialogRadius: 10.0,
+                    searchBarRadius: 10.0,
+                    onCountryChanged: (value) {
+                      setState(() {
+                        countryValue = value;
+                      });
+                    },
+                    onStateChanged: (value) {
+                      setState(() {
+                        stateValue = value??"";
+                      });
+                    },
+                    onCityChanged: (value) {
+                      setState(() {
+                        cityValue = value??"";
+                        address = "";
+                        if(countryValue.isNotEmpty){
+                          address = countryValue;
+                        }
+                        if(stateValue.isNotEmpty){
+                          address = "$stateValue, $countryValue";
+                        }
+                        if(cityValue.isNotEmpty) {
+                          address = "$cityValue, $stateValue, $countryValue";
+                        }
+                        locationController.text = address;
+                        saveLocationAddress();
+                        helper.invalidateTodayCachedData(widget.prefs);
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 10,),
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 8,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                              borderRadius: const BorderRadius.all(Radius.circular(10)),
+                              color: settingsWidgetBGColor,
+                              border:
+                              Border.all(color: boxesBorderColor, width: 1)),
+                          child: TextFormField(
+                            textCapitalization: TextCapitalization.words,
+                            decoration: InputDecoration(
+                                fillColor: settingsWidgetBGColor,
+                                filled: true,
+                                helperText: "Settings_ManualLocation_Desc".tr(),
+                                helperStyle: const TextStyle(color: highlightedColor),
+                                suffixIconColor: textColor,
+                            ),
+                            style: detailsStyle,
+                            controller: locationController,
+                            textInputAction: TextInputAction.done,
+                            onEditingComplete: () {
+                              saveLocationAddress();
+                              helper.invalidateTodayCachedData(widget.prefs);
+                            },
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 2,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(8.0, 0, 8.0, 0),
+                          child: IconButton(
+                            onPressed: () async{
+                              EasyLoading.showInfo("Settings_Saving_Location".tr());
+                              var seeip = SeeipClient();
+                              var ip = await seeip.getIP();
+                              var geoLocation = await seeip.getGeoIP(ip.ip);
+                              String loc = "${geoLocation.city}, ${geoLocation.region}, ${geoLocation.country}";
+                              locationController.text = loc;
+                              saveLocationAddress();
+                            },
+                            icon: const Icon(
+                              Icons.language,
+                              color: Colors.white54,
+                            ),
+                          ),
+                        ),
+                      )
+                    ],
+                  ),
+                  const Divider(
+                    height: 20,
+                    thickness: 5,
+                    color: dividerColor,
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                        borderRadius: const BorderRadius.all(Radius.circular(10)),
+                        color: settingsWidgetBGColor,
+                        border:
+                        Border.all(color: boxesBorderColor, width: 1)),
+                    child: DropdownSearch<String>(
+                      popupProps: const PopupProps.menu(
+                          menuProps: MenuProps(
+                            backgroundColor: settingsWidgetBGColor,
+                          ),
+                          fit: FlexFit.loose,
+                          showSelectedItems: true,
+                      ),
+                      items: (filter, infiniteScrollProps) => authorities.keys.toList(),
+                      decoratorProps: DropDownDecoratorProps(
+                        baseStyle: const TextStyle(color: textColor, fontSize: 14),
+                        decoration: InputDecoration(
+                          labelText: "Settings_Method".tr(),
+                          labelStyle: const TextStyle(color: textColor),
+                          helperText: "Settings_Method_Desc".tr(),
+                          helperStyle: const TextStyle(color: highlightedColor),
+                          suffixIconColor: textColor,
+                        ),
+                      ),
+                      onChanged: saveMethodParameter,
+                      selectedItem: selectedMethod,
+          
+                    ),
+                  ),
+                  const Divider(
+                    height: 20,
+                    thickness: 5,
+                    color: dividerColor,
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                        borderRadius: const BorderRadius.all(Radius.circular(10)),
+                        color: settingsWidgetBGColor,
+                        border:
+                        Border.all(color: boxesBorderColor, width: 1)),
+                    child: DropdownSearch<String>(
+                      popupProps: const PopupProps.menu(
+                        menuProps: MenuProps(
+                          backgroundColor: settingsWidgetBGColor,
+                        ),
+                        showSelectedItems: true,
+                        fit: FlexFit.loose
+                      ),
+                      items: (filter, infiniteScrollProps) => schools.keys.toList(),
+                      decoratorProps: DropDownDecoratorProps(
+                        baseStyle: const TextStyle(color: textColor, fontSize: 14),
+                        decoration: InputDecoration(
+                          labelText: "Settings_School".tr(),
+                          labelStyle: const TextStyle(color: textColor),
+                          helperText: "Settings_School_Desc".tr(),
+                          helperStyle: const TextStyle(color: highlightedColor),
+                          suffixIconColor: textColor,
+                        ),
+                      ),
+                      onChanged: saveSchoolParameter,
+                      selectedItem: selectedSchool,
+                    ),
+                  ),
+                  const Divider(
+                    height: 20,
+                    thickness: 5,
+                    color: dividerColor,
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                        borderRadius: const BorderRadius.all(Radius.circular(10)),
+                        color: settingsWidgetBGColor,
+                        border:
+                        Border.all(color: boxesBorderColor, width: 1)),
+                    child: DropdownSearch<String>(
+                      popupProps: const PopupProps.menu(
+                          menuProps: MenuProps(
+                            backgroundColor: settingsWidgetBGColor,
+                          ),
+                          showSelectedItems: true,
+                          fit: FlexFit.loose
+                      ),
+                      items: (filter, infiniteScrollProps) => CalendarMethods.keys.toList(),
+                      decoratorProps: DropDownDecoratorProps(
+                        baseStyle: const TextStyle(color: textColor, fontSize: 14),
+                        decoration: InputDecoration(
+                          labelText: "Settings_Calendar_Methods".tr(),
+                          labelStyle: const TextStyle(color: textColor),
+                          helperText: "Settings_Calendar_Methods_Desc".tr(),
+                          helperStyle: const TextStyle(color: highlightedColor),
+                          suffixIconColor: textColor,
+                        ),
+                      ),
+                      onChanged: saveCalendarMethodParameter,
+                      selectedItem: selectedCalendarMethod,
+                    ),
+                  ),
+                  Visibility(
+                    visible: selectedCalendarMethod == "MATHEMATICAL",
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                          borderRadius: const BorderRadius.all(Radius.circular(10)),
+                          color: settingsWidgetBGColor,
+                          border:
+                          Border.all(color: boxesBorderColor, width: 1)),
+                      child: Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(
+                              children: [
+                                const Text("Settings_Adj_Hij_Desc",style: TextStyle(color: textColor),).tr(),
+                              ],
+                            ),
+                          ),
+                          SizedBox(
+                            width: MediaQuery.of(context).size.width/2,
+                            child: NumberInputWithIncrementDecrement(
+                              initialValue: int.parse((adjustmentsController.text == "")?"0":adjustmentsController.text),
+                              controller: adjustmentsController,
+                              onChanged: saveAdjustmentValue,
+                              onDecrement: saveAdjustmentValue,
+                              onIncrement: saveAdjustmentValue,
+                              min: -100,
+                              incDecBgColor: textColor,
+                              style: const TextStyle(color: textColor),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+          
+                  const Divider(
+                    height: 20,
+                    thickness: 5,
+                    color: dividerColor,
+                  ),
+                ],
+              ),
             ),
           ),
         ),

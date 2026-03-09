@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:background_fetch/background_fetch.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -16,7 +15,23 @@ import 'package:workmanager/workmanager.dart' as workmanager;
 
 // import 'dart:io' show Platform;
 
-void main() async{
+Future<void> _configureAndroidBackgroundTasks() async {
+  await workmanager.Workmanager()
+      .initialize(homewidget_utils.workManagerCallbackDispatcher);
+  // Cleanup the legacy periodic worker name used by older app versions.
+  await workmanager.Workmanager().cancelByUniqueName("Muslim");
+  await workmanager.Workmanager().registerPeriodicTask(
+    homewidget_utils.dailyRefreshUniqueName,
+    homewidget_utils.dailyRefreshTaskName,
+    frequency: const Duration(hours: 6),
+    constraints: workmanager.Constraints(
+      networkType: workmanager.NetworkType.connected,
+    ),
+    existingWorkPolicy: workmanager.ExistingPeriodicWorkPolicy.update,
+  );
+}
+
+void main() async {
   // runApp(DevicePreview(
   //   enabled: true,
   //   builder: (BuildContext context) => const MyApp(),
@@ -25,37 +40,16 @@ void main() async{
   WidgetsFlutterBinding.ensureInitialized();
   await EasyLocalization.ensureInitialized();
 
+  if (!kIsWeb && Platform.isAndroid) {
+    await _configureAndroidBackgroundTasks();
+  }
+
   runApp(EasyLocalization(
       supportedLocales: const [Locale('en', 'US'), Locale('ar', 'EG')],
       path: 'assets/translations',
       fallbackLocale: const Locale('en', 'US'),
       child: const MyApp()
   ),);
-  if (!kIsWeb && Platform.isAndroid){
-  BackgroundFetch.configure(
-      BackgroundFetchConfig(
-          minimumFetchInterval: 30,
-          stopOnTerminate: false,
-          forceAlarmManager: true,
-          enableHeadless: true,
-          requiresBatteryNotLow: false,
-          requiresCharging: false,
-          requiresStorageNotLow: false,
-          requiresDeviceIdle: false,
-          requiredNetworkType: NetworkType.ANY
-      ),
-      homewidget_utils.onBackgroundFetch,
-      homewidget_utils.onBackgroundFetchTimeout);
-  BackgroundFetch.registerHeadlessTask(homewidget_utils.backgroundFetchHeadlessTask);
-
-  // test with workmanager
-  workmanager.Workmanager().initialize(homewidget_utils.WorkManagercallbackDispatcher);
-  workmanager.Workmanager().registerPeriodicTask(
-    "Muslim",
-    "Refresh_Notification_Prayer_Times",
-    frequency: const Duration(minutes: 30),
-  );
-  }
 }
 
 class MyApp extends StatelessWidget {

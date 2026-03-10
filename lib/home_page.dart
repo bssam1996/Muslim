@@ -99,8 +99,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
 
-  static const headlineStyle =
-      TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: Colors.white);
   static const headline2Style =
       TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white);
   static const savedAddressLocationStyle =
@@ -111,7 +109,7 @@ class _MyHomePageState extends State<MyHomePage> {
       TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: textColor);
   static const highlightedDetailsStyle = TextStyle(
       fontSize: 18, fontWeight: FontWeight.w500, color: highlightedTextColor);
-
+  
   String hadithOfTheDay = "";
 
   Widget metaData = DataTable(

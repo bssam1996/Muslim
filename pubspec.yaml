@@ -120,6 +120,7 @@ flutter:
     - "assets/hadith/hadith.png"
     - "assets/umrah/main.png"
     - "assets/icon/main.png"
+    - "assets/adhan/"
     - "assets/translations/"
   fonts:
     - family: Uthman

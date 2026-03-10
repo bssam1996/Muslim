@@ -233,6 +233,68 @@ Future<Map<String, bool>> getPrayerNotificationSettings(
   return notificationSettings;
 }
 
+Future<Map<String, String>> getPrayerNotificationModes(
+    Future<SharedPreferences> prefs) async {
+  final Map<String, String> modeSettings = {};
+  for (final prayerName in constants.PRAYER_NOTIFICATION_NAMES) {
+    final String preferenceKey =
+        constants.prayerNotificationModePreferenceKey(prayerName);
+    final bool preferenceExists =
+        await shared_preference_methods.checkExistenceData(
+      prefs,
+      preferenceKey,
+    );
+    String modeValue = constants.prayerNotificationModeVibrationOnly;
+    if (preferenceExists) {
+      modeValue = await shared_preference_methods.getStringData(
+            prefs,
+            preferenceKey,
+            false,
+          ) ??
+          constants.prayerNotificationModeVibrationOnly;
+    } else {
+      await shared_preference_methods.setStringData(
+        prefs,
+        preferenceKey,
+        modeValue,
+      );
+    }
+    modeSettings[prayerName] = modeValue;
+  }
+  return modeSettings;
+}
+
+Future<Map<String, String>> getPrayerNotificationSounds(
+    Future<SharedPreferences> prefs) async {
+  final Map<String, String> soundSettings = {};
+  for (final prayerName in constants.PRAYER_NOTIFICATION_NAMES) {
+    final String preferenceKey =
+        constants.prayerNotificationSoundPreferenceKey(prayerName);
+    final bool preferenceExists =
+        await shared_preference_methods.checkExistenceData(
+      prefs,
+      preferenceKey,
+    );
+    String soundValue = "";
+    if (preferenceExists) {
+      soundValue = await shared_preference_methods.getStringData(
+            prefs,
+            preferenceKey,
+            false,
+          ) ??
+          "";
+    } else {
+      await shared_preference_methods.setStringData(
+        prefs,
+        preferenceKey,
+        soundValue,
+      );
+    }
+    soundSettings[prayerName] = soundValue;
+  }
+  return soundSettings;
+}
+
 Future<void> handleNotifications(Future<SharedPreferences> prefs,
     List<Map<String, dynamic>> jsonTimings) async {
   var sharedprayerNotification = await shared_preference_methods
@@ -247,6 +309,10 @@ Future<void> handleNotifications(Future<SharedPreferences> prefs,
   }
   final Map<String, bool> prayerNotificationSettings =
       await getPrayerNotificationSettings(prefs, prayerNotificationValue);
+  final Map<String, String> prayerNotificationModes =
+      await getPrayerNotificationModes(prefs);
+  final Map<String, String> prayerNotificationSounds =
+      await getPrayerNotificationSounds(prefs);
   if (prayerNotificationSettings.values.every((enabled) => !enabled)) {
     prayerNotificationValue = false;
     await shared_preference_methods.setBoolData(
@@ -301,20 +367,38 @@ Future<void> handleNotifications(Future<SharedPreferences> prefs,
       if (selectedTime.isBefore(DateTime.now())) {
         continue;
       }
+      final String prayerMode = prayerNotificationModes[prayerName] ??
+          constants.prayerNotificationModeVibrationOnly;
+      final String configuredSoundAsset =
+          prayerNotificationSounds[prayerName] ?? "";
+      final String? soundResourceName =
+          prayerMode == constants.prayerNotificationModeCustomSound &&
+                  configuredSoundAsset.isNotEmpty
+              ? constants.androidRawResourceNameFromAssetPath(
+                  configuredSoundAsset,
+                )
+              : null;
+      final String channelId = constants.prayerNotificationAndroidChannelId(
+        prayerName,
+        prayerMode,
+        soundResourceName,
+      );
       var r = await NotificationService().scheduleDailyNotification(
-          selectedTime,
-          i,
-          "Muslim",
-          prayerName,
-          "${"Don't forget praying".tr()} ${prayerName.tr()}");
+        selectedTime,
+        i,
+        channelId,
+        prayerName,
+        "${"Don't forget praying".tr()} ${prayerName.tr()}",
+        playSound: soundResourceName != null,
+        soundResourceName: soundResourceName,
+        enableVibration: true,
+      );
       if (r != "") {
-        if (kDebugMode) {
-          print(r);
-        }
+        print(r);
+        
         return;
       }
     }
-
     return;
   } catch (e) {
     if (kDebugMode) {

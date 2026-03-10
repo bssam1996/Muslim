@@ -99,3 +99,41 @@ List<String> PRAYER_NOTIFICATION_NAMES = [
 
 String prayerNotificationPreferenceKey(String prayerName) =>
     'prayerNotification$prayerName';
+
+const String prayerNotificationModeVibrationOnly = 'vibration_only';
+const String prayerNotificationModeCustomSound = 'custom_sound';
+
+String prayerNotificationModePreferenceKey(String prayerName) =>
+    'prayerNotificationMode$prayerName';
+
+String prayerNotificationSoundPreferenceKey(String prayerName) =>
+    'prayerNotificationSound$prayerName';
+
+String prayerNotificationAndroidChannelId(
+  String prayerName,
+  String mode, [
+  String? soundResourceName,
+]) {
+  final String prayerSegment = prayerName.toLowerCase();
+  if (mode == prayerNotificationModeCustomSound &&
+      soundResourceName != null &&
+      soundResourceName.isNotEmpty) {
+    return 'muslim_${prayerSegment}_$soundResourceName';
+  }
+  return 'muslim_${prayerSegment}_vibration_only';
+}
+
+String androidRawResourceNameFromAssetPath(String assetPath) {
+  final String fileName = assetPath.split('/').last;
+  final int extensionIndex = fileName.lastIndexOf('.');
+  final String baseName =
+      extensionIndex >= 0 ? fileName.substring(0, extensionIndex) : fileName;
+  final String sanitized = baseName
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
+      .replaceAll(RegExp(r'^_+|_+$'), '');
+  if (sanitized.isEmpty) {
+    return 'adhan_sound';
+  }
+  return RegExp(r'^[0-9]').hasMatch(sanitized) ? 'adhan_$sanitized' : sanitized;
+}

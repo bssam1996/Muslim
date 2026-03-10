@@ -84,8 +84,16 @@ class NotificationService {
         : AndroidScheduleMode.inexactAllowWhileIdle;
   }
 
-  Future<String> scheduleDailyNotification(DateTime selectedTime, int zoneId,
-      String channelId, String title, String body) async {
+  Future<String> scheduleDailyNotification(
+    DateTime selectedTime,
+    int zoneId,
+    String channelId,
+    String title,
+    String body, {
+    bool playSound = false,
+    String? soundResourceName,
+    bool enableVibration = true,
+  }) async {
     await init();
     final tz.TZDateTime scheduledTime =
         tz.TZDateTime.from(selectedTime, tz.local);
@@ -101,15 +109,43 @@ class NotificationService {
         title: title,
         body: body,
         scheduledDate: scheduledTime,
-        notificationDetails:
-            _notificationDetails(channelId, title, body, selectedTime),
+        notificationDetails: _notificationDetails(
+          channelId,
+          title,
+          body,
+          selectedTime,
+          playSound: playSound,
+          soundResourceName: soundResourceName,
+          enableVibration: enableVibration,
+        ),
         matchDateTimeComponents: DateTimeComponents.time,
         androidScheduleMode: preferredMode,
       );
       print(
-          'Notification scheduled successfully for $scheduledTime with mode $preferredMode');
+          'Notification scheduled successfully for $scheduledTime with mode $preferredMode and sound ${playSound ? "enabled" : "disabled"} and resource ${soundResourceName ?? "default"}');
       return "";
     } on PlatformException catch (e) {
+      if (e.code == "invalid_sound" && playSound) {
+        print("Notification sound resource '$soundResourceName' was unavailable. Falling back to vibration-only notification.");
+        await _notificationsPlugin.zonedSchedule(
+          id: zoneId,
+          title: title,
+          body: body,
+          scheduledDate: scheduledTime,
+          notificationDetails: _notificationDetails(
+            '${channelId}_fallback',
+            title,
+            body,
+            selectedTime,
+            playSound: false,
+            soundResourceName: null,
+            enableVibration: enableVibration,
+          ),
+          matchDateTimeComponents: DateTimeComponents.time,
+          androidScheduleMode: preferredMode,
+        );
+        return "";
+      }
       if (e.code == "exact_alarms_not_permitted" &&
           (preferredMode == AndroidScheduleMode.alarmClock ||
               preferredMode == AndroidScheduleMode.exact ||
@@ -122,8 +158,15 @@ class NotificationService {
           title: title,
           body: body,
           scheduledDate: scheduledTime,
-          notificationDetails:
-              _notificationDetails(channelId, title, body, selectedTime),
+          notificationDetails: _notificationDetails(
+            channelId,
+            title,
+            body,
+            selectedTime,
+            playSound: playSound,
+            soundResourceName: soundResourceName,
+            enableVibration: enableVibration,
+          ),
           matchDateTimeComponents: DateTimeComponents.time,
           androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         );
@@ -138,7 +181,14 @@ class NotificationService {
   }
 
   NotificationDetails _notificationDetails(
-      String id, String title, String body, DateTime selectedTime) {
+    String id,
+    String title,
+    String body,
+    DateTime selectedTime, {
+    required bool playSound,
+    String? soundResourceName,
+    required bool enableVibration,
+  }) {
     return NotificationDetails(
       android: AndroidNotificationDetails(
         id,
@@ -146,6 +196,11 @@ class NotificationService {
         channelDescription: body,
         importance: Importance.max,
         priority: Priority.high,
+        playSound: playSound,
+        sound: playSound && soundResourceName != null && soundResourceName != ''
+            ? RawResourceAndroidNotificationSound(soundResourceName)
+            : null,
+        enableVibration: enableVibration,
         showWhen: true,
         when: selectedTime.millisecondsSinceEpoch,
       ),

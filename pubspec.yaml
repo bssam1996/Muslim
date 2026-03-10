@@ -68,6 +68,7 @@ dependencies:
   timezone: ^0.11.0
   permission_handler: ^12.0.1
   workmanager: ^0.9.0+3
+  audioplayers: ^5.2.1
 
 
 dev_dependencies:

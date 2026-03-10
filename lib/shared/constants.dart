@@ -123,11 +123,34 @@ String prayerNotificationAndroidChannelId(
   return 'muslim_${prayerSegment}_vibration_only';
 }
 
-String androidRawResourceNameFromAssetPath(String assetPath) {
+String adhanSoundKeyFromAssetPath(String assetPath) {
   final String fileName = assetPath.split('/').last;
   final int extensionIndex = fileName.lastIndexOf('.');
   final String baseName =
       extensionIndex >= 0 ? fileName.substring(0, extensionIndex) : fileName;
+  return baseName.toLowerCase();
+}
+
+String adhanSoundKeyFromStoredValue(String storedValue) {
+  final String trimmed = storedValue.trim();
+  if (trimmed.isEmpty) {
+    return '';
+  }
+  if (trimmed.contains('/')) {
+    return adhanSoundKeyFromAssetPath(trimmed);
+  }
+  final int extensionIndex = trimmed.lastIndexOf('.');
+  final String baseName =
+      extensionIndex >= 0 ? trimmed.substring(0, extensionIndex) : trimmed;
+  return baseName.toLowerCase();
+}
+
+String adhanAssetPathFromSoundKey(String soundKey) {
+  return 'assets/adhan/$soundKey.mp3';
+}
+
+String androidRawResourceNameFromSoundKey(String soundKey) {
+  final String baseName = adhanSoundKeyFromStoredValue(soundKey);
   final String sanitized = baseName
       .toLowerCase()
       .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
@@ -136,4 +159,10 @@ String androidRawResourceNameFromAssetPath(String assetPath) {
     return 'adhan_sound';
   }
   return RegExp(r'^[0-9]').hasMatch(sanitized) ? 'adhan_$sanitized' : sanitized;
+}
+
+String androidRawResourceNameFromAssetPath(String assetPath) {
+  return androidRawResourceNameFromSoundKey(
+    adhanSoundKeyFromAssetPath(assetPath),
+  );
 }

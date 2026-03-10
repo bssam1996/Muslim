@@ -283,14 +283,17 @@ Future<Map<String, String>> getPrayerNotificationSounds(
             false,
           ) ??
           "";
-    } else {
+    }
+    final String normalizedValue =
+        constants.adhanSoundKeyFromStoredValue(soundValue);
+    if (!preferenceExists || normalizedValue != soundValue) {
       await shared_preference_methods.setStringData(
         prefs,
         preferenceKey,
-        soundValue,
+        normalizedValue,
       );
     }
-    soundSettings[prayerName] = soundValue;
+    soundSettings[prayerName] = normalizedValue;
   }
   return soundSettings;
 }
@@ -369,13 +372,13 @@ Future<void> handleNotifications(Future<SharedPreferences> prefs,
       }
       final String prayerMode = prayerNotificationModes[prayerName] ??
           constants.prayerNotificationModeVibrationOnly;
-      final String configuredSoundAsset =
+      final String configuredSoundKey =
           prayerNotificationSounds[prayerName] ?? "";
       final String? soundResourceName =
           prayerMode == constants.prayerNotificationModeCustomSound &&
-                  configuredSoundAsset.isNotEmpty
-              ? constants.androidRawResourceNameFromAssetPath(
-                  configuredSoundAsset,
+                  configuredSoundKey.isNotEmpty
+              ? constants.androidRawResourceNameFromSoundKey(
+                  configuredSoundKey,
                 )
               : null;
       final String channelId = constants.prayerNotificationAndroidChannelId(

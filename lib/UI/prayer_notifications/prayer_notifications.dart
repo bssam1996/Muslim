@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:easy_localization/easy_localization.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -43,10 +45,25 @@ class _PrayerNotificationsPageClassState
   Map<String, String> prayerNotificationSounds = {
     for (final prayerName in PRAYER_NOTIFICATION_NAMES) prayerName: "",
   };
+  final AudioPlayer _previewPlayer = AudioPlayer();
+  late final StreamSubscription<void> _previewCompleteSubscription;
+  String? _previewPrayerName;
+  String? _previewSoundKey;
+  bool _isPreviewPlaying = false;
 
   @override
   void initState() {
     super.initState();
+    _previewCompleteSubscription = _previewPlayer.onPlayerComplete.listen((_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isPreviewPlaying = false;
+        _previewPrayerName = null;
+        _previewSoundKey = null;
+      });
+    });
     EasyLoading.showInfo("Prayer_Notifications_Loading_Tip".tr());
     try {
       WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
@@ -138,6 +155,8 @@ class _PrayerNotificationsPageClassState
                 assetPath.startsWith('assets/adhan/') &&
                 assetPath.toLowerCase().endsWith('.mp3'),
           )
+          .map(adhanSoundKeyFromAssetPath)
+          .toSet()
           .toList()
         ..sort();
       return options;
@@ -213,10 +232,66 @@ class _PrayerNotificationsPageClassState
     return normalizedValues;
   }
 
-  String _adhanLabel(String assetPath) {
-    final String fileName = assetPath.split('/').last;
-    final String baseName = fileName.replaceAll(RegExp(r'\.[^.]+$'), '');
-    return baseName.replaceAll('-', ' ');
+  String _adhanLabel(String soundKey) {
+    final String cleaned = soundKey.replaceAll(RegExp(r'[_-]+'), ' ').trim();
+    if (cleaned.isEmpty) {
+      return soundKey;
+    }
+    final List<String> parts = cleaned.split(RegExp(r'\s+'));
+    return parts.map((part) {
+      if (part.isEmpty) {
+        return part;
+      }
+      final String lower = part.toLowerCase();
+      return lower[0].toUpperCase() + lower.substring(1);
+    }).join(' ');
+  }
+
+  String _assetSourceFromSoundKey(String soundKey) {
+    final String assetPath = adhanAssetPathFromSoundKey(soundKey);
+    return assetPath.replaceFirst('assets/', '');
+  }
+
+  Future<void> _stopSoundPreview({bool updateState = true}) async {
+    try {
+      await _previewPlayer.stop();
+    } catch (_) {}
+    if (!updateState || !mounted) {
+      return;
+    }
+    setState(() {
+      _isPreviewPlaying = false;
+      _previewPrayerName = null;
+      _previewSoundKey = null;
+    });
+  }
+
+  Future<void> _toggleSoundPreview(String prayerName, String soundKey) async {
+    if (soundKey.isEmpty) {
+      return;
+    }
+    if (_isPreviewPlaying &&
+        _previewPrayerName == prayerName &&
+        _previewSoundKey == soundKey) {
+      await _stopSoundPreview();
+      return;
+    }
+    await _stopSoundPreview(updateState: false);
+    try {
+      await _previewPlayer.play(AssetSource(_assetSourceFromSoundKey(soundKey)));
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isPreviewPlaying = true;
+        _previewPrayerName = prayerName;
+        _previewSoundKey = soundKey;
+      });
+    } catch (e) {
+      if (kDebugMode) {
+        print(e);
+      }
+    }
   }
 
   Future<void> _changePrayerNotification(bool value) async {
@@ -324,6 +399,11 @@ class _PrayerNotificationsPageClassState
       prayerNotificationSounds,
     );
     nextModes[prayerName] = mode;
+    if (mode != prayerNotificationModeCustomSound &&
+        _isPreviewPlaying &&
+        _previewPrayerName == prayerName) {
+      await _stopSoundPreview();
+    }
     if (mode == prayerNotificationModeCustomSound &&
         (nextSounds[prayerName] == null ||
             nextSounds[prayerName] == '' ||
@@ -350,12 +430,15 @@ class _PrayerNotificationsPageClassState
 
   Future<void> _changePrayerNotificationSound(
     String prayerName,
-    String soundAssetPath,
+    String soundKey,
   ) async {
+    if (_isPreviewPlaying && _previewPrayerName == prayerName) {
+      await _stopSoundPreview();
+    }
     final Map<String, String> nextSounds = Map<String, String>.from(
       prayerNotificationSounds,
     );
-    nextSounds[prayerName] = soundAssetPath;
+    nextSounds[prayerName] = soundKey;
     final bool soundSaved = await _savePrayerNotificationSounds(nextSounds);
     if (!soundSaved) {
       EasyLoading.showError("Couldn't save data".tr(), dismissOnTap: true);
@@ -418,6 +501,14 @@ class _PrayerNotificationsPageClassState
     final String selectedMode = prayerNotificationModes[prayerName] ??
         prayerNotificationModeVibrationOnly;
     final String selectedSound = prayerNotificationSounds[prayerName] ?? "";
+    final String fallbackSound =
+        adhanOptions.isNotEmpty ? adhanOptions.first : "";
+    final String resolvedSound = adhanOptions.contains(selectedSound)
+        ? selectedSound
+        : fallbackSound;
+    final bool isPreviewingSound = _isPreviewPlaying &&
+        _previewPrayerName == prayerName &&
+        _previewSoundKey == resolvedSound;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -466,28 +557,55 @@ class _PrayerNotificationsPageClassState
           ),
           if (selectedMode == prayerNotificationModeCustomSound &&
               adhanOptions.isNotEmpty)
-            _buildDropdownField(
-              label: "Prayer_Notifications_Sound_Title".tr(),
-              value:
-                  selectedSound.isNotEmpty ? selectedSound : adhanOptions.first,
-              items: adhanOptions
-                  .map(
-                    (assetPath) => DropdownMenuItem(
-                      value: assetPath,
-                      child: Text(_adhanLabel(assetPath)),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _buildDropdownField(
+                    label: "Prayer_Notifications_Sound_Title".tr(),
+                    value: resolvedSound,
+                    items: adhanOptions
+                        .map(
+                          (soundKey) => DropdownMenuItem(
+                            value: soundKey,
+                            child: Text(_adhanLabel(soundKey)),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value == null) {
+                        return;
+                      }
+                      _changePrayerNotificationSound(prayerName, value);
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: IconButton(
+                    icon: Icon(
+                      isPreviewingSound ? Icons.stop : Icons.play_arrow,
+                      color: textColor,
                     ),
-                  )
-                  .toList(),
-              onChanged: (value) {
-                if (value == null) {
-                  return;
-                }
-                _changePrayerNotificationSound(prayerName, value);
-              },
+                    onPressed: resolvedSound.isEmpty
+                        ? null
+                        : () => _toggleSoundPreview(prayerName, resolvedSound),
+                  ),
+                ),
+              ],
             ),
         ],
       ],
     );
+  }
+
+  @override
+  void dispose() {
+    _previewCompleteSubscription.cancel();
+    unawaited(_previewPlayer.stop());
+    unawaited(_previewPlayer.dispose());
+    super.dispose();
   }
 
   @override

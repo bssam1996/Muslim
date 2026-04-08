@@ -12,8 +12,19 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:muslim/utils/homewidget_utils.dart' as homewidget_utils;
 import 'package:workmanager/workmanager.dart' as workmanager;
+import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 
 // import 'dart:io' show Platform;
+
+Duration _timeUntilNextMidnight() {
+  final DateTime now = DateTime.now();
+  final DateTime todayMidnight = DateTime(now.year, now.month, now.day);
+  if (now.isAtSameMomentAs(todayMidnight)) {
+    return Duration.zero;
+  }
+  final DateTime nextMidnight = todayMidnight.add(const Duration(days: 1));
+  return nextMidnight.difference(now);
+}
 
 Future<void> _configureAndroidBackgroundTasks() async {
   await workmanager.Workmanager()
@@ -23,12 +34,25 @@ Future<void> _configureAndroidBackgroundTasks() async {
   await workmanager.Workmanager().registerPeriodicTask(
     homewidget_utils.dailyRefreshUniqueName,
     homewidget_utils.dailyRefreshTaskName,
-    frequency: const Duration(hours: 6),
+    frequency: const Duration(days: 1),
+    initialDelay: _timeUntilNextMidnight(),
     constraints: workmanager.Constraints(
       networkType: workmanager.NetworkType.connected,
     ),
     existingWorkPolicy: workmanager.ExistingPeriodicWorkPolicy.update,
   );
+  await workmanager.Workmanager().registerPeriodicTask(
+    homewidget_utils.frequentWidgetRefreshUniqueName,
+    homewidget_utils.frequentWidgetRefreshTaskName,
+    frequency: const Duration(hours: 1),
+    existingWorkPolicy: workmanager.ExistingPeriodicWorkPolicy.update,
+  );
+
+  final bool alarmInitialized = await AndroidAlarmManager.initialize();
+  if (!alarmInitialized) {
+    print("AndroidAlarmManager failed to initialize");
+  }
+  await homewidget_utils.scheduleNextExactMidnightAlarm(source: "AppStart");
 }
 
 void main() async {

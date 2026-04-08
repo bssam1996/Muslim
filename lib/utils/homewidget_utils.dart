@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
+import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
@@ -12,6 +13,32 @@ import 'helper.dart' as helper;
 
 const String dailyRefreshUniqueName = 'daily_prayer_refresh';
 const String dailyRefreshTaskName = 'Refresh_Notification_Prayer_Times';
+const String frequentWidgetRefreshUniqueName = 'frequent_widget_refresh';
+const String frequentWidgetRefreshTaskName = 'Refresh_Widget_Frequent';
+const int dailyRefreshAlarmId = 11001;
+
+DateTime _nextMidnight(DateTime now) {
+  final DateTime todayMidnight = DateTime(now.year, now.month, now.day);
+  return todayMidnight.add(const Duration(days: 1));
+}
+
+Future<bool> scheduleNextExactMidnightAlarm({String source = "unknown"}) async {
+  if (kIsWeb || !Platform.isAndroid) {
+    return false;
+  }
+  final DateTime nextMidnight = _nextMidnight(DateTime.now());
+  final bool scheduled = await AndroidAlarmManager.oneShotAt(
+    nextMidnight,
+    dailyRefreshAlarmId,
+    exactMidnightAlarmCallback,
+    exact: true,
+    allowWhileIdle: true,
+    wakeup: true,
+    rescheduleOnReboot: true,
+  );
+  print("[$source] Exact midnight alarm scheduled: $scheduled at $nextMidnight");
+  return scheduled;
+}
 
 Future<void> updateHomePage(
   Map<String, dynamic> jsonTimings,
@@ -112,6 +139,28 @@ Future<bool> refreshPrayerTimesAndReschedule() async {
   }
 }
 
+Future<bool> refreshWidgetOnly({String source = "unknown"}) async {
+  try {
+    if (!kIsWeb && Platform.isAndroid) {
+      await HomeWidget.updateWidget(
+        name: "HomeAppWidget",
+        androidName: "HomeAppWidget",
+      );
+      await HomeWidget.updateWidget(
+        name: "HomeAppWidgetWide",
+        androidName: "HomeAppWidgetWide",
+      );
+    }
+    if (kDebugMode) {
+      print("[$source] Widget refresh completed");
+    }
+    return true;
+  } catch (e) {
+    print("refreshWidgetOnly failed: $e");
+    return false;
+  }
+}
+
 @pragma("vm:entry-point")
 void workManagerCallbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
@@ -120,6 +169,16 @@ void workManagerCallbackDispatcher() {
       print("Workmanager task $task");
       print("Workmanager inputData $inputData");
     }
+    if (task == frequentWidgetRefreshTaskName) {
+      return refreshWidgetOnly(source: "WorkManager:$task");
+    }
     return runDailyRefreshTask(source: "WorkManager:$task");
   });
+}
+
+@pragma("vm:entry-point")
+Future<void> exactMidnightAlarmCallback() async {
+  DartPluginRegistrant.ensureInitialized();
+  await runDailyRefreshTask(source: "AlarmManager");
+  await scheduleNextExactMidnightAlarm(source: "AlarmManager");
 }

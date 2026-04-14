@@ -441,31 +441,34 @@ class _MyHomePageState extends State<MyHomePage> {
                     const Divider(
                       color: textColor,
                     ),
-                    ListTile(
-                      title: const Text(
-                        'Home_Panel_Prayer_Notifications',
-                        style: TextStyle(color: textColor),
-                      ).tr(),
-                      trailing: const Icon(
-                        Icons.notifications,
-                        color: textColor,
-                        size: 24,
+                    Visibility(
+                      visible: Platform.isAndroid,
+                      child: ListTile(
+                        title: const Text(
+                          'Home_Panel_Prayer_Notifications',
+                          style: TextStyle(color: textColor),
+                        ).tr(),
+                        trailing: const Icon(
+                          Icons.notifications,
+                          color: textColor,
+                          size: 24,
+                        ),
+                        onTap: () async {
+                          stopTimer();
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  PrayerNotificationsPageClass(prefs: _prefs),
+                            ),
+                          );
+                          var location = await shared_preference_methods
+                              .getStringData(_prefs, 'location', true);
+                          if (location != null) {
+                            FetchAPI();
+                          }
+                        },
                       ),
-                      onTap: () async {
-                        stopTimer();
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                PrayerNotificationsPageClass(prefs: _prefs),
-                          ),
-                        );
-                        var location = await shared_preference_methods
-                            .getStringData(_prefs, 'location', true);
-                        if (location != null) {
-                          FetchAPI();
-                        }
-                      },
                     ),
                     const Divider(
                       color: textColor,

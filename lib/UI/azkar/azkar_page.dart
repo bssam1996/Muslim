@@ -3,7 +3,6 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:muslim/UI/azkar/azkar_card_page.dart';
 import 'package:muslim/UI/azkar/azkar_list.dart';
 import 'package:muslim/shared/constants.dart';
-import 'package:muslim/shared/step_counter.dart';
 
 class AzkarPageClass extends StatefulWidget {
   const AzkarPageClass({super.key});

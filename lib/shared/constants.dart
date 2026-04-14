@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 const MUSLIM_API_URL = "https://muslim-api-mu.vercel.app/";
-const MUSLIM_GOOGLE_PLAY_URI = "https://play.google.com/store/apps/details?id=com.bplusplus.muslim";
+const MUSLIM_GOOGLE_PLAY_URI =
+    "https://play.google.com/store/apps/details?id=com.bplusplus.muslim";
 const primaryColor = Color.fromRGBO(23, 21, 59, 1.0);
 const secondaryColor = Color.fromRGBO(40, 42, 58, 1);
 const thirdColor = Color.fromRGBO(55, 48, 107, 1.0);
@@ -27,21 +28,21 @@ const gloabalAppName = "Muslim";
 const HOME_WIDGET_GROUP_ID = "com.bplusplus.muslim";
 
 const authorities = <String, int>{
-  "Default":-1,
-  "Shia Ithna-Ansari":0,
-  "University of Islamic Sciences, Karachi":1,
-  "Islamic Society of North America":2,
-  "Muslim World League":3,
-  "Umm Al-Qura University, Makkah":4,
-  "Egyptian General Authority of Survey":5,
-  "Institute of Geophysics, University of Tehran":7,
-  "Gulf Region":8,
-  "Kuwait":9,
-  "Qatar":10,
-  "Majlis Ugama Islam Singapura, Singapore":11,
-  "Union Organization islamic de France":12,
-  "Diyanet İşleri Başkanlığı, Turkey":13,
-  "Spiritual Administration of Muslims of Russia":14,
+  "Default": -1,
+  "Shia Ithna-Ansari": 0,
+  "University of Islamic Sciences, Karachi": 1,
+  "Islamic Society of North America": 2,
+  "Muslim World League": 3,
+  "Umm Al-Qura University, Makkah": 4,
+  "Egyptian General Authority of Survey": 5,
+  "Institute of Geophysics, University of Tehran": 7,
+  "Gulf Region": 8,
+  "Kuwait": 9,
+  "Qatar": 10,
+  "Majlis Ugama Islam Singapura, Singapore": 11,
+  "Union Organization islamic de France": 12,
+  "Diyanet İşleri Başkanlığı, Turkey": 13,
+  "Spiritual Administration of Muslims of Russia": 14,
   "Jabatan Kemajuan Islam Malaysia": 17,
   "Tunisia": 18,
   "Algeria": 19,
@@ -53,14 +54,14 @@ const authorities = <String, int>{
 
 const CalendarMethods = <String, String>{
   "High Judicial Council of Saudi Arabia": "HJCoSA",
-  "Umm al-Qura":  "UAQ",
+  "Umm al-Qura": "UAQ",
   "Diyanet İşleri Başkanlığı": "DIYANET",
   "MATHEMATICAL": "MATHEMATICAL"
 };
 
 const schools = <String, int>{
-  "Shafi (Standard)":0,
-  "Hanafi":1,
+  "Shafi (Standard)": 0,
+  "Hanafi": 1,
 };
 
 Map<int, String> hijriMonthsNames = {
@@ -87,3 +88,81 @@ List<String> PRAYER_NAMES = [
   'Maghrib',
   'Isha'
 ];
+
+List<String> PRAYER_NOTIFICATION_NAMES = [
+  'Fajr',
+  'Dhuhr',
+  'Asr',
+  'Maghrib',
+  'Isha'
+];
+
+String prayerNotificationPreferenceKey(String prayerName) =>
+    'prayerNotification$prayerName';
+
+const String prayerNotificationModeVibrationOnly = 'vibration_only';
+const String prayerNotificationModeCustomSound = 'custom_sound';
+
+String prayerNotificationModePreferenceKey(String prayerName) =>
+    'prayerNotificationMode$prayerName';
+
+String prayerNotificationSoundPreferenceKey(String prayerName) =>
+    'prayerNotificationSound$prayerName';
+
+String prayerNotificationAndroidChannelId(
+  String prayerName,
+  String mode, [
+  String? soundResourceName,
+]) {
+  final String prayerSegment = prayerName.toLowerCase();
+  if (mode == prayerNotificationModeCustomSound &&
+      soundResourceName != null &&
+      soundResourceName.isNotEmpty) {
+    return 'muslim_${prayerSegment}_$soundResourceName';
+  }
+  return 'muslim_${prayerSegment}_vibration_only';
+}
+
+String adhanSoundKeyFromAssetPath(String assetPath) {
+  final String fileName = assetPath.split('/').last;
+  final int extensionIndex = fileName.lastIndexOf('.');
+  final String baseName =
+      extensionIndex >= 0 ? fileName.substring(0, extensionIndex) : fileName;
+  return baseName.toLowerCase();
+}
+
+String adhanSoundKeyFromStoredValue(String storedValue) {
+  final String trimmed = storedValue.trim();
+  if (trimmed.isEmpty) {
+    return '';
+  }
+  if (trimmed.contains('/')) {
+    return adhanSoundKeyFromAssetPath(trimmed);
+  }
+  final int extensionIndex = trimmed.lastIndexOf('.');
+  final String baseName =
+      extensionIndex >= 0 ? trimmed.substring(0, extensionIndex) : trimmed;
+  return baseName.toLowerCase();
+}
+
+String adhanAssetPathFromSoundKey(String soundKey) {
+  return 'assets/adhan/$soundKey.mp3';
+}
+
+String androidRawResourceNameFromSoundKey(String soundKey) {
+  final String baseName = adhanSoundKeyFromStoredValue(soundKey);
+  final String sanitized = baseName
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
+      .replaceAll(RegExp(r'^_+|_+$'), '');
+  if (sanitized.isEmpty) {
+    return 'adhan_sound';
+  }
+  return RegExp(r'^[0-9]').hasMatch(sanitized) ? 'adhan_$sanitized' : sanitized;
+}
+
+String androidRawResourceNameFromAssetPath(String assetPath) {
+  return androidRawResourceNameFromSoundKey(
+    adhanSoundKeyFromAssetPath(assetPath),
+  );
+}

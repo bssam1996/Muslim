@@ -2,7 +2,6 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:muslim/UI/azkar/azkar_items.dart';
-import 'package:muslim/home_page.dart';
 import 'package:muslim/shared/constants.dart';
 import 'package:muslim/shared/step_counter.dart';
 import 'azkar_list.dart';

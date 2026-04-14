@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import "package:flutter_local_notifications/flutter_local_notifications.dart";
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
+
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
 
@@ -14,11 +15,17 @@ class NotificationService {
 
   NotificationService._internal();
 
-  final FlutterLocalNotificationsPlugin _notificationsPlugin = FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin _notificationsPlugin =
+      FlutterLocalNotificationsPlugin();
   bool _initialized = false;
   Future<void> clearAllNotifications() async {
     await _notificationsPlugin.cancelAll();
   }
+
+  Future<void> clearNotification(int id) async {
+    await _notificationsPlugin.cancel(id: id);
+  }
+
   Future<void> init() async {
     if (_initialized) {
       return;
@@ -28,9 +35,10 @@ class NotificationService {
     // tz.setLocalLocation(tz.getLocation("Europe/London"));
 
     const AndroidInitializationSettings initializationSettingsAndroid =
-    AndroidInitializationSettings('@mipmap/launcher_icon');
+        AndroidInitializationSettings('@mipmap/launcher_icon');
 
-    final InitializationSettings initializationSettings = InitializationSettings(
+    final InitializationSettings initializationSettings =
+        InitializationSettings(
       android: initializationSettingsAndroid,
     );
 
@@ -76,10 +84,21 @@ class NotificationService {
         : AndroidScheduleMode.inexactAllowWhileIdle;
   }
 
-  Future<String> scheduleDailyNotification(DateTime selectedTime, int zoneId, String channelId, String title, String body) async {
+  Future<String> scheduleDailyNotification(
+    DateTime selectedTime,
+    int zoneId,
+    String channelId,
+    String title,
+    String body, {
+    bool playSound = false,
+    String? soundResourceName,
+    bool enableVibration = true,
+  }) async {
     await init();
-    final tz.TZDateTime scheduledTime = tz.TZDateTime.from(selectedTime, tz.local);
-    tz.TZDateTime.local(selectedTime.year, selectedTime.month, selectedTime.day, selectedTime.hour, selectedTime.minute, selectedTime.second);
+    final tz.TZDateTime scheduledTime =
+        tz.TZDateTime.from(selectedTime, tz.local);
+    tz.TZDateTime.local(selectedTime.year, selectedTime.month, selectedTime.day,
+        selectedTime.hour, selectedTime.minute, selectedTime.second);
 
     final AndroidScheduleMode preferredMode =
         await _preferredAndroidScheduleMode();
@@ -90,13 +109,43 @@ class NotificationService {
         title: title,
         body: body,
         scheduledDate: scheduledTime,
-        notificationDetails: _notificationDetails(channelId, title, body, selectedTime),
+        notificationDetails: _notificationDetails(
+          channelId,
+          title,
+          body,
+          selectedTime,
+          playSound: playSound,
+          soundResourceName: soundResourceName,
+          enableVibration: enableVibration,
+        ),
         matchDateTimeComponents: DateTimeComponents.time,
         androidScheduleMode: preferredMode,
       );
-      print('Notification scheduled successfully');
+      print(
+          'Notification scheduled successfully for $scheduledTime with mode $preferredMode and sound ${playSound ? "enabled" : "disabled"} and resource ${soundResourceName ?? "default"}');
       return "";
     } on PlatformException catch (e) {
+      if (e.code == "invalid_sound" && playSound) {
+        print("Notification sound resource '$soundResourceName' was unavailable. Falling back to vibration-only notification.");
+        await _notificationsPlugin.zonedSchedule(
+          id: zoneId,
+          title: title,
+          body: body,
+          scheduledDate: scheduledTime,
+          notificationDetails: _notificationDetails(
+            '${channelId}_fallback',
+            title,
+            body,
+            selectedTime,
+            playSound: false,
+            soundResourceName: null,
+            enableVibration: enableVibration,
+          ),
+          matchDateTimeComponents: DateTimeComponents.time,
+          androidScheduleMode: preferredMode,
+        );
+        return "";
+      }
       if (e.code == "exact_alarms_not_permitted" &&
           (preferredMode == AndroidScheduleMode.alarmClock ||
               preferredMode == AndroidScheduleMode.exact ||
@@ -109,8 +158,15 @@ class NotificationService {
           title: title,
           body: body,
           scheduledDate: scheduledTime,
-          notificationDetails:
-              _notificationDetails(channelId, title, body, selectedTime),
+          notificationDetails: _notificationDetails(
+            channelId,
+            title,
+            body,
+            selectedTime,
+            playSound: playSound,
+            soundResourceName: soundResourceName,
+            enableVibration: enableVibration,
+          ),
           matchDateTimeComponents: DateTimeComponents.time,
           androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         );
@@ -124,7 +180,15 @@ class NotificationService {
     }
   }
 
-  NotificationDetails _notificationDetails(String id, String title, String body, DateTime selectedTime) {
+  NotificationDetails _notificationDetails(
+    String id,
+    String title,
+    String body,
+    DateTime selectedTime, {
+    required bool playSound,
+    String? soundResourceName,
+    required bool enableVibration,
+  }) {
     return NotificationDetails(
       android: AndroidNotificationDetails(
         id,
@@ -132,10 +196,14 @@ class NotificationService {
         channelDescription: body,
         importance: Importance.max,
         priority: Priority.high,
+        playSound: playSound,
+        sound: playSound && soundResourceName != null && soundResourceName != ''
+            ? RawResourceAndroidNotificationSound(soundResourceName)
+            : null,
+        enableVibration: enableVibration,
         showWhen: true,
         when: selectedTime.millisecondsSinceEpoch,
       ),
     );
   }
-
 }

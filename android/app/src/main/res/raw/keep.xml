@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/*,@raw/abdul_basit,@raw/abdul_ghaffar,@raw/abdul_hakam,@raw/adhan_alaqsa,@raw/adhan_egypt,@raw/adhan_halab,@raw/adhan_madinah,@raw/adhan_makkah,@raw/al_hussaini,@raw/hafez,@raw/hafiz_murad,@raw/naghshbandi,@raw/saber,@raw/yusuf_islam" />

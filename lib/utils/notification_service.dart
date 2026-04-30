@@ -67,23 +67,6 @@ class NotificationService {
     return await androidPlugin.requestExactAlarmsPermission() ?? false;
   }
 
-  Future<AndroidScheduleMode> _preferredAndroidScheduleMode() async {
-    if (!Platform.isAndroid) {
-      return AndroidScheduleMode.exactAllowWhileIdle;
-    }
-    final AndroidFlutterLocalNotificationsPlugin? androidPlugin =
-        _notificationsPlugin.resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
-    if (androidPlugin == null) {
-      return AndroidScheduleMode.inexactAllowWhileIdle;
-    }
-    final bool canScheduleExact =
-        await androidPlugin.canScheduleExactNotifications() ?? false;
-    return canScheduleExact
-        ? AndroidScheduleMode.exactAllowWhileIdle
-        : AndroidScheduleMode.inexactAllowWhileIdle;
-  }
-
   Future<String> scheduleDailyNotification(
     DateTime selectedTime,
     int zoneId,
@@ -100,8 +83,12 @@ class NotificationService {
     tz.TZDateTime.local(selectedTime.year, selectedTime.month, selectedTime.day,
         selectedTime.hour, selectedTime.minute, selectedTime.second);
 
-    final AndroidScheduleMode preferredMode =
-        await _preferredAndroidScheduleMode();
+    // Exact-first strategy:
+    // in background isolates canScheduleExactNotifications() may report false
+    // even when exact alarms are actually permitted. We attempt exact first and
+    // only downgrade when the platform explicitly rejects exact alarms.
+    const AndroidScheduleMode preferredMode =
+        AndroidScheduleMode.exactAllowWhileIdle;
 
     try {
       await _notificationsPlugin.zonedSchedule(
@@ -126,7 +113,8 @@ class NotificationService {
       return "";
     } on PlatformException catch (e) {
       if (e.code == "invalid_sound" && playSound) {
-        print("Notification sound resource '$soundResourceName' was unavailable. Falling back to vibration-only notification.");
+        print(
+            "Notification sound resource '$soundResourceName' was unavailable. Falling back to vibration-only notification.");
         await _notificationsPlugin.zonedSchedule(
           id: zoneId,
           title: title,

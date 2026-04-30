@@ -52,6 +52,7 @@
         android:orientation="horizontal">
 
         <LinearLayout
+            android:id="@+id/fajr_card"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
@@ -88,6 +89,7 @@
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/sunrise_card"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_marginLeft="3dp"
@@ -125,6 +127,7 @@
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/dhuhr_card"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_marginLeft="3dp"
@@ -162,6 +165,7 @@
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/asr_card"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_marginLeft="3dp"
@@ -199,6 +203,7 @@
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/maghrib_card"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_marginLeft="3dp"
@@ -236,6 +241,7 @@
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/isha_card"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_marginLeft="3dp"

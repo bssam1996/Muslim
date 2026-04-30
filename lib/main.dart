@@ -44,7 +44,7 @@ Future<void> _configureAndroidBackgroundTasks() async {
   await workmanager.Workmanager().registerPeriodicTask(
     homewidget_utils.frequentWidgetRefreshUniqueName,
     homewidget_utils.frequentWidgetRefreshTaskName,
-    frequency: const Duration(hours: 1),
+    frequency: const Duration(minutes: 15),
     existingWorkPolicy: workmanager.ExistingPeriodicWorkPolicy.update,
   );
 
@@ -52,7 +52,9 @@ Future<void> _configureAndroidBackgroundTasks() async {
   if (!alarmInitialized) {
     print("AndroidAlarmManager failed to initialize");
   }
+  await homewidget_utils.runDailyRefreshTask(source: "AppStart");
   await homewidget_utils.scheduleNextExactMidnightAlarm(source: "AppStart");
+  await homewidget_utils.bootstrapWidgetHighlightScheduling(source: "AppStart");
 }
 
 void main() async {
@@ -68,12 +70,13 @@ void main() async {
     await _configureAndroidBackgroundTasks();
   }
 
-  runApp(EasyLocalization(
-      supportedLocales: const [Locale('en', 'US'), Locale('ar', 'EG')],
-      path: 'assets/translations',
-      fallbackLocale: const Locale('en', 'US'),
-      child: const MyApp()
-  ),);
+  runApp(
+    EasyLocalization(
+        supportedLocales: const [Locale('en', 'US'), Locale('ar', 'EG')],
+        path: 'assets/translations',
+        fallbackLocale: const Locale('en', 'US'),
+        child: const MyApp()),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -92,14 +95,16 @@ class MyApp extends StatelessWidget {
         textTheme: const TextTheme(
           titleMedium: TextStyle(color: textColor),
           titleSmall: TextStyle(color: textColor),
-
         ),
         useMaterial3: false,
       ),
       home: const MyHomePage(title: 'App_Title'),
       // builder: EasyLoading.init(),
-      builder: EasyLoading.init(builder: (context, child){
-        return MediaQuery(data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(1)), child: child!);
+      builder: EasyLoading.init(builder: (context, child) {
+        return MediaQuery(
+            data: MediaQuery.of(context)
+                .copyWith(textScaler: const TextScaler.linear(1)),
+            child: child!);
       }),
       supportedLocales: context.supportedLocales,
       locale: context.locale,
@@ -113,4 +118,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-

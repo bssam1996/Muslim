@@ -13,6 +13,7 @@ import 'package:muslim/UI/prayer_notifications/prayer_notifications.dart';
 import 'package:muslim/UI/contact/contact.dart';
 import 'package:muslim/UI/qiblah/qiblah_page.dart';
 import 'package:muslim/UI/quran/quran_page.dart';
+import 'package:muslim/UI/radio/radio_page.dart';
 import 'package:muslim/shared/constants.dart';
 import 'package:muslim/utils/api_utils.dart' as api_utils;
 import 'package:muslim/utils/hadith_utils.dart';
@@ -109,7 +110,7 @@ class _MyHomePageState extends State<MyHomePage> {
       TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: textColor);
   static const highlightedDetailsStyle = TextStyle(
       fontSize: 18, fontWeight: FontWeight.w500, color: highlightedTextColor);
-  
+
   String hadithOfTheDay = "";
 
   Widget metaData = DataTable(
@@ -307,6 +308,30 @@ class _MyHomePageState extends State<MyHomePage> {
                           context,
                           MaterialPageRoute(
                               builder: (context) => const QuranPageClass()),
+                        );
+                      },
+                    ),
+                    const Divider(
+                      color: textColor,
+                    ),
+                  ],
+                ),
+                Column(
+                  children: [
+                    ListTile(
+                      title: const Text(
+                        'Home_Panel_Radio',
+                        style: TextStyle(color: textColor),
+                      ).tr(),
+                      trailing: Image.asset(
+                        "assets/radio/radio128.png",
+                        width: 24,
+                      ),
+                      onTap: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const RadioPageClass()),
                         );
                       },
                     ),

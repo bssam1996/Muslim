@@ -8,14 +8,17 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission
+        android:name="android.permission.SCHEDULE_EXACT_ALARM"
+        tools:remove="android:maxSdkVersion" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
     <application
         tools:replace="android:label"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon"
-        android:label="Muslim">
+        android:label="Muslim"
+        android:networkSecurityConfig="@xml/network_security_config">
         <receiver
             android:name="HomeAppWidget"
             android:exported="false">

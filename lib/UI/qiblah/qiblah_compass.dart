@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:math' show pi;
 
 import 'package:flutter/material.dart';
-import 'package:flutter_qiblah/flutter_qiblah.dart';
+import 'package:flutter_qiblah_advanced/flutter_qiblah_advanced.dart';
 import 'package:muslim/shared/loading_indicator.dart';
 import 'package:muslim/UI/qiblah/location_error_widget.dart';
 import 'package:flutter_svg/flutter_svg.dart';

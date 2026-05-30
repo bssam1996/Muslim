@@ -10,6 +10,14 @@ rootProject.buildDir = '../build'
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
 }
+// home_widget 0.9.x skips KGP on AGP 9, but this project keeps built-in Kotlin off for Flutter's legacy Gradle path.
+subprojects { subproject ->
+    if (subproject.name == 'home_widget') {
+        subproject.plugins.withId('com.android.library') {
+            subproject.pluginManager.apply('kotlin-android')
+        }
+    }
+}
 subprojects {
     project.evaluationDependsOn(':app')
 }

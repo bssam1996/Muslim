@@ -1,6 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_qiblah/flutter_qiblah.dart';
+import 'package:flutter_qiblah_advanced/flutter_qiblah_advanced.dart';
 import 'package:muslim/shared/constants.dart';
 import 'package:muslim/shared/loading_indicator.dart';
 import 'package:muslim/UI/qiblah/qiblah_compass.dart';

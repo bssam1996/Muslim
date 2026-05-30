@@ -28,21 +28,51 @@ class _MonthsPageClassState extends State<MonthsPageClass> {
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
 
   DateTime currentDate = DateTime.now();
+  bool _isLoading = false;
+  late final DataGridController _scrollController;
 
   @override
   void initState() {
     super.initState();
-    EasyLoading.showInfo("Months_Loading_Timetable".tr());
+    _scrollController = DataGridController();
     try {
       WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-        DateTime currentDate = DateTime.now();
-        await updateTable("${currentDate.year}/${currentDate.month}");
-        EasyLoading.dismiss();
+        await _loadCurrentMonth();
       });
     } catch (e) {
-      EasyLoading.dismiss();
       if (kDebugMode) {
         print(e);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadCurrentMonth() async {
+    setState(() => _isLoading = true);
+    try {
+      await updateTable("${currentDate.year}/${currentDate.month}");
+      await _scrollToToday();
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _scrollToToday() async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    if (!mounted || detailedDates.isEmpty) return;
+    for (var i = 0; i < detailedDates.length; i++) {
+      final parts = detailedDates[i].gregorian.split("-");
+      if (parts.length == 2 &&
+          int.parse(parts[0]) == DateTime.now().day &&
+          int.parse(parts[1]) == DateTime.now().month) {
+        final targetOffset = i * 60.0 - (context.size!.height / 2);
+        _scrollController.scrollToVerticalOffset(targetOffset);
+        return;
       }
     }
   }
@@ -90,6 +120,7 @@ class _MonthsPageClassState extends State<MonthsPageClass> {
           actions: [
             IconButton(
                 onPressed: () async {
+                  setState(() => _isLoading = true);
                   final selected = await showMonthYearPicker(
                     context: context,
                     initialDate: currentDate,
@@ -98,14 +129,17 @@ class _MonthsPageClassState extends State<MonthsPageClass> {
                     locale: context.locale
                   );
                   if (selected != null) {
-                    updateTable("${selected.year}/${selected.month}");
                     currentDate = DateTime(
                       selected.year,
                       selected.month,
                       1
                     );
-
+                    await updateTable("${selected.year}/${selected.month}");
+                    if(DateTime.now().year == selected.year && DateTime.now().month == selected.month){
+                      await _scrollToToday();
+                    }
                   }
+                  setState(() => _isLoading = false);
                 },
                 icon: const Icon(
                   Icons.calendar_month,
@@ -136,18 +170,21 @@ class _MonthsPageClassState extends State<MonthsPageClass> {
               navigateTable(true);
             }
           },
-          child: SfDataGridTheme(
-            data: SfDataGridThemeData(
-              gridLineStrokeWidth: 0.8,
-            ),
-            child: SfDataGrid(
-              gridLinesVisibility: GridLinesVisibility.both,
-              headerGridLinesVisibility: GridLinesVisibility.both,
-              rowHeight: 60,
-              source: detailsDatesDataSource,
-              swipeMaxOffset: 0.1,
-              allowSwiping: true,
-              columnWidthMode: ColumnWidthMode.fill,
+          child: Stack(
+            children: [
+              SfDataGridTheme(
+                data: SfDataGridThemeData(
+                  gridLineStrokeWidth: 0.8,
+                ),
+                child: SfDataGrid(
+                  controller: _scrollController,
+                  gridLinesVisibility: GridLinesVisibility.both,
+                  headerGridLinesVisibility: GridLinesVisibility.both,
+                  rowHeight: 60,
+                  source: detailsDatesDataSource,
+                  swipeMaxOffset: 0.1,
+                  allowSwiping: true,
+                  columnWidthMode: ColumnWidthMode.fill,
               columns: <GridColumn>[
                 generateColumn("day", thirdColor, "Months_Column_Day".tr(), textColor),
                 generateColumn("gregorian", thirdColor, "Months_Column_Gregorian".tr(), textColor),
@@ -159,7 +196,18 @@ class _MonthsPageClassState extends State<MonthsPageClass> {
                 generateColumn("maghrib", thirdColor, "Months_Column_Maghrib".tr(), textColor),
                 generateColumn("isha", thirdColor, "Months_Column_Isha".tr(), textColor),
               ],
-            ),
+                ),
+              ),
+              if (_isLoading)
+                Container(
+                  color: Colors.black26,
+                  child: const Center(
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ));
   }
@@ -227,15 +275,16 @@ class _MonthsPageClassState extends State<MonthsPageClass> {
       String hijriDate = "${splittedhijriDate[0]}-${splittedhijriDate[1]}";
       String dayName =
           dateDetails["gregorian"]["weekday"]["en"].toString().substring(0, 3);
+      String fullGregorian = dateDetails["gregorian"]["date"].toString();
       DetailedDates detailedDates = DetailedDates(dayName.tr(), gregorianDate,
-          hijriDate, fajr, sunrise, dhuhr, asr, maghrib, isha);
+          hijriDate, fajr, sunrise, dhuhr, asr, maghrib, isha, fullGregorian);
       detailsDates.add(detailedDates);
     }
     return detailsDates;
   }
 
-  void navigateTable(bool forward) {
-    EasyLoading.showInfo("Months_Loading_Timetable".tr());
+  void navigateTable(bool forward) async {
+    setState(() => _isLoading = true);
     if(forward){
       currentDate = DateTime(
           currentDate.year,
@@ -249,8 +298,11 @@ class _MonthsPageClassState extends State<MonthsPageClass> {
           1
       );
     }
-    updateTable("${currentDate.year}/${currentDate.month}");
-    EasyLoading.dismiss();
+    await updateTable("${currentDate.year}/${currentDate.month}");
+    if(DateTime.now().year == currentDate.year && DateTime.now().month == currentDate.month){
+      await _scrollToToday();
+    }
+    setState(() => _isLoading = false);
   }
 }
 String constructTime(String time) {
@@ -278,7 +330,7 @@ GridColumn generateColumn(
 class DetailedDates {
   /// Creates the employee class with required details.
   DetailedDates(this.day, this.gregorian, this.hijri, this.fajr, this.sunrise,
-      this.dhuhr, this.asr, this.maghrib, this.isha);
+      this.dhuhr, this.asr, this.maghrib, this.isha, this.fullGregorian);
 
   final String day;
   final String gregorian;
@@ -289,6 +341,7 @@ class DetailedDates {
   final String asr;
   final String maghrib;
   final String isha;
+  final String fullGregorian;
 }
 
 class DatesDetailsDataSource extends DataGridSource {
@@ -305,6 +358,7 @@ class DatesDetailsDataSource extends DataGridSource {
               DataGridCell<String>(columnName: 'asr', value: e.asr),
               DataGridCell<String>(columnName: 'maghrib', value: e.maghrib),
               DataGridCell<String>(columnName: 'isha', value: e.isha),
+              DataGridCell<String>(columnName: 'fullGregorian', value: e.fullGregorian),
             ]))
         .toList();
   }
@@ -317,14 +371,13 @@ class DatesDetailsDataSource extends DataGridSource {
   @override
   DataGridRowAdapter buildRow(DataGridRow row) {
     Color backgroundColor = interpolatedColor3;
-    List<String> splittedGregorianDate = row.getCells()[1].value.toString().split("-");
-    if(splittedGregorianDate.length != 2){
-      backgroundColor = interpolatedColor3;
-    }else{
-      if(int.parse(splittedGregorianDate[0]) == DateTime.now().day && int.parse(splittedGregorianDate[1]) == DateTime.now().month){
+    String fullDate = row.getCells()[9].value.toString();
+    List<String> parts = fullDate.split("-");
+    if(parts.length == 3){
+      if(int.parse(parts[0]) == DateTime.now().day &&
+         int.parse(parts[1]) == DateTime.now().month &&
+         int.parse(parts[2]) == DateTime.now().year){
         backgroundColor = highlightedMonthDayColor;
-      }else{
-        backgroundColor = interpolatedColor3;
       }
     }
     return DataGridRowAdapter(

@@ -1,7 +1,7 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:contactus/contactus.dart';
 import 'package:muslim/shared/constants.dart';
+import 'contactus.dart';
 class ContactPageClass extends StatelessWidget {
   const ContactPageClass({super.key});
 

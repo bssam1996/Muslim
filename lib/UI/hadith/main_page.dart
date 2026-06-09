@@ -19,7 +19,8 @@ class HadithHomePageClass extends StatelessWidget {
         backgroundColor: primaryColor,
       ),
       backgroundColor: thirdColor,
-      body: SingleChildScrollView(
+      body: SafeArea(
+        child: SingleChildScrollView(
         child: Padding(
             padding: const EdgeInsets.all(20.0),
             child:  Column(
@@ -44,6 +45,7 @@ class HadithHomePageClass extends StatelessWidget {
             )
         ),
       ),
+    )
     );
   }
 }

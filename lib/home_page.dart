@@ -260,7 +260,8 @@ class _MyHomePageState extends State<MyHomePage> {
           backgroundColor: interpolatedColor3,
           drawer: Drawer(
             backgroundColor: thirdColor,
-            child: ListView(
+            child: SafeArea(
+              child: ListView(
               padding: EdgeInsets.zero,
               children: [
                 drawerHeader,
@@ -563,6 +564,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ],
             ),
+              ),
           ),
           appBar: AppBar(
             backgroundColor: primaryColor,

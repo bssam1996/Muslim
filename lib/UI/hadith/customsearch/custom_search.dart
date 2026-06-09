@@ -98,36 +98,38 @@ class _HadithCustomSearchClassState extends State<HadithCustomSearchClass> {
           color: textColor,
         ),
       ),
-      body: isLoading
-          ? const LoadingIndicator()
-          : searched && hadithList.isEmpty
-              ? const CustomSearchLandingPageClass(
-                  text: "Custom_Search_Empty_Page_Text",
-                )
-              : hadithList.isEmpty
-                  ? const CustomSearchLandingPageClass(
-                      text: "Custom_Search_Landing_Page_Text")
-                  : Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: ListView.builder(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        shrinkWrap: true,
-                        padding: EdgeInsets.zero,
-                        itemCount: hadithList.length,
-                        itemBuilder: (BuildContext context, int index) {
-                          return Column(
-                            children: [
-                              Card(
-                                shadowColor: Colors.grey.shade300,
-                                color: fourthColor,
-                                child: FindHadithCardClass(hadith: hadithList[index]),
-                              ),
-                              const Divider(color: textColor,)
-                            ],
-                          );
-                        },
-                      )
-                  ),
+      body: SafeArea(
+        child: isLoading
+            ? const LoadingIndicator()
+            : searched && hadithList.isEmpty
+                ? const CustomSearchLandingPageClass(
+                    text: "Custom_Search_Empty_Page_Text",
+                  )
+                : hadithList.isEmpty
+                    ? const CustomSearchLandingPageClass(
+                        text: "Custom_Search_Landing_Page_Text")
+                    : Padding(
+                        padding: const EdgeInsets.all(20.0),
+                        child: ListView.builder(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          shrinkWrap: true,
+                          padding: EdgeInsets.zero,
+                          itemCount: hadithList.length,
+                          itemBuilder: (BuildContext context, int index) {
+                            return Column(
+                              children: [
+                                Card(
+                                  shadowColor: Colors.grey.shade300,
+                                  color: fourthColor,
+                                  child: FindHadithCardClass(hadith: hadithList[index]),
+                                ),
+                                const Divider(color: textColor,)
+                              ],
+                            );
+                          },
+                        )
+                    ),
+      ),
     );
   }
 }

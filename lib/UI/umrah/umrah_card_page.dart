@@ -43,10 +43,11 @@ class _UmrahCardPageClassState extends State<UmrahCardPageClass> {
         ],
       ),
       backgroundColor: thirdColor,
-      body: Padding(
-        padding: const EdgeInsets.all(
-            16.0), // Outer padding for the entire card area
-        child: Card(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(
+              16.0), // Outer padding for the entire card area
+          child: Card(
           elevation: 8.0, // Shadow depth for the card
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16.0), // Rounded corners
@@ -75,6 +76,7 @@ class _UmrahCardPageClassState extends State<UmrahCardPageClass> {
           ),
         ),
       ),
+    )
     );
   }
 }

@@ -21,7 +21,8 @@ class _QuranPageClassState extends State<QuranPageClass> {
         iconTheme: const IconThemeData(color: textColor),
       ),
       backgroundColor: thirdColor,
-      body: SingleChildScrollView(
+      body: SafeArea(
+        child: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(8.0),
           child: ListView(
@@ -55,7 +56,8 @@ class _QuranPageClassState extends State<QuranPageClass> {
             ],
           ),
         ),
-      )
+      ),
+    )
     );
   }
 }

@@ -22,7 +22,8 @@ class _QiblahClassState extends State<QiblahClass> {
           iconTheme: const IconThemeData(color: textColor),
           backgroundColor: primaryColor,
         ),
-        body: FutureBuilder(
+        body: SafeArea(
+          child: FutureBuilder(
           future: _deviceSupport,
           builder: (_, AsyncSnapshot<bool?> snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -41,6 +42,7 @@ class _QiblahClassState extends State<QiblahClass> {
             }
           },
         ),
+          ),
       );
   }
 }

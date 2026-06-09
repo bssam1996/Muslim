@@ -42,7 +42,8 @@ class _DuaCardPageClassState extends State<DuaCardPageClass> {
         ],
       ),
       backgroundColor: thirdColor,
-      body: SingleChildScrollView(
+      body: SafeArea(
+        child: SingleChildScrollView(
         child: Center(
           child: Padding(
             padding: const EdgeInsets.all(
@@ -65,6 +66,7 @@ class _DuaCardPageClassState extends State<DuaCardPageClass> {
           ),
         ),
       ),
+    )
     );
   }
 }

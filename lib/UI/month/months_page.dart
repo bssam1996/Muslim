@@ -159,7 +159,8 @@ class _MonthsPageClassState extends State<MonthsPageClass> {
                 )),
           ],
         ),
-        body: GestureDetector(
+        body: SafeArea(
+          child: GestureDetector(
           onPanEnd: (details) {
             // Swiping in right direction (Previous month).
             if (details.velocity.pixelsPerSecond.dx > 0) {
@@ -209,7 +210,8 @@ class _MonthsPageClassState extends State<MonthsPageClass> {
                 ),
             ],
           ),
-        ));
+        ),
+      ));
   }
 
   Future<List<DetailedDates>> getDatesData(String date) async {

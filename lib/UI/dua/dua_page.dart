@@ -24,9 +24,10 @@ class _DuaPageClassState extends State<DuaPageClass> {
         backgroundColor: primaryColor,
       ),
         backgroundColor: thirdColor,
-        body: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: ListView.builder(
+         body: SafeArea(
+           child: Padding(
+             padding: const EdgeInsets.all(20.0),
+             child: ListView.builder(
             physics: const AlwaysScrollableScrollPhysics(),
             shrinkWrap: true,
             padding: EdgeInsets.zero,
@@ -57,7 +58,8 @@ class _DuaPageClassState extends State<DuaPageClass> {
               );
             },
           ),
-        )
+        ),
+      )
     );
   }
 }

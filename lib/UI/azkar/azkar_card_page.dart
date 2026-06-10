@@ -48,7 +48,8 @@ class _AzkarCardPageClassState extends State<AzkarCardPageClass> {
         ],
       ),
       backgroundColor: thirdColor,
-      body: SingleChildScrollView(
+      body: SafeArea(
+        child: SingleChildScrollView(
         child: Center(
           child: Padding(
             padding: const EdgeInsets.all(
@@ -107,6 +108,7 @@ class _AzkarCardPageClassState extends State<AzkarCardPageClass> {
           ),
         ),
       ),
+    )
     );
   }
 }

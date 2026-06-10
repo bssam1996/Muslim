@@ -29,9 +29,10 @@ class ContactPageClass extends StatelessWidget {
             ],
           ),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: ContactUs(
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: ContactUs(
             logo: const AssetImage('assets/icon/main.png'),
             email: 'bssam2012@gmail.com',
             emailText: "Contact_Email".tr(),
@@ -47,6 +48,7 @@ class ContactPageClass extends StatelessWidget {
             taglineColor: textColor,
           ),
         ),
+       ),
       ),
     );
   }

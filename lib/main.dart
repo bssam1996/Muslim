@@ -12,8 +12,10 @@ import 'package:muslim/shared/constants.dart' as constants;
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:muslim/utils/homewidget_utils.dart' as homewidget_utils;
+import 'package:muslim/utils/shared_preference_methods.dart' as shared_preference_methods;
 import 'package:workmanager/workmanager.dart' as workmanager;
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // import 'dart:io' show Platform;
 
@@ -77,6 +79,10 @@ void main() async {
   if (!kIsWeb && Platform.isAndroid) {
     await _configureAndroidBackgroundTasks();
   }
+
+  await shared_preference_methods.cleanupOldPrayerTimesData(
+    SharedPreferences.getInstance(),
+  );
 
   runApp(
     EasyLocalization(

@@ -110,3 +110,51 @@ Future<bool> checkExistenceData(Future<SharedPreferences> sharedPreferences, Str
     return false;
   }
 }
+
+Future<void> cleanupOldPrayerTimesData(Future<SharedPreferences> sharedPreferences) async {
+  try {
+    final SharedPreferences prefs = await sharedPreferences;
+    final DateTime now = DateTime.now();
+    final DateTime cutoffDate = now.subtract(const Duration(days: 2));
+    final Set<String> allKeys = prefs.getKeys();
+
+    for (final key in allKeys) {
+      if (!key.startsWith('timings')) {
+        continue;
+      }
+
+      final int slashIndex = key.indexOf('/');
+      if (slashIndex == -1) continue;
+
+      final String datePart = key.substring(slashIndex + 1);
+      final int questionIndex = datePart.indexOf('?');
+      final String cleanDate = questionIndex != -1
+          ? datePart.substring(0, questionIndex)
+          : datePart;
+
+      if (cleanDate.length != 10) continue;
+
+      try {
+        final List<String> parts = cleanDate.split('-');
+        if (parts.length != 3) continue;
+
+        final int day = int.tryParse(parts[0]) ?? 0;
+        final int month = int.tryParse(parts[1]) ?? 0;
+        final int year = int.tryParse(parts[2]) ?? 0;
+
+        if (day == 0 || month == 0 || year == 0) continue;
+
+        final DateTime storedDate = DateTime(year, month, day);
+
+        if (storedDate.isBefore(cutoffDate)) {
+          await prefs.remove(key);
+          print('Cleaned up old prayer data: $key');
+        }
+      } catch (e) {
+        print('Error parsing date from key $key: $e');
+      }
+    }
+  } catch (e) {
+    print('Error during prayer times cleanup: $e');
+  }
+}

@@ -35,6 +35,9 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
   String selectedCalendarMethod = "High Judicial Council of Saudi Arabia";
   TextEditingController locationController = TextEditingController();
   TextEditingController adjustmentsController = TextEditingController();
+  final Map<String, TextEditingController> tuneControllers = {
+    for (final prayerName in PRAYER_NAMES) prayerName: TextEditingController()
+  };
 
   final GlobalKey<CSCPickerState> _cscPickerKey = GlobalKey();
   @override
@@ -51,6 +54,16 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
         print(e);
       }
     }
+  }
+
+  @override
+  void dispose() {
+    locationController.dispose();
+    adjustmentsController.dispose();
+    for (final controller in tuneControllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
   }
 
   void _updateSettings() async {
@@ -89,6 +102,12 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
     var adjustment = await shared_preference_methods.getIntegerData(
         widget.prefs, 'adjustment', 0);
     adjustmentsController.text = adjustment.toString();
+    final Map<String, int> tuneSettings =
+        await helper.getPrayerTimeTuneSettings(widget.prefs);
+    for (final prayerName in PRAYER_NAMES) {
+      tuneControllers[prayerName]?.text =
+          (tuneSettings[prayerName] ?? 0).toString();
+    }
     setState(() {
       is24 = shared24;
     });
@@ -277,7 +296,6 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                         }
                         locationController.text = address;
                         saveLocationAddress();
-                        helper.invalidateTodayCachedData(widget.prefs);
                       });
                     },
                   ),
@@ -311,7 +329,6 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                             textInputAction: TextInputAction.done,
                             onEditingComplete: () {
                               saveLocationAddress();
-                              helper.invalidateTodayCachedData(widget.prefs);
                             },
                           ),
                         ),
@@ -426,6 +443,71 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                             const BorderRadius.all(Radius.circular(10)),
                         color: settingsWidgetBGColor,
                         border: Border.all(color: boxesBorderColor, width: 1)),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Settings_Tune_Title".tr(),
+                          style: detailsStyle,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "Settings_Tune_Desc".tr(),
+                          style: const TextStyle(
+                              color: highlightedColor, fontSize: 12),
+                        ),
+                        const SizedBox(height: 12),
+                        for (final prayerName in PRAYER_NAMES)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  flex: 2,
+                                  child: Text(
+                                    prayerName.tr(),
+                                    style: detailsStyle,
+                                  ),
+                                ),
+                                Expanded(
+                                  flex: 3,
+                                  child: NumberInputWithIncrementDecrement(
+                                    key: ValueKey("tune_input_$prayerName"),
+                                    initialValue: int.parse(
+                                      tuneControllers[prayerName]!.text.isEmpty
+                                          ? "0"
+                                          : tuneControllers[prayerName]!.text,
+                                    ),
+                                    controller: tuneControllers[prayerName]!,
+                                    onChanged: (newValue) =>
+                                        saveTuneValue(prayerName, newValue),
+                                    onDecrement: (newValue) =>
+                                        saveTuneValue(prayerName, newValue),
+                                    onIncrement: (newValue) =>
+                                        saveTuneValue(prayerName, newValue),
+                                    min: -100,
+                                    incDecBgColor: textColor,
+                                    style: const TextStyle(color: textColor),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const Divider(
+                    height: 20,
+                    thickness: 5,
+                    color: dividerColor,
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                        borderRadius:
+                            const BorderRadius.all(Radius.circular(10)),
+                        color: settingsWidgetBGColor,
+                        border: Border.all(color: boxesBorderColor, width: 1)),
                     child: DropdownSearch<String>(
                       popupProps: const PopupProps.menu(
                           menuProps: MenuProps(
@@ -524,6 +606,7 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
             dismissOnTap: true);
         return;
       }
+      await helper.invalidateTodayCachedData(widget.prefs);
       EasyLoading.showSuccess("Settings_Success_Save".tr());
     }
   }
@@ -540,6 +623,7 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
         EasyLoading.showError("Couldn't save data".tr(), dismissOnTap: true);
         return;
       }
+      await helper.invalidateTodayCachedData(widget.prefs);
       EasyLoading.showSuccess("Settings_Success_Save".tr());
     }
   }
@@ -556,6 +640,7 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
         EasyLoading.showError("Couldn't save data".tr(), dismissOnTap: true);
         return;
       }
+      await helper.invalidateTodayCachedData(widget.prefs);
       EasyLoading.showSuccess("Settings_Success_Save".tr());
     }
   }
@@ -572,6 +657,7 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
         EasyLoading.showError("Couldn't save data".tr(), dismissOnTap: true);
         return;
       }
+      await helper.invalidateTodayCachedData(widget.prefs);
       setState(() {
         selectedCalendarMethod = value;
         EasyLoading.showSuccess("Settings_Success_Save".tr());
@@ -591,6 +677,24 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
         EasyLoading.showError("Couldn't save data".tr(), dismissOnTap: true);
         return;
       }
+      await helper.invalidateTodayCachedData(widget.prefs);
+      EasyLoading.showSuccess("Settings_Success_Save".tr());
+    }
+  }
+
+  void saveTuneValue(String prayerName, num? newValue) async {
+    if (newValue != null) {
+      EasyLoading.showInfo("Settings_Saving_Tune".tr());
+      if (kDebugMode) {
+        print("Saving tune value for $prayerName...");
+      }
+      bool result = await shared_preference_methods.setIntegerData(
+          widget.prefs, prayerTunePreferenceKey(prayerName), newValue.toInt());
+      if (!result) {
+        EasyLoading.showError("Couldn't save data".tr(), dismissOnTap: true);
+        return;
+      }
+      await helper.invalidateTodayCachedData(widget.prefs);
       EasyLoading.showSuccess("Settings_Success_Save".tr());
     }
   }

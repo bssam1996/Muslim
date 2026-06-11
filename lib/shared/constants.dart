@@ -89,6 +89,21 @@ List<String> PRAYER_NAMES = [
   'Isha'
 ];
 
+const List<String> aladhanTuneParameterOrder = [
+  'Imsak',
+  'Fajr',
+  'Sunrise',
+  'Dhuhr',
+  'Asr',
+  'Maghrib',
+  'Sunset',
+  'Isha',
+  'Midnight',
+];
+
+String prayerTunePreferenceKey(String prayerName) =>
+    'prayerTimeTune$prayerName';
+
 List<String> PRAYER_NOTIFICATION_NAMES = [
   'Fajr',
   'Dhuhr',

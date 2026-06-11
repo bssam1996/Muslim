@@ -10,6 +10,13 @@ import 'notification_service.dart';
 
 const String _lastFetchedDateKey = 'last_fetched_date';
 
+String _appendQueryParameter(String constructedParameters, String parameter) {
+  if (constructedParameters.isEmpty) {
+    return parameter;
+  }
+  return '$constructedParameters&$parameter';
+}
+
 String dateFormatter(DateTime d) {
   DateFormat formatter = DateFormat('dd-MM-yyyy');
   String formattedDate = formatter.format(d);
@@ -68,6 +75,9 @@ Future<String?> constructAPIParameters(String callType, String requiredDate,
         }
       }
     }
+    final String tuneParameter = await constructAladhanTuneParameter(prefs);
+    constructedParameters =
+        _appendQueryParameter(constructedParameters, 'tune=$tuneParameter');
 
     return '$callType/$requiredDate?$constructedParameters';
   } catch (e) {
@@ -76,6 +86,37 @@ Future<String?> constructAPIParameters(String callType, String requiredDate,
     }
     return null;
   }
+}
+
+Future<Map<String, int>> getPrayerTimeTuneSettings(
+    Future<SharedPreferences> prefs) async {
+  final Map<String, int> tuneSettings = {};
+  for (final prayerName in constants.PRAYER_NAMES) {
+    final int tuneValue = await shared_preference_methods.getIntegerData(
+          prefs,
+          constants.prayerTunePreferenceKey(prayerName),
+          0,
+        ) ??
+        0;
+    tuneSettings[prayerName] = tuneValue;
+  }
+  return tuneSettings;
+}
+
+String constructAladhanTuneParameterFromSettings(
+    Map<String, int> tuneSettings) {
+  return constants.aladhanTuneParameterOrder.map((prayerName) {
+    if (constants.PRAYER_NAMES.contains(prayerName)) {
+      return (tuneSettings[prayerName] ?? 0).toString();
+    }
+    return '0';
+  }).join(',');
+}
+
+Future<String> constructAladhanTuneParameter(
+    Future<SharedPreferences> prefs) async {
+  final Map<String, int> tuneSettings = await getPrayerTimeTuneSettings(prefs);
+  return constructAladhanTuneParameterFromSettings(tuneSettings);
 }
 
 Future<http.Response?>? fetchData(String callType, String requiredDate,
@@ -96,13 +137,17 @@ Future<http.Response?>? fetchData(String callType, String requiredDate,
   }
 }
 
-void invalidateTodayCachedData(Future<SharedPreferences> prefs) async {
+Future<void> invalidateTodayCachedData(Future<SharedPreferences> prefs) async {
   String formattedDate = dateFormatter(DateTime.now());
-  var exists =
-      await shared_preference_methods.checkExistenceData(prefs, formattedDate);
-  if (exists) {
-    shared_preference_methods.invalidateSharedData(prefs, formattedDate);
+  final SharedPreferences sharedPrefs = await prefs;
+  final String dateSegment = '/$formattedDate';
+  for (final key in sharedPrefs.getKeys()) {
+    if (!key.startsWith('timings') || !key.contains(dateSegment)) {
+      continue;
+    }
+    await sharedPrefs.remove(key);
   }
+  await sharedPrefs.remove(_lastFetchedDateKey);
 }
 
 DateTime constructDateTime(String timeString) {
@@ -398,7 +443,7 @@ Future<void> handleNotifications(Future<SharedPreferences> prefs,
       );
       if (r != "") {
         print(r);
-        
+
         return;
       }
     }

@@ -20,6 +20,9 @@ void main() {
       expect(translations['Radio_Title'], isNotEmpty);
       expect(translations['Radio_Search_Hint'], isNotEmpty);
       expect(translations['Radio_Play_Error'], isNotEmpty);
+      expect(translations['Settings_Tune_Title'], isNotEmpty);
+      expect(translations['Settings_Tune_Desc'], isNotEmpty);
+      expect(translations['Settings_Saving_Tune'], isNotEmpty);
     }
   });
 }

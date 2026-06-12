@@ -122,6 +122,7 @@ flutter:
     - "assets/azkar/azkar.png"
     - "assets/hadith/bubble.png"
     - "assets/hadith/hadith.png"
+    - "assets/mosque/mosque.png"
     - "assets/umrah/main.png"
     - "assets/icon/main.png"
     - "assets/adhan/"

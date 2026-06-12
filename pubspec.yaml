@@ -19,7 +19,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 2.8.0+58
 
 environment:
-  sdk: '>=2.19.0 <3.0.0'
+  sdk: '>=3.10.0 <4.0.0'
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -47,6 +47,9 @@ dependencies:
       url: https://github.com/Ostrich-Cyber-Risk/csc_picker 
   dropdown_search: ^6.0.2
   flutter_qiblah_advanced: ^4.0.1
+  geolocator: ^14.0.2
+  flutter_map: ^8.2.2
+  latlong2: ^0.9.1
   flutter_svg: ^2.0.9
   number_inc_dec: ^0.8.0
   syncfusion_flutter_datagrid: ^24.2.8
@@ -123,6 +126,7 @@ flutter:
     - "assets/hadith/bubble.png"
     - "assets/hadith/hadith.png"
     - "assets/mosque/mosque.png"
+    - "assets/mosque/mosque_home.png"
     - "assets/umrah/main.png"
     - "assets/icon/main.png"
     - "assets/adhan/"

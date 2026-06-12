@@ -9,6 +9,7 @@ import 'package:muslim/UI/azkar/azkar_page.dart';
 import 'package:muslim/UI/dua/dua_page.dart';
 import 'package:muslim/UI/hadith/main_page.dart';
 import 'package:muslim/UI/month/months_page.dart';
+import 'package:muslim/UI/mosque/nearest_mosque_page.dart';
 import 'package:muslim/UI/prayer_notifications/prayer_notifications.dart';
 import 'package:muslim/UI/contact/contact.dart';
 import 'package:muslim/UI/qiblah/qiblah_page.dart';
@@ -265,33 +266,6 @@ class _MyHomePageState extends State<MyHomePage> {
               padding: EdgeInsets.zero,
               children: [
                 drawerHeader,
-                Visibility(
-                  visible: !kIsWeb,
-                  child: Column(
-                    children: [
-                      ListTile(
-                        title: const Text(
-                          'Home_Panel_Qiblah',
-                          style: TextStyle(color: textColor),
-                        ).tr(),
-                        trailing: Image.asset(
-                          "assets/qiblah/compass.png",
-                          width: 24,
-                        ),
-                        onTap: () async {
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const QiblahClass()),
-                          );
-                        },
-                      ),
-                      const Divider(
-                        color: textColor,
-                      ),
-                    ],
-                  ),
-                ),
                 Column(
                   children: [
                     ListTile(
@@ -764,7 +738,8 @@ class _MyHomePageState extends State<MyHomePage> {
                             child: QuickHadithCardPageClass(
                               hadith: hadithOfTheDay,
                             ),
-                          )
+                          ),
+                          _buildUtilitiesSection(),
                           // Visibility(
                           //   visible: hadithOfTheDay != "",
                           //   child: QuickHadithCardPageClass(hadith: hadithOfTheDay,),
@@ -782,6 +757,117 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildUtilitiesSection() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Padding(
+            padding: const EdgeInsets.only(left: 4, right: 4, bottom: 8),
+            child: AutoSizeText(
+              'Home_Utilities_Title'.tr(),
+              style: headline2Style,
+            ),
+          ),
+          Visibility(
+            visible: !kIsWeb,
+            child: _buildUtilityTile(
+              titleKey: 'Home_Panel_Qiblah',
+              assetPath: 'assets/qiblah/compass.png',
+              onTap: _openQiblahPage,
+            ),
+          ),
+          Card(
+            color: primaryColor,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+              side: const BorderSide(color: boxesBorderColor),
+            ),
+            child: ListTile(
+              leading: IconButton(
+                tooltip: 'Home_Utilities_Find_Nearest_Mosque'.tr(),
+                icon: Image.asset(
+                  'assets/mosque/mosque_home.png',
+                  width: 36,
+                  height: 36,
+                ),
+                onPressed: _openNearestMosquePage,
+              ),
+              title: const Text(
+                'Home_Utilities_Find_Nearest_Mosque',
+                style: TextStyle(
+                  color: textColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ).tr(),
+              trailing: const Icon(
+                Icons.chevron_right,
+                color: highlightedTextColor,
+              ),
+              onTap: _openNearestMosquePage,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUtilityTile({
+    required String titleKey,
+    required String assetPath,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      color: primaryColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: const BorderSide(color: boxesBorderColor),
+      ),
+      child: ListTile(
+        leading: IconButton(
+          tooltip: titleKey.tr(),
+          icon: Image.asset(
+            assetPath,
+            width: 36,
+            height: 36,
+          ),
+          onPressed: onTap,
+        ),
+        title: Text(
+          titleKey,
+          style: const TextStyle(
+            color: textColor,
+            fontWeight: FontWeight.bold,
+          ),
+        ).tr(),
+        trailing: const Icon(
+          Icons.chevron_right,
+          color: highlightedTextColor,
+        ),
+        onTap: onTap,
+      ),
+    );
+  }
+
+  Future<void> _openQiblahPage() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const QiblahClass(),
+      ),
+    );
+  }
+
+  Future<void> _openNearestMosquePage() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const NearestMosquePageClass(),
       ),
     );
   }

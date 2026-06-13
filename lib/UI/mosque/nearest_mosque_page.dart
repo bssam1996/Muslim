@@ -40,6 +40,7 @@ class _NearestMosquePageClassState extends State<NearestMosquePageClass> {
 
     try {
       final MosqueSearchLocation location = await getMosqueSearchLocation();
+      print('Location obtained: ${location.latitude}, ${location.longitude}');
       final MosqueSearchResult result = await findNearbyMosques(
         latitude: location.latitude,
         longitude: location.longitude,

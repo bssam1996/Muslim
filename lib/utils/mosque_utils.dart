@@ -125,22 +125,23 @@ Future<MosqueSearchResult> findNearbyMosques({
   required double longitude,
   required int initialRadiusMeters,
 }) async {
-  final List<int> radii = _progressiveRadii(initialRadiusMeters);
+  // final List<int> radii = _progressiveRadii(initialRadiusMeters);
   List<MosquePlace> bestResults = <MosquePlace>[];
   int usedRadius = initialRadiusMeters;
 
-  for (final int radius in radii) {
-    usedRadius = radius;
-    final List<MosquePlace> mosques = await _queryOverpass(
-      latitude: latitude,
-      longitude: longitude,
-      radiusMeters: radius,
-    );
-    bestResults = mosques;
-    if (mosques.length >= 3 || radius == radii.last) {
-      break;
-    }
-  }
+  print('Querying Overpass API with radius: $usedRadius meters');
+  final List<MosquePlace> mosques = await _queryOverpass(
+    latitude: latitude,
+    longitude: longitude,
+    radiusMeters: usedRadius,
+  );
+  bestResults = mosques;
+  // for (final int radius in radii) {
+  //   usedRadius = radius;
+  //   if (radius == radii.last) {
+  //     break;
+  //   }
+  // }
 
   return MosqueSearchResult(mosques: bestResults, radiusMeters: usedRadius);
 }
@@ -172,23 +173,26 @@ Future<List<MosquePlace>> _queryOverpass({
   final Uri uri = Uri.parse('https://overpass-api.de/api/interpreter');
   final String query =
       '''
-[out:json][timeout:25];
-(
-  node["amenity"="place_of_worship"]["religion"="muslim"](around:$radiusMeters,$latitude,$longitude);
-  way["amenity"="place_of_worship"]["religion"="muslim"](around:$radiusMeters,$latitude,$longitude);
-  relation["amenity"="place_of_worship"]["religion"="muslim"](around:$radiusMeters,$latitude,$longitude);
-  node["building"="mosque"](around:$radiusMeters,$latitude,$longitude);
-  way["building"="mosque"](around:$radiusMeters,$latitude,$longitude);
-  relation["building"="mosque"](around:$radiusMeters,$latitude,$longitude);
-);
-out center tags;
-''';
+      [out:json][timeout:25];
+      (
+        node["amenity"="place_of_worship"]["religion"="muslim"](around:$radiusMeters, $latitude, $longitude);
+        way["amenity"="place_of_worship"]["religion"="muslim"](around:$radiusMeters, $latitude, $longitude);
+        relation["amenity"="place_of_worship"]["religion"="muslim"](around:$radiusMeters, $latitude, $longitude);
+      );
+      out center tags;
+      ''';
 
   final http.Response response = await http
-      .post(uri, body: <String, String>{'data': query})
+      .post(uri,
+         headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': '*/*',
+          'User-Agent': 'Muslim/1.0 (bssam2012@gmail.com)'},
+          body: {'data': query},
+          encoding: Encoding.getByName('utf-8'),)
       .timeout(const Duration(seconds: 30));
-
   if (response.statusCode < 200 || response.statusCode >= 300) {
+    print('Overpass error body: ${response.body} and status code: ${response.statusCode}'); 
     throw Exception('Overpass returned ${response.statusCode}');
   }
 
@@ -202,8 +206,11 @@ out center tags;
       continue;
     }
 
-    final Map<String, dynamic> tags =
-        item['tags'] as Map<String, dynamic>? ?? <String, dynamic>{};
+    final Map<String, dynamic> tags = item['tags'] as Map<String, dynamic>? ?? {};
+  
+    // Add this check after extracting tags
+    final bool hasWorship = tags['amenity'] == 'place_of_worship' && tags['religion'] == 'muslim';
+    if (!hasWorship) continue;
     final String type = item['type']?.toString() ?? 'element';
     final String id = '$type/${item['id']}';
     final double? itemLatitude = _elementLatitude(item);
@@ -217,6 +224,7 @@ out center tags;
         _stringTag(tags, 'name') ??
         _stringTag(tags, 'name:en') ??
         _stringTag(tags, 'name:ar') ??
+        _stringTag(tags, 'name:ur') ??
         'Nearest_Mosque_Unknown_Name';
     final String address = _addressFromTags(tags);
     final double distanceMeters = _haversineDistanceMeters(
@@ -228,7 +236,6 @@ out center tags;
     final String dedupeKey = name == 'Nearest_Mosque_Unknown_Name'
         ? id
         : '${name.toLowerCase()}-${itemLatitude.toStringAsFixed(5)}-${itemLongitude.toStringAsFixed(5)}';
-
     deduped[dedupeKey] = MosquePlace(
       id: id,
       name: name,
@@ -275,6 +282,8 @@ String _addressFromTags(Map<String, dynamic> tags) {
   final List<String> parts = <String>[
     if (_stringTag(tags, 'addr:housenumber') != null)
       _stringTag(tags, 'addr:housenumber')!,
+    if (_stringTag(tags, 'addr:housename') != null)
+      _stringTag(tags, 'addr:housename')!,
     if (_stringTag(tags, 'addr:street') != null)
       _stringTag(tags, 'addr:street')!,
     if (_stringTag(tags, 'addr:city') != null) _stringTag(tags, 'addr:city')!,

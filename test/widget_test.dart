@@ -23,6 +23,10 @@ void main() {
       expect(translations['Settings_Tune_Title'], isNotEmpty);
       expect(translations['Settings_Tune_Desc'], isNotEmpty);
       expect(translations['Settings_Saving_Tune'], isNotEmpty);
+      expect(translations['Home_Utilities_Title'], isNotEmpty);
+      expect(translations['Home_Utilities_Find_Nearest_Mosque'], isNotEmpty);
+      expect(translations['Nearest_Mosque_Title'], isNotEmpty);
+      expect(translations['Nearest_Mosque_Open_Maps'], isNotEmpty);
     }
   });
 }

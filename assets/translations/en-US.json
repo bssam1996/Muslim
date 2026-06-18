@@ -24,6 +24,7 @@
   "Home_Page_Meta_Value": "Value",
   "Home_Page_Meta_Title": "Location Metadata",
   "Required field": "Required field",
+  "No_Internet_Error": "No internet connection. Please check your network settings and try again.",
   "Copied": "Copied",
   "Reload": "Reload",
   "Location_Missing_Error": "Location is unset and it is needed! please go to settings to add a location",

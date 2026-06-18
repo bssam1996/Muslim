@@ -136,12 +136,6 @@ Future<MosqueSearchResult> findNearbyMosques({
     radiusMeters: usedRadius,
   );
   bestResults = mosques;
-  // for (final int radius in radii) {
-  //   usedRadius = radius;
-  //   if (radius == radii.last) {
-  //     break;
-  //   }
-  // }
 
   return MosqueSearchResult(mosques: bestResults, radiusMeters: usedRadius);
 }
@@ -151,18 +145,6 @@ String formatMosqueDistance(double distanceMeters) {
     return '${distanceMeters.round()} m';
   }
   return '${(distanceMeters / 1000).toStringAsFixed(1)} km';
-}
-
-List<int> _progressiveRadii(int initialRadiusMeters) {
-  const List<int> defaults = <int>[3000, 5000, 10000, 25000];
-  final List<int> radii = defaults
-      .where((int radius) => radius >= initialRadiusMeters)
-      .toList(growable: true);
-  if (!radii.contains(initialRadiusMeters)) {
-    radii.insert(0, initialRadiusMeters);
-    radii.sort();
-  }
-  return radii;
 }
 
 Future<List<MosquePlace>> _queryOverpass({

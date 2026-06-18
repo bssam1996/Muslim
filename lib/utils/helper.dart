@@ -1,5 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
@@ -454,4 +455,15 @@ Future<void> handleNotifications(Future<SharedPreferences> prefs,
     }
     return;
   }
+}
+Future<bool> networkAccess() async{
+  try {
+    final result = await InternetAddress.lookup('example.com');
+    if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
+      return true;
+    }
+  } catch (_) {
+    return false;
+  }
+  return false;
 }

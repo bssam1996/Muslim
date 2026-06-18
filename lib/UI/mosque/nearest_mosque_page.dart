@@ -15,7 +15,7 @@ class NearestMosquePageClass extends StatefulWidget {
 }
 
 class _NearestMosquePageClassState extends State<NearestMosquePageClass> {
-  static const List<int> _radiusOptionsMeters = <int>[3000, 5000, 10000, 25000];
+  static const List<int> _radiusOptionsMeters = <int>[1000, 3000, 5000, 10000, 25000];
 
   int _selectedRadiusMeters = 3000;
   int _searchedRadiusMeters = 3000;
@@ -40,7 +40,6 @@ class _NearestMosquePageClassState extends State<NearestMosquePageClass> {
 
     try {
       final MosqueSearchLocation location = await getMosqueSearchLocation();
-      print('Location obtained: ${location.latitude}, ${location.longitude}');
       final MosqueSearchResult result = await findNearbyMosques(
         latitude: location.latitude,
         longitude: location.longitude,

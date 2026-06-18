@@ -64,6 +64,11 @@ class _MyHomePageState extends State<MyHomePage> {
         FetchAPI().then((value) async {
           if (value == false) {
             stopTimer();
+            if(await helper.networkAccess() == false){
+                EasyLoading.showError("No_Internet_Error".tr(),
+                    duration: const Duration(seconds: 15), dismissOnTap: true);
+                return;
+            }
             await Navigator.push(
               context,
               MaterialPageRoute(
@@ -75,7 +80,7 @@ class _MyHomePageState extends State<MyHomePage> {
               FetchAPI();
             } else {
               EasyLoading.showError("Location_Missing_Error".tr(),
-                  duration: const Duration(seconds: 10), dismissOnTap: true);
+                  duration: const Duration(seconds: 15), dismissOnTap: true);
             }
           }
         });
@@ -135,7 +140,7 @@ class _MyHomePageState extends State<MyHomePage> {
     Map<String, dynamic> savedLocation = await api_utils.getSavedLocation();
     if (savedLocation["error"] != "") {
       EasyLoading.showError("Location_Missing_Error".tr(),
-          duration: const Duration(seconds: 10), dismissOnTap: true);
+          duration: const Duration(seconds: 15), dismissOnTap: true);
       return false;
     }
 
@@ -283,54 +288,6 @@ class _MyHomePageState extends State<MyHomePage> {
                           context,
                           MaterialPageRoute(
                               builder: (context) => const QuranPageClass()),
-                        );
-                      },
-                    ),
-                    const Divider(
-                      color: textColor,
-                    ),
-                  ],
-                ),
-                Column(
-                  children: [
-                    ListTile(
-                      title: const Text(
-                        'Home_Panel_Radio',
-                        style: TextStyle(color: textColor),
-                      ).tr(),
-                      trailing: Image.asset(
-                        "assets/radio/radio128.png",
-                        width: 24,
-                      ),
-                      onTap: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const RadioPageClass()),
-                        );
-                      },
-                    ),
-                    const Divider(
-                      color: textColor,
-                    ),
-                  ],
-                ),
-                Column(
-                  children: [
-                    ListTile(
-                      title: const Text(
-                        'Home_Panel_Prayer_Calendar',
-                        style: TextStyle(color: textColor),
-                      ).tr(),
-                      trailing: Image.asset(
-                        "assets/prayercalender/prayercalender.png",
-                        width: 24,
-                      ),
-                      onTap: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const MonthsPageClass()),
                         );
                       },
                     ),
@@ -812,6 +769,16 @@ class _MyHomePageState extends State<MyHomePage> {
               onTap: _openNearestMosquePage,
             ),
           ),
+          _buildUtilityTile(
+              titleKey: 'Home_Panel_Prayer_Calendar',
+              assetPath: 'assets/prayercalender/prayercalender.png',
+              onTap: _openMonthlyPrayerTimingsPage,
+          ),
+          _buildUtilityTile(
+              titleKey: 'Home_Panel_Radio',
+              assetPath: 'assets/radio/radio128.png',
+              onTap: _openRadioPage,
+          ),
         ],
       ),
     );
@@ -859,6 +826,22 @@ class _MyHomePageState extends State<MyHomePage> {
       context,
       MaterialPageRoute(
         builder: (context) => const QiblahClass(),
+      ),
+    );
+  }
+  Future<void> _openMonthlyPrayerTimingsPage() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const MonthsPageClass(),
+      ),
+    );
+  }
+  Future<void> _openRadioPage() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const RadioPageClass(),
       ),
     );
   }

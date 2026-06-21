@@ -1,8 +1,11 @@
 import "dart:convert";
 
+import "package:easy_localization/easy_localization.dart";
 import "package:flutter/foundation.dart";
+import "package:flutter_easyloading/flutter_easyloading.dart";
 import "package:muslim/shared/constants.dart" as constants;
 import "package:http/http.dart" as http;
+import "package:muslim/utils/helper.dart" as helper;
 
 class HadithCustomSearchObject{
   String hadith;
@@ -16,6 +19,11 @@ class HadithCustomSearchObject{
 
 Future<String> getRandomHadith() async {
   try{
+    if(await helper.networkAccess() == false){
+        EasyLoading.showError("No_Internet_Error".tr(),
+            duration: const Duration(seconds: 15), dismissOnTap: true);
+        return "";
+    }
     http.Response r = await http.get(Uri.parse('${constants.MUSLIM_API_URL}hadith/get_random_hadith'), headers: {"Access-Control-Allow-Origin": "*"});
     if(r.statusCode != 200){
       return "";
@@ -26,6 +34,8 @@ Future<String> getRandomHadith() async {
     if(kDebugMode){
       print(e);
     }
+    EasyLoading.showError(e.toString(),
+            duration: const Duration(seconds: 15), dismissOnTap: true);
     return "";
   }
 }

@@ -33,6 +33,18 @@ import 'package:upgrader/upgrader.dart';
 // import 'package:muslim/shared/rainbow_button.dart';
 import 'package:muslim/UI/month/helper.dart' as prayer_calendar_model;
 
+class _UtilityItem {
+  const _UtilityItem({
+    required this.titleKey,
+    required this.assetPath,
+    required this.onTap,
+  });
+
+  final String titleKey;
+  final String assetPath;
+  final VoidCallback onTap;
+}
+
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
   final String title;
@@ -656,8 +668,11 @@ class _MyHomePageState extends State<MyHomePage> {
                       timeLeftWidget(),
                       // Page view for prayer times
                       SizedBox(
-                        width: 800,
+                        // height: (MediaQuery.of(context).size.width < 600)
+                        //     ? MediaQuery.of(context).size.height * 0.58
+                        //     : MediaQuery.of(context).size.height * 0.42,
                         height: 400,
+                        width: double.infinity,
                         child: PageView.builder(
                           controller: pageController,
                           itemCount: 7,
@@ -719,6 +734,30 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget _buildUtilitiesSection() {
+    final utilityItems = <_UtilityItem>[
+      if (!kIsWeb)
+        _UtilityItem(
+          titleKey: 'Home_Panel_Qiblah',
+          assetPath: 'assets/qiblah/compass.png',
+          onTap: _openQiblahPage,
+        ),
+      _UtilityItem(
+        titleKey: 'Home_Utilities_Find_Nearest_Mosque',
+        assetPath: 'assets/mosque/mosque_home.png',
+        onTap: _openNearestMosquePage,
+      ),
+      _UtilityItem(
+        titleKey: 'Home_Panel_Prayer_Calendar',
+        assetPath: 'assets/prayercalender/prayercalender.png',
+        onTap: _openMonthlyPrayerTimingsPage,
+      ),
+      _UtilityItem(
+        titleKey: 'Home_Panel_Radio',
+        assetPath: 'assets/radio/radio128.png',
+        onTap: _openRadioPage,
+      ),
+    ];
+
     return Padding(
       padding: const EdgeInsets.only(top: 16),
       child: Column(
@@ -731,53 +770,24 @@ class _MyHomePageState extends State<MyHomePage> {
               style: headline2Style,
             ),
           ),
-          Visibility(
-            visible: !kIsWeb,
-            child: _buildUtilityTile(
-              titleKey: 'Home_Panel_Qiblah',
-              assetPath: 'assets/qiblah/compass.png',
-              onTap: _openQiblahPage,
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: utilityItems.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+              childAspectRatio: 1.45,
             ),
-          ),
-          Card(
-            color: primaryColor,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-              side: const BorderSide(color: boxesBorderColor),
-            ),
-            child: ListTile(
-              leading: IconButton(
-                tooltip: 'Home_Utilities_Find_Nearest_Mosque'.tr(),
-                icon: Image.asset(
-                  'assets/mosque/mosque_home.png',
-                  width: 36,
-                  height: 36,
-                ),
-                onPressed: _openNearestMosquePage,
-              ),
-              title: const Text(
-                'Home_Utilities_Find_Nearest_Mosque',
-                style: TextStyle(
-                  color: textColor,
-                  fontWeight: FontWeight.bold,
-                ),
-              ).tr(),
-              trailing: const Icon(
-                Icons.chevron_right,
-                color: highlightedTextColor,
-              ),
-              onTap: _openNearestMosquePage,
-            ),
-          ),
-          _buildUtilityTile(
-              titleKey: 'Home_Panel_Prayer_Calendar',
-              assetPath: 'assets/prayercalender/prayercalender.png',
-              onTap: _openMonthlyPrayerTimingsPage,
-          ),
-          _buildUtilityTile(
-              titleKey: 'Home_Panel_Radio',
-              assetPath: 'assets/radio/radio128.png',
-              onTap: _openRadioPage,
+            itemBuilder: (context, index) {
+              final item = utilityItems[index];
+              return _buildUtilityTile(
+                titleKey: item.titleKey,
+                assetPath: item.assetPath,
+                onTap: item.onTap,
+              );
+            },
           ),
         ],
       ),
@@ -789,34 +799,54 @@ class _MyHomePageState extends State<MyHomePage> {
     required String assetPath,
     required VoidCallback onTap,
   }) {
-    return Card(
-      color: primaryColor,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-        side: const BorderSide(color: boxesBorderColor),
-      ),
-      child: ListTile(
-        leading: IconButton(
-          tooltip: titleKey.tr(),
-          icon: Image.asset(
-            assetPath,
-            width: 36,
-            height: 36,
-          ),
-          onPressed: onTap,
+    return Tooltip(
+      message: titleKey.tr(),
+      child: Card(
+        margin: EdgeInsets.zero,
+        color: primaryColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: const BorderSide(color: boxesBorderColor),
         ),
-        title: Text(
-          titleKey,
-          style: const TextStyle(
-            color: textColor,
-            fontWeight: FontWeight.bold,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: onTap,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final titleFontSize = (constraints.biggest.shortestSide * 0.14)
+                  .clamp(12.0, 16.0);
+
+              return Padding(
+                padding: const EdgeInsets.all(10),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image.asset(
+                      assetPath,
+                      width: 36,
+                      height: 36,
+                    ),
+                    const SizedBox(height: 8),
+                    Flexible(
+                      child: AutoSizeText(
+                        titleKey.tr(),
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: titleFontSize,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        minFontSize: 10,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
-        ).tr(),
-        trailing: const Icon(
-          Icons.chevron_right,
-          color: highlightedTextColor,
         ),
-        onTap: onTap,
       ),
     );
   }
@@ -1056,26 +1086,16 @@ class _MyHomePageState extends State<MyHomePage> {
               thickness: 5,
               color: dividerColor,
             ),
-            RefreshIndicator(
-                child: ListView.builder(
-                    key: const ValueKey("refresh_indicator"),
-                    shrinkWrap: true,
-                    itemCount: PRAYER_NAMES.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      return Column(
-                        key: ValueKey("refresh_indicator_$index"),
-                        children: [
-                          detailsRow(
-                              PRAYER_NAMES[index],
-                              jsonTimings[daynumber][PRAYER_NAMES[index]] ??
-                                  "-",
-                              daynumber),
-                        ],
-                      );
-                    }),
-                onRefresh: () {
-                  return FetchAPI();
-                }),
+            Column(
+              children: List.generate(
+                PRAYER_NAMES.length,
+                (index) => detailsRow(
+                  PRAYER_NAMES[index],
+                  jsonTimings[daynumber][PRAYER_NAMES[index]] ?? "-",
+                  daynumber,
+                ),
+              ),
+            ),
           ]),
         ),
       ),
@@ -1103,35 +1123,31 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Row(
           children: [
             Expanded(
-              flex: 1,
-              child: SizedBox(
-                width: MediaQuery.of(context).size.width * 0.3,
-                child: Center(
-                  child: AutoSizeText(
-                    "${headText.tr()}:",
-                    style: nextPray == headText
-                        ? (dayNumber == 0)
-                            ? highlightedDetailsStyle
-                            : prayerStyle
-                        : prayerStyle,
-                    maxLines: 1,
-                  ),
+              flex: 2,
+              child: Center(
+                child: AutoSizeText(
+                  "${headText.tr()}:",
+                  style: nextPray == headText
+                      ? (dayNumber == 0)
+                          ? highlightedDetailsStyle
+                          : prayerStyle
+                      : prayerStyle,
+                  maxLines: 1,
                 ),
               ),
             ),
             Expanded(
-              flex: 2,
-              child: SizedBox(
-                width: MediaQuery.of(context).size.width / 2 * 3,
-                child: Center(
-                  child: AutoSizeText(detailsText,
-                      textDirection: TextDirection.ltr,
-                      style: nextPray == headText
-                          ? (dayNumber == 0)
-                              ? highlightedDetailsStyle
-                              : prayerStyle
-                          : prayerStyle,
-                      maxLines: 1),
+              flex: 3,
+              child: Center(
+                child: AutoSizeText(
+                  detailsText,
+                  textDirection: TextDirection.ltr,
+                  style: nextPray == headText
+                      ? (dayNumber == 0)
+                          ? highlightedDetailsStyle
+                          : prayerStyle
+                      : prayerStyle,
+                  maxLines: 1,
                 ),
               ),
             ),

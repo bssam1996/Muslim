@@ -44,7 +44,6 @@ class _UtilityItem {
   final String assetPath;
   final VoidCallback onTap;
 }
-
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
   final String title;
@@ -64,10 +63,8 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    if (!kIsWeb) {
-      if (Platform.isAndroid) {
-        HomeWidget.setAppGroupId(HOME_WIDGET_GROUP_ID);
-      }
+    if (!kIsWeb && Platform.isAndroid) {
+      HomeWidget.setAppGroupId(HOME_WIDGET_GROUP_ID);
     }
     EasyLoading.showInfo("Loading settings...");
     try {
@@ -76,10 +73,12 @@ class _MyHomePageState extends State<MyHomePage> {
         FetchAPI().then((value) async {
           if (value == false) {
             stopTimer();
-            if(await helper.networkAccess() == false){
-                EasyLoading.showError("No_Internet_Error".tr(),
-                    duration: const Duration(seconds: 15), dismissOnTap: true);
-                return;
+            if(!kIsWeb){
+              if(await helper.networkAccess() == false){
+                  EasyLoading.showError("No_Internet_Error".tr(),
+                      duration: const Duration(seconds: 15), dismissOnTap: true);
+                  return;
+              }
             }
             await Navigator.push(
               context,
@@ -129,7 +128,7 @@ class _MyHomePageState extends State<MyHomePage> {
   static const highlightedDetailsStyle = TextStyle(
       fontSize: 18, fontWeight: FontWeight.w500, color: highlightedTextColor);
 
-  String hadithOfTheDay = "";
+  RandomHadith? hadithOfTheDay;
 
   Widget metaData = DataTable(
       columns: [DataColumn(label: Text("")), DataColumn(label: Text(""))],
@@ -411,7 +410,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       color: textColor,
                     ),
                     Visibility(
-                      visible: Platform.isAndroid,
+                      visible:(!kIsWeb && Platform.isAndroid),
                       child: ListTile(
                         title: const Text(
                           'Home_Panel_Prayer_Notifications',
@@ -705,11 +704,13 @@ class _MyHomePageState extends State<MyHomePage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           AnimatedOpacity(
-                            opacity: hadithOfTheDay != "" ? 1.0 : 0.0,
+                            opacity: hadithOfTheDay != null ? 1.0 : 0.0,
                             duration: const Duration(milliseconds: 750),
-                            child: QuickHadithCardPageClass(
-                              hadith: hadithOfTheDay,
-                            ),
+                            child: hadithOfTheDay == null
+                                ? const SizedBox.shrink()
+                                : QuickHadithCardPageClass(
+                                    hadith: hadithOfTheDay!,
+                                  ),
                           ),
                           _buildUtilitiesSection(),
                           // Visibility(

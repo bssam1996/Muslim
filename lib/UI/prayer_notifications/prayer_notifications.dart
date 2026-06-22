@@ -295,7 +295,7 @@ class _PrayerNotificationsPageClassState
   }
 
   Future<void> _changePrayerNotification(bool value) async {
-    if (!Platform.isAndroid) {
+    if(kIsWeb || !Platform.isAndroid) {
       EasyLoading.showError(
         "Prayer_Notifications_Not_Supported".tr(),
         dismissOnTap: true,

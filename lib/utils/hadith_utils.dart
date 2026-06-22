@@ -17,26 +17,78 @@ class HadithCustomSearchObject{
   HadithCustomSearchObject({this.hadith = "", this.narrator = "", this.muhaddith = "", this.source = "", this.page = "", this.ruling = ""});
 }
 
-Future<String> getRandomHadith() async {
+class RandomHadith {
+  const RandomHadith({
+    required this.hadith,
+    this.explanation = '',
+    this.explanationLinks = const <String>[],
+  });
+
+  final String hadith;
+  final String explanation;
+  final List<String> explanationLinks;
+
+  factory RandomHadith.fromJson(Map<String, dynamic> json) {
+    return RandomHadith(
+      hadith: json['diacritics']?.toString() ?? '',
+      explanation: json['explanation']?.toString() ?? '',
+      explanationLinks: _parseExplanationLinks(json['explaination_links']),
+    );
+  }
+
+  static List<String> _parseExplanationLinks(dynamic value) {
+    final List<String> links = <String>[];
+
+    void addLinks(dynamic item) {
+      if (item is Iterable) {
+        for (final dynamic child in item) {
+          addLinks(child);
+        }
+      } else if (item is Map) {
+        for (final dynamic child in item.values) {
+          addLinks(child);
+        }
+      } else if (item != null) {
+        final String link = item.toString().trim();
+        final Uri? uri = Uri.tryParse(link);
+        if (link.isNotEmpty &&
+            uri != null &&
+            (uri.scheme == 'http' || uri.scheme == 'https') &&
+            !links.contains(link)) {
+          links.add(link);
+        }
+      }
+    }
+
+    addLinks(value);
+    return List<String>.unmodifiable(links);
+  }
+}
+
+Future<RandomHadith?> getRandomHadith() async {
   try{
     if(await helper.networkAccess() == false){
         EasyLoading.showError("No_Internet_Error".tr(),
             duration: const Duration(seconds: 15), dismissOnTap: true);
-        return "";
+        return null;
     }
     http.Response r = await http.get(Uri.parse('${constants.MUSLIM_API_URL}hadith/get_random_hadith'), headers: {"Access-Control-Allow-Origin": "*"});
     if(r.statusCode != 200){
-      return "";
+      return null;
     }
-    dynamic jsonData = jsonDecode(utf8.decode(r.bodyBytes));
-    return jsonData["diacritics"];
+    final dynamic decoded = jsonDecode(utf8.decode(r.bodyBytes));
+    if (decoded is! Map<String, dynamic>) {
+      return null;
+    }
+    final RandomHadith hadith = RandomHadith.fromJson(decoded);
+    return hadith.hadith.isEmpty ? null : hadith;
   }catch(e){
     if(kDebugMode){
       print(e);
     }
     EasyLoading.showError(e.toString(),
             duration: const Duration(seconds: 15), dismissOnTap: true);
-    return "";
+    return null;
   }
 }
 

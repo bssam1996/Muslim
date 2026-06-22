@@ -44,7 +44,6 @@ class _UtilityItem {
   final String assetPath;
   final VoidCallback onTap;
 }
-
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
   final String title;
@@ -129,7 +128,7 @@ class _MyHomePageState extends State<MyHomePage> {
   static const highlightedDetailsStyle = TextStyle(
       fontSize: 18, fontWeight: FontWeight.w500, color: highlightedTextColor);
 
-  String hadithOfTheDay = "";
+  RandomHadith? hadithOfTheDay;
 
   Widget metaData = DataTable(
       columns: [DataColumn(label: Text("")), DataColumn(label: Text(""))],
@@ -705,11 +704,13 @@ class _MyHomePageState extends State<MyHomePage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           AnimatedOpacity(
-                            opacity: hadithOfTheDay != "" ? 1.0 : 0.0,
+                            opacity: hadithOfTheDay != null ? 1.0 : 0.0,
                             duration: const Duration(milliseconds: 750),
-                            child: QuickHadithCardPageClass(
-                              hadith: hadithOfTheDay,
-                            ),
+                            child: hadithOfTheDay == null
+                                ? const SizedBox.shrink()
+                                : QuickHadithCardPageClass(
+                                    hadith: hadithOfTheDay!,
+                                  ),
                           ),
                           _buildUtilitiesSection(),
                           // Visibility(

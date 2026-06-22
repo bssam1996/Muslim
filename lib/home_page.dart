@@ -64,10 +64,8 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    if (!kIsWeb) {
-      if (Platform.isAndroid) {
-        HomeWidget.setAppGroupId(HOME_WIDGET_GROUP_ID);
-      }
+    if (!kIsWeb && Platform.isAndroid) {
+      HomeWidget.setAppGroupId(HOME_WIDGET_GROUP_ID);
     }
     EasyLoading.showInfo("Loading settings...");
     try {
@@ -76,10 +74,12 @@ class _MyHomePageState extends State<MyHomePage> {
         FetchAPI().then((value) async {
           if (value == false) {
             stopTimer();
-            if(await helper.networkAccess() == false){
-                EasyLoading.showError("No_Internet_Error".tr(),
-                    duration: const Duration(seconds: 15), dismissOnTap: true);
-                return;
+            if(!kIsWeb){
+              if(await helper.networkAccess() == false){
+                  EasyLoading.showError("No_Internet_Error".tr(),
+                      duration: const Duration(seconds: 15), dismissOnTap: true);
+                  return;
+              }
             }
             await Navigator.push(
               context,
@@ -411,7 +411,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       color: textColor,
                     ),
                     Visibility(
-                      visible: Platform.isAndroid,
+                      visible:(!kIsWeb && Platform.isAndroid),
                       child: ListTile(
                         title: const Text(
                           'Home_Panel_Prayer_Notifications',

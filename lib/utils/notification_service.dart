@@ -50,7 +50,7 @@ class NotificationService {
 
   Future<bool> requestExactAlarmPermissionIfNeeded() async {
     await init();
-    if (!Platform.isAndroid) {
+    if(kIsWeb || !Platform.isAndroid) {
       return true;
     }
     final AndroidFlutterLocalNotificationsPlugin? androidPlugin =

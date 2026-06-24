@@ -14,6 +14,7 @@ import 'package:muslim/UI/prayer_notifications/prayer_notifications.dart';
 import 'package:muslim/UI/contact/contact.dart';
 import 'package:muslim/UI/qiblah/qiblah_page.dart';
 import 'package:muslim/UI/quran/quran_page.dart';
+import 'package:muslim/UI/quiz/quiz_page.dart';
 import 'package:muslim/UI/radio/radio_page.dart';
 import 'package:muslim/shared/constants.dart';
 import 'package:muslim/utils/api_utils.dart' as api_utils;
@@ -713,6 +714,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                   ),
                           ),
                           _buildUtilitiesSection(),
+                          _buildActivitiesSection(),
                           // Visibility(
                           //   visible: hadithOfTheDay != "",
                           //   child: QuickHadithCardPageClass(hadith: hadithOfTheDay,),
@@ -783,6 +785,51 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             itemBuilder: (context, index) {
               final item = utilityItems[index];
+              return _buildUtilityTile(
+                titleKey: item.titleKey,
+                assetPath: item.assetPath,
+                onTap: item.onTap,
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActivitiesSection() {
+    final activityItems = <_UtilityItem>[
+      _UtilityItem(
+        titleKey: 'Home_Activities_Quiz',
+        assetPath: 'assets/quiz/quiz.png',
+        onTap: _openQuizPage,
+      ),
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Padding(
+            padding: const EdgeInsets.only(left: 4, right: 4, bottom: 8),
+            child: AutoSizeText(
+              'Home_Activities_Title'.tr(),
+              style: headline2Style,
+            ),
+          ),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: activityItems.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+              childAspectRatio: 1.45,
+            ),
+            itemBuilder: (context, index) {
+              final item = activityItems[index];
               return _buildUtilityTile(
                 titleKey: item.titleKey,
                 assetPath: item.assetPath,
@@ -882,6 +929,15 @@ class _MyHomePageState extends State<MyHomePage> {
       context,
       MaterialPageRoute(
         builder: (context) => const NearestMosquePageClass(),
+      ),
+    );
+  }
+
+  Future<void> _openQuizPage() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const QuizPageClass(),
       ),
     );
   }

@@ -188,12 +188,7 @@ class _QuizPageClassState extends State<QuizPageClass>
                 ],
               ),
             ),
-            child: SafeArea(
-              child: RefreshIndicator(
-                onRefresh: _fetchQuestion,
-                child: _buildBody(),
-              ),
-            ),
+            child: SafeArea(child: _buildBody()),
           ),
           IgnorePointer(
             child: AnimatedBuilder(
@@ -503,6 +498,8 @@ class _QuizPageClassState extends State<QuizPageClass>
         border: Border.all(color: borderColor),
       ),
       child: ReorderableListView.builder(
+        buildDefaultDragHandles: false,
+        primary: false,
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: _orderedOptions.length,
@@ -547,7 +544,11 @@ class _QuizPageClassState extends State<QuizPageClass>
                   fontFamily: 'Uthman',
                 ),
               ),
-              trailing: const Icon(Icons.drag_handle, color: textColor),
+              trailing: ReorderableDragStartListener(
+                index: index,
+                enabled: !_hasAnswered,
+                child: const Icon(Icons.drag_handle, color: textColor),
+              ),
             ),
           );
         },

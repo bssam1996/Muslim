@@ -129,6 +129,7 @@ flutter:
     - "assets/mosque/mosque_home.png"
     - "assets/quiz/quiz.png"
     - "assets/umrah/main.png"
+    - "assets/daily_routine/daily-routine.png"
     - "assets/icon/main.png"
     - "assets/adhan/"
     - "assets/translations/"

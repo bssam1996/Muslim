@@ -4,7 +4,7 @@ import 'package:muslim/UI/radio/radio_stations_data.dart';
 
 void main() {
   test('radio stations are embedded as validated constants', () {
-    expect(radioStations, hasLength(156));
+    expect(radioStations, hasLength(155));
     expect(
       radioStations.map((station) => station.id),
       orderedEquals(

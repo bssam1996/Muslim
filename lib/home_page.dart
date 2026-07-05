@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:muslim/UI/azkar/azkar_page.dart';
+import 'package:muslim/UI/daily_routine/daily_routine_page.dart';
 import 'package:muslim/UI/dua/dua_page.dart';
 import 'package:muslim/UI/hadith/main_page.dart';
 import 'package:muslim/UI/month/months_page.dart';
@@ -45,6 +46,7 @@ class _UtilityItem {
   final String assetPath;
   final VoidCallback onTap;
 }
+
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
   final String title;
@@ -74,25 +76,35 @@ class _MyHomePageState extends State<MyHomePage> {
         FetchAPI().then((value) async {
           if (value == false) {
             stopTimer();
-            if(!kIsWeb){
-              if(await helper.networkAccess() == false){
-                  EasyLoading.showError("No_Internet_Error".tr(),
-                      duration: const Duration(seconds: 15), dismissOnTap: true);
-                  return;
+            if (!kIsWeb) {
+              if (await helper.networkAccess() == false) {
+                EasyLoading.showError(
+                  "No_Internet_Error".tr(),
+                  duration: const Duration(seconds: 15),
+                  dismissOnTap: true,
+                );
+                return;
               }
             }
             await Navigator.push(
               context,
               MaterialPageRoute(
-                  builder: (context) => SettingsPageClass(prefs: _prefs)),
+                builder: (context) => SettingsPageClass(prefs: _prefs),
+              ),
             );
             var location = await shared_preference_methods.getStringData(
-                _prefs, 'location', true);
+              _prefs,
+              'location',
+              true,
+            );
             if (location != null) {
               FetchAPI();
             } else {
-              EasyLoading.showError("Location_Missing_Error".tr(),
-                  duration: const Duration(seconds: 15), dismissOnTap: true);
+              EasyLoading.showError(
+                "Location_Missing_Error".tr(),
+                duration: const Duration(seconds: 15),
+                dismissOnTap: true,
+              );
             }
           }
         });
@@ -118,31 +130,51 @@ class _MyHomePageState extends State<MyHomePage> {
 
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
 
-  static const headline2Style =
-      TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white);
-  static const savedAddressLocationStyle =
-      TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white);
+  static const headline2Style = TextStyle(
+    fontSize: 20,
+    fontWeight: FontWeight.bold,
+    color: Colors.white,
+  );
+  static const savedAddressLocationStyle = TextStyle(
+    fontSize: 28,
+    fontWeight: FontWeight.bold,
+    color: Colors.white,
+  );
   // static const detailsStyle =
   //     TextStyle(fontSize: 20, fontWeight: FontWeight.w500, color: Colors.white);
-  static const prayerStyle =
-      TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: textColor);
+  static const prayerStyle = TextStyle(
+    fontSize: 18,
+    fontWeight: FontWeight.w500,
+    color: textColor,
+  );
   static const highlightedDetailsStyle = TextStyle(
-      fontSize: 18, fontWeight: FontWeight.w500, color: highlightedTextColor);
+    fontSize: 18,
+    fontWeight: FontWeight.w500,
+    color: highlightedTextColor,
+  );
 
   RandomHadith? hadithOfTheDay;
 
   Widget metaData = DataTable(
-      columns: [DataColumn(label: Text("")), DataColumn(label: Text(""))],
-      rows: []);
+    columns: [
+      DataColumn(label: Text("")),
+      DataColumn(label: Text("")),
+    ],
+    rows: [],
+  );
 
-  List<Map<String, dynamic>> jsonTimings =
-      List<Map<String, dynamic>>.filled(7, <String, dynamic>{});
+  List<Map<String, dynamic>> jsonTimings = List<Map<String, dynamic>>.filled(
+    7,
+    <String, dynamic>{},
+  );
 
   String nextPray = 'Fajr';
   DateTime? nextPrayTime;
 
-  List<Map<String, dynamic>> jsonDataDate =
-      List<Map<String, dynamic>>.filled(7, {});
+  List<Map<String, dynamic>> jsonDataDate = List<Map<String, dynamic>>.filled(
+    7,
+    {},
+  );
 
   Future<bool> FetchAPI() async {
     EasyLoading.show(status: 'loading...', dismissOnTap: false);
@@ -151,19 +183,26 @@ class _MyHomePageState extends State<MyHomePage> {
     final SharedPreferences prefs = await _prefs;
     Map<String, dynamic> savedLocation = await api_utils.getSavedLocation();
     if (savedLocation["error"] != "") {
-      EasyLoading.showError("Location_Missing_Error".tr(),
-          duration: const Duration(seconds: 15), dismissOnTap: true);
+      EasyLoading.showError(
+        "Location_Missing_Error".tr(),
+        duration: const Duration(seconds: 15),
+        dismissOnTap: true,
+      );
       return false;
     }
 
     try {
       for (int dayNumber = 0; dayNumber < NUMBER_OF_DAYS; dayNumber++) {
         dynamic jsonData;
-        Map<String, dynamic> dataFromDay =
-            await api_utils.getDataFromDay(dayNumber, savedLocation);
+        Map<String, dynamic> dataFromDay = await api_utils.getDataFromDay(
+          dayNumber,
+          savedLocation,
+        );
         if (dataFromDay["error"] != "") {
-          EasyLoading.showError("Something went wrong $dataFromDay",
-              dismissOnTap: true);
+          EasyLoading.showError(
+            "Something went wrong $dataFromDay",
+            dismissOnTap: true,
+          );
           return false;
         }
         jsonData = dataFromDay["jsonData"];
@@ -175,12 +214,15 @@ class _MyHomePageState extends State<MyHomePage> {
           int prayerIndex = 0;
           bool found = false;
           DateTime currentDateTime = DateTime.now();
-          for (prayerIndex = 0;
-              prayerIndex < PRAYER_NAMES.length;
-              prayerIndex++) {
+          for (
+            prayerIndex = 0;
+            prayerIndex < PRAYER_NAMES.length;
+            prayerIndex++
+          ) {
             String name = PRAYER_NAMES[prayerIndex];
-            DateTime constructedDateTime =
-                helper.constructDateTime(timings[name].toString());
+            DateTime constructedDateTime = helper.constructDateTime(
+              timings[name].toString(),
+            );
             if (constructedDateTime.compareTo(currentDateTime) > 0) {
               found = true;
               nextPrayTime = constructedDateTime;
@@ -191,20 +233,24 @@ class _MyHomePageState extends State<MyHomePage> {
             nextPray = PRAYER_NAMES[prayerIndex];
           } else {
             nextPray = PRAYER_NAMES[0];
-            nextPrayTime =
-                helper.constructDateTime(timings[PRAYER_NAMES[0]].toString());
+            nextPrayTime = helper.constructDateTime(
+              timings[PRAYER_NAMES[0]].toString(),
+            );
             nextPrayTime = nextPrayTime?.add(const Duration(days: 1));
           }
         }
 
         //24 System check
-        jsonData['data']['timings'] =
-            await api_utils.getTimings24System(timings);
+        jsonData['data']['timings'] = await api_utils.getTimings24System(
+          timings,
+        );
 
         if (!kIsWeb) {
           if (Platform.isAndroid && dayNumber == 0) {
             homewidget_utils.updateHomePage(
-                jsonData['data']['timings'], jsonData['data']['date']);
+              jsonData['data']['timings'],
+              jsonData['data']['date'],
+            );
           }
         }
         try {
@@ -266,8 +312,10 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    PageController pageController =
-        PageController(viewportFraction: 0.8, keepPage: true);
+    PageController pageController = PageController(
+      viewportFraction: 0.8,
+      keepPage: true,
+    );
     return UpgradeAlert(
       dialogStyle: UpgradeDialogStyle.cupertino,
       child: RefreshIndicator(
@@ -280,145 +328,108 @@ class _MyHomePageState extends State<MyHomePage> {
             backgroundColor: thirdColor,
             child: SafeArea(
               child: ListView(
-              padding: EdgeInsets.zero,
-              children: [
-                drawerHeader,
-                Column(
-                  children: [
-                    ListTile(
-                      title: const Text(
-                        'Home_Panel_Quran',
-                        style: TextStyle(color: textColor),
-                      ).tr(),
-                      trailing: Image.asset(
-                        "assets/quran/quran.png",
-                        width: 24,
-                        color: textColor,
-                      ),
-                      onTap: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const QuranPageClass()),
-                        );
-                      },
-                    ),
-                    const Divider(
-                      color: textColor,
-                    ),
-                  ],
-                ),
-                Column(
-                  children: [
-                    ListTile(
-                      title: const Text(
-                        'Home_Panel_Dua',
-                        style: TextStyle(color: textColor),
-                      ).tr(),
-                      trailing: Image.asset(
-                        "assets/dua/dua.png",
-                        width: 24,
-                      ),
-                      onTap: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const DuaPageClass()),
-                        );
-                      },
-                    ),
-                    const Divider(
-                      color: textColor,
-                    ),
-                  ],
-                ),
-                Column(
-                  children: [
-                    ListTile(
-                      title: const Text(
-                        'Home_Panel_Azkar',
-                        style: TextStyle(color: textColor),
-                      ).tr(),
-                      trailing: Image.asset(
-                        "assets/azkar/azkar.png",
-                        width: 24,
-                      ),
-                      onTap: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const AzkarPageClass()),
-                        );
-                      },
-                    ),
-                    const Divider(
-                      color: textColor,
-                    ),
-                  ],
-                ),
-                Column(
-                  children: [
-                    ListTile(
-                      title: const Text(
-                        'Home_Panel_Umrah',
-                        style: TextStyle(color: textColor),
-                      ).tr(),
-                      trailing: Image.asset(
-                        "assets/umrah/main.png",
-                        width: 24,
-                      ),
-                      onTap: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const UmrahPageClass()),
-                        );
-                      },
-                    ),
-                    const Divider(
-                      color: textColor,
-                    ),
-                  ],
-                ),
-                Column(
-                  children: [
-                    ListTile(
-                      title: const Text('Home_Panel_Settings',
-                              style: TextStyle(color: textColor))
-                          .tr(),
-                      trailing: const Icon(
-                        Icons.settings,
-                        color: textColor,
-                        size: 24,
-                      ),
-                      onTap: () async {
-                        stopTimer();
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) =>
-                                  SettingsPageClass(prefs: _prefs)),
-                        );
-                        // helper.invalidateTodayCachedData(_prefs);
-                        var location = await shared_preference_methods
-                            .getStringData(_prefs, 'location', true);
-                        if (location != null) {
-                          FetchAPI();
-                        }
-                      },
-                    ),
-                    const Divider(
-                      color: textColor,
-                    ),
-                    Visibility(
-                      visible:(!kIsWeb && Platform.isAndroid),
-                      child: ListTile(
+                padding: EdgeInsets.zero,
+                children: [
+                  drawerHeader,
+                  Column(
+                    children: [
+                      ListTile(
                         title: const Text(
-                          'Home_Panel_Prayer_Notifications',
+                          'Home_Panel_Quran',
+                          style: TextStyle(color: textColor),
+                        ).tr(),
+                        trailing: Image.asset(
+                          "assets/quran/quran.png",
+                          width: 24,
+                          color: textColor,
+                        ),
+                        onTap: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const QuranPageClass(),
+                            ),
+                          );
+                        },
+                      ),
+                      const Divider(color: textColor),
+                    ],
+                  ),
+                  Column(
+                    children: [
+                      ListTile(
+                        title: const Text(
+                          'Home_Panel_Dua',
+                          style: TextStyle(color: textColor),
+                        ).tr(),
+                        trailing: Image.asset("assets/dua/dua.png", width: 24),
+                        onTap: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const DuaPageClass(),
+                            ),
+                          );
+                        },
+                      ),
+                      const Divider(color: textColor),
+                    ],
+                  ),
+                  Column(
+                    children: [
+                      ListTile(
+                        title: const Text(
+                          'Home_Panel_Azkar',
+                          style: TextStyle(color: textColor),
+                        ).tr(),
+                        trailing: Image.asset(
+                          "assets/azkar/azkar.png",
+                          width: 24,
+                        ),
+                        onTap: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const AzkarPageClass(),
+                            ),
+                          );
+                        },
+                      ),
+                      const Divider(color: textColor),
+                    ],
+                  ),
+                  Column(
+                    children: [
+                      ListTile(
+                        title: const Text(
+                          'Home_Panel_Umrah',
+                          style: TextStyle(color: textColor),
+                        ).tr(),
+                        trailing: Image.asset(
+                          "assets/umrah/main.png",
+                          width: 24,
+                        ),
+                        onTap: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const UmrahPageClass(),
+                            ),
+                          );
+                        },
+                      ),
+                      const Divider(color: textColor),
+                    ],
+                  ),
+                  Column(
+                    children: [
+                      ListTile(
+                        title: const Text(
+                          'Home_Panel_Settings',
                           style: TextStyle(color: textColor),
                         ).tr(),
                         trailing: const Icon(
-                          Icons.notifications,
+                          Icons.settings,
                           color: textColor,
                           size: 24,
                         ),
@@ -428,9 +439,10 @@ class _MyHomePageState extends State<MyHomePage> {
                             context,
                             MaterialPageRoute(
                               builder: (context) =>
-                                  PrayerNotificationsPageClass(prefs: _prefs),
+                                  SettingsPageClass(prefs: _prefs),
                             ),
                           );
+                          // helper.invalidateTodayCachedData(_prefs);
                           var location = await shared_preference_methods
                               .getStringData(_prefs, 'location', true);
                           if (location != null) {
@@ -438,76 +450,100 @@ class _MyHomePageState extends State<MyHomePage> {
                           }
                         },
                       ),
-                    ),
-                    const Divider(
-                      color: textColor,
-                    ),
-                    ListTile(
-                      title: const Text('Home_Panel_Contact',
-                              style: TextStyle(color: textColor))
-                          .tr(),
-                      trailing: const Icon(
-                        Icons.contact_support,
-                        color: textColor,
-                        size: 24,
-                      ),
-                      onTap: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const ContactPageClass()),
-                        );
-                      },
-                    ),
-                    const Divider(
-                      color: textColor,
-                    ),
-                    ListTile(
-                      title: const Text('Home_Panel_Hadiths',
-                              style: TextStyle(color: textColor))
-                          .tr(),
-                      trailing: Image.asset(
-                        "assets/hadith/hadith.png",
-                        width: 24,
-                      ),
-                      onTap: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) =>
-                                  const HadithHomePageClass()),
-                        );
-                      },
-                    ),
-                    const Divider(
-                      color: textColor,
-                    ),
-                    Column(
-                      children: [
-                        ListTile(
+                      const Divider(color: textColor),
+                      Visibility(
+                        visible: (!kIsWeb && Platform.isAndroid),
+                        child: ListTile(
                           title: const Text(
-                            'Home_Panel_Share',
+                            'Home_Panel_Prayer_Notifications',
                             style: TextStyle(color: textColor),
                           ).tr(),
                           trailing: const Icon(
-                            Icons.share,
+                            Icons.notifications,
                             color: textColor,
                             size: 24,
                           ),
                           onTap: () async {
-                            share_utils.shareApp();
+                            stopTimer();
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    PrayerNotificationsPageClass(prefs: _prefs),
+                              ),
+                            );
+                            var location = await shared_preference_methods
+                                .getStringData(_prefs, 'location', true);
+                            if (location != null) {
+                              FetchAPI();
+                            }
                           },
                         ),
-                        const Divider(
+                      ),
+                      const Divider(color: textColor),
+                      ListTile(
+                        title: const Text(
+                          'Home_Panel_Contact',
+                          style: TextStyle(color: textColor),
+                        ).tr(),
+                        trailing: const Icon(
+                          Icons.contact_support,
                           color: textColor,
+                          size: 24,
                         ),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                        onTap: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const ContactPageClass(),
+                            ),
+                          );
+                        },
+                      ),
+                      const Divider(color: textColor),
+                      ListTile(
+                        title: const Text(
+                          'Home_Panel_Hadiths',
+                          style: TextStyle(color: textColor),
+                        ).tr(),
+                        trailing: Image.asset(
+                          "assets/hadith/hadith.png",
+                          width: 24,
+                        ),
+                        onTap: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const HadithHomePageClass(),
+                            ),
+                          );
+                        },
+                      ),
+                      const Divider(color: textColor),
+                      Column(
+                        children: [
+                          ListTile(
+                            title: const Text(
+                              'Home_Panel_Share',
+                              style: TextStyle(color: textColor),
+                            ).tr(),
+                            trailing: const Icon(
+                              Icons.share,
+                              color: textColor,
+                              size: 24,
+                            ),
+                            onTap: () async {
+                              share_utils.shareApp();
+                            },
+                          ),
+                          const Divider(color: textColor),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
               ),
+            ),
           ),
           appBar: AppBar(
             backgroundColor: primaryColor,
@@ -577,49 +613,48 @@ class _MyHomePageState extends State<MyHomePage> {
                         width: MediaQuery.of(context).size.width - 20,
                         child: Row(
                           children: [
-                            const Expanded(
-                              child: Text(""),
-                            ),
+                            const Expanded(child: Text("")),
                             Expanded(
                               child: GestureDetector(
                                 onTap: () {
                                   showModalBottomSheet(
-                                      context: context,
-                                      shape: const RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.vertical(
-                                            top: Radius.circular(25)),
+                                    context: context,
+                                    shape: const RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.vertical(
+                                        top: Radius.circular(25),
                                       ),
-                                      backgroundColor: thirdColor,
-                                      builder: (BuildContext context) {
-                                        return Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Align(
-                                              alignment: Alignment.center,
-                                              heightFactor: 2,
-                                              child: AutoSizeText(
-                                                "Home_Page_Meta_Title".tr(),
-                                                style: headline2Style,
+                                    ),
+                                    backgroundColor: thirdColor,
+                                    builder: (BuildContext context) {
+                                      return Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Align(
+                                            alignment: Alignment.center,
+                                            heightFactor: 2,
+                                            child: AutoSizeText(
+                                              "Home_Page_Meta_Title".tr(),
+                                              style: headline2Style,
+                                            ),
+                                          ),
+                                          Card(
+                                            elevation: 20,
+                                            color: primaryColor,
+                                            shadowColor: thirdColor,
+                                            child: Padding(
+                                              padding: const EdgeInsets.all(
+                                                8.0,
                                               ),
+                                              child: metaData,
                                             ),
-                                            Card(
-                                              elevation: 20,
-                                              color: primaryColor,
-                                              shadowColor: thirdColor,
-                                              child: Padding(
-                                                padding:
-                                                    const EdgeInsets.all(8.0),
-                                                child: metaData,
-                                              ),
-                                            ),
-                                            const Divider(
-                                              height: 50,
-                                            ),
-                                          ],
-                                        );
-                                      });
+                                          ),
+                                          const Divider(height: 50),
+                                        ],
+                                      );
+                                    },
+                                  );
                                 },
                                 child: Align(
                                   alignment: Alignment.center,
@@ -636,31 +671,35 @@ class _MyHomePageState extends State<MyHomePage> {
                               child: Align(
                                 alignment: Alignment.centerRight,
                                 child: IconButton(
-                                    onPressed: () async {
-                                      stopTimer();
-                                      await Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                            builder: (context) =>
-                                                SettingsPageClass(
-                                                    prefs: _prefs)),
-                                      );
-                                      // helper.invalidateTodayCachedData(_prefs);
-                                      var location =
-                                          await shared_preference_methods
-                                              .getStringData(
-                                                  _prefs, 'location', true);
-                                      if (location != null) {
-                                        FetchAPI();
-                                      }
-                                    },
-                                    icon: const Icon(
-                                      Icons.settings,
-                                      color: textColor,
-                                      size: 24,
-                                    )),
+                                  onPressed: () async {
+                                    stopTimer();
+                                    await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            SettingsPageClass(prefs: _prefs),
+                                      ),
+                                    );
+                                    // helper.invalidateTodayCachedData(_prefs);
+                                    var location =
+                                        await shared_preference_methods
+                                            .getStringData(
+                                              _prefs,
+                                              'location',
+                                              true,
+                                            );
+                                    if (location != null) {
+                                      FetchAPI();
+                                    }
+                                  },
+                                  icon: const Icon(
+                                    Icons.settings,
+                                    color: textColor,
+                                    size: 24,
+                                  ),
+                                ),
                               ),
-                            )
+                            ),
                           ],
                         ),
                       ),
@@ -680,7 +719,8 @@ class _MyHomePageState extends State<MyHomePage> {
                             if (jsonTimings[index].isEmpty ||
                                 jsonDataDate[index].isEmpty) {
                               return const Center(
-                                  child: CircularProgressIndicator());
+                                child: CircularProgressIndicator(),
+                              );
                             }
                             return prayerTimingPage(index);
                           },
@@ -688,14 +728,16 @@ class _MyHomePageState extends State<MyHomePage> {
                             if (!mounted) return;
                             setState(() {
                               _selectedDayIndex = value;
-                              double convertedValue = daysListViewController
-                                      .position.maxScrollExtent /
+                              double convertedValue =
+                                  daysListViewController
+                                      .position
+                                      .maxScrollExtent /
                                   7;
                               daysListViewController.animateTo(
-                                  convertedValue *
-                                      ((value == 0) ? 0 : value + 1),
-                                  duration: const Duration(milliseconds: 200),
-                                  curve: Curves.easeIn);
+                                convertedValue * ((value == 0) ? 0 : value + 1),
+                                duration: const Duration(milliseconds: 200),
+                                curve: Curves.easeIn,
+                              );
                             });
                           },
                         ),
@@ -724,7 +766,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           //   style: const TextStyle(color: textColor,fontSize: 12),
                           // ),
                         ],
-                      )
+                      ),
                     ],
                   ),
                 ),
@@ -800,6 +842,11 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget _buildActivitiesSection() {
     final activityItems = <_UtilityItem>[
       _UtilityItem(
+        titleKey: 'Home_Activities_Daily_Routine',
+        assetPath: 'assets/daily_routine/daily-routine.png',
+        onTap: _openDailyRoutinePage,
+      ),
+      _UtilityItem(
         titleKey: 'Home_Activities_Quiz',
         assetPath: 'assets/quiz/quiz.png',
         onTap: _openQuizPage,
@@ -869,11 +916,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Image.asset(
-                      assetPath,
-                      width: 36,
-                      height: 36,
-                    ),
+                    Image.asset(assetPath, width: 36, height: 36),
                     const SizedBox(height: 8),
                     Flexible(
                       child: AutoSizeText(
@@ -902,42 +945,44 @@ class _MyHomePageState extends State<MyHomePage> {
   Future<void> _openQiblahPage() async {
     await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const QiblahClass(),
-      ),
+      MaterialPageRoute(builder: (context) => const QiblahClass()),
     );
   }
+
   Future<void> _openMonthlyPrayerTimingsPage() async {
     await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const MonthsPageClass(),
-      ),
+      MaterialPageRoute(builder: (context) => const MonthsPageClass()),
     );
   }
+
   Future<void> _openRadioPage() async {
     await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const RadioPageClass(),
-      ),
+      MaterialPageRoute(builder: (context) => const RadioPageClass()),
     );
   }
 
   Future<void> _openNearestMosquePage() async {
     await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const NearestMosquePageClass(),
-      ),
+      MaterialPageRoute(builder: (context) => const NearestMosquePageClass()),
     );
   }
 
   Future<void> _openQuizPage() async {
     await Navigator.push(
       context,
+      MaterialPageRoute(builder: (context) => const QuizPageClass()),
+    );
+  }
+
+  Future<void> _openDailyRoutinePage() async {
+    await Navigator.push(
+      context,
       MaterialPageRoute(
-        builder: (context) => const QuizPageClass(),
+        builder: (context) =>
+            DailyRoutinePageClass(todayTimings: jsonTimings[0]),
       ),
     );
   }
@@ -961,18 +1006,30 @@ class _MyHomePageState extends State<MyHomePage> {
           mainAxisAlignment: MainAxisAlignment.center,
           textDirection: TextDirection.ltr,
           children: [
-            buildTimeCard(nextPrayTime != null
-                ? (helper.constructTimeLeftSplitted(
-                    nextPrayTime!.difference(DateTime.now()), "hour"))
-                : "-"),
-            buildTimeCard(nextPrayTime != null
-                ? (helper.constructTimeLeftSplitted(
-                    nextPrayTime!.difference(DateTime.now()), "minute"))
-                : "-"),
-            buildTimeCard(nextPrayTime != null
-                ? (helper.constructTimeLeftSplitted(
-                    nextPrayTime!.difference(DateTime.now()), "second"))
-                : "-"),
+            buildTimeCard(
+              nextPrayTime != null
+                  ? (helper.constructTimeLeftSplitted(
+                      nextPrayTime!.difference(DateTime.now()),
+                      "hour",
+                    ))
+                  : "-",
+            ),
+            buildTimeCard(
+              nextPrayTime != null
+                  ? (helper.constructTimeLeftSplitted(
+                      nextPrayTime!.difference(DateTime.now()),
+                      "minute",
+                    ))
+                  : "-",
+            ),
+            buildTimeCard(
+              nextPrayTime != null
+                  ? (helper.constructTimeLeftSplitted(
+                      nextPrayTime!.difference(DateTime.now()),
+                      "second",
+                    ))
+                  : "-",
+            ),
           ],
         ),
       ],
@@ -1007,7 +1064,7 @@ class _MyHomePageState extends State<MyHomePage> {
       "Thu",
       "Fri",
       "Sat",
-      "Sun"
+      "Sun",
     ];
     if (index == 0) {
       dayText = "Today".tr();
@@ -1084,76 +1141,82 @@ class _MyHomePageState extends State<MyHomePage> {
         color: Colors.transparent,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(4, 8, 4, 4),
-          child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-            Row(
-              children: [
-                Expanded(
-                  flex: 1,
-                  child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Row(
+                children: [
+                  Expanded(
+                    flex: 1,
+                    child: Center(
                       child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      AutoSizeText(
-                        helper.constructDateFormat(
-                            jsonDataDate[daynumber]["gregorian"]?["month"]
-                                    ?["en"] ??
-                                "Month",
-                            jsonDataDate[daynumber]["gregorian"]?["date"] ??
-                                "gregorian"),
-                        style: const TextStyle(
-                            color: textColor, fontWeight: FontWeight.bold),
-                        maxLines: 1,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          AutoSizeText(
+                            helper.constructDateFormat(
+                              jsonDataDate[daynumber]["gregorian"]?["month"]?["en"] ??
+                                  "Month",
+                              jsonDataDate[daynumber]["gregorian"]?["date"] ??
+                                  "gregorian",
+                            ),
+                            style: const TextStyle(
+                              color: textColor,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 1,
+                          ),
+                        ],
                       ),
-                    ],
-                  )),
-                ),
-                Expanded(
-                  flex: 1,
-                  child: Center(
+                    ),
+                  ),
+                  Expanded(
+                    flex: 1,
+                    child: Center(
                       child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      GestureDetector(
-                        onTap: () {
-                          showDialog(
-                              context: context,
-                              builder: (BuildContext context) {
-                                return prayer_calendar_model.showdialog();
-                              });
-                        },
-                        child: AutoSizeText(
-                          helper.constructDateFormat(
-                              (jsonDataDate[daynumber]["hijri"]?["month"]
-                                      ?["en"] ??
-                                  "Month"),
-                              jsonDataDate[daynumber]["hijri"]?["date"] ??
-                                  "hijri"),
-                          style: const TextStyle(
-                              color: textColor, fontWeight: FontWeight.bold),
-                          maxLines: 1,
-                        ),
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              showDialog(
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return prayer_calendar_model.showdialog();
+                                },
+                              );
+                            },
+                            child: AutoSizeText(
+                              helper.constructDateFormat(
+                                (jsonDataDate[daynumber]["hijri"]?["month"]?["en"] ??
+                                    "Month"),
+                                jsonDataDate[daynumber]["hijri"]?["date"] ??
+                                    "hijri",
+                              ),
+                              style: const TextStyle(
+                                color: textColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              maxLines: 1,
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  )),
-                ),
-              ],
-            ),
-            const Divider(
-              height: 15,
-              thickness: 5,
-              color: dividerColor,
-            ),
-            Column(
-              children: List.generate(
-                PRAYER_NAMES.length,
-                (index) => detailsRow(
-                  PRAYER_NAMES[index],
-                  jsonTimings[daynumber][PRAYER_NAMES[index]] ?? "-",
-                  daynumber,
+                    ),
+                  ),
+                ],
+              ),
+              const Divider(height: 15, thickness: 5, color: dividerColor),
+              Column(
+                children: List.generate(
+                  PRAYER_NAMES.length,
+                  (index) => detailsRow(
+                    PRAYER_NAMES[index],
+                    jsonTimings[daynumber][PRAYER_NAMES[index]] ?? "-",
+                    daynumber,
+                  ),
                 ),
               ),
-            ),
-          ]),
+            ],
+          ),
         ),
       ),
     );
@@ -1168,8 +1231,8 @@ class _MyHomePageState extends State<MyHomePage> {
           side: BorderSide(
             color: nextPray == headText
                 ? (dayNumber == 0)
-                    ? highlightedBoxesBorderColor
-                    : boxesBorderColor
+                      ? highlightedBoxesBorderColor
+                      : boxesBorderColor
                 : boxesBorderColor,
           ),
         ),
@@ -1186,8 +1249,8 @@ class _MyHomePageState extends State<MyHomePage> {
                   "${headText.tr()}:",
                   style: nextPray == headText
                       ? (dayNumber == 0)
-                          ? highlightedDetailsStyle
-                          : prayerStyle
+                            ? highlightedDetailsStyle
+                            : prayerStyle
                       : prayerStyle,
                   maxLines: 1,
                 ),
@@ -1201,8 +1264,8 @@ class _MyHomePageState extends State<MyHomePage> {
                   textDirection: TextDirection.ltr,
                   style: nextPray == headText
                       ? (dayNumber == 0)
-                          ? highlightedDetailsStyle
-                          : prayerStyle
+                            ? highlightedDetailsStyle
+                            : prayerStyle
                       : prayerStyle,
                   maxLines: 1,
                 ),
@@ -1252,9 +1315,7 @@ class _MyHomePageState extends State<MyHomePage> {
           margin: const EdgeInsets.all(2),
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            border: Border.all(
-              color: boxesBorderColor,
-            ),
+            border: Border.all(color: boxesBorderColor),
             color: primaryColor,
             borderRadius: BorderRadius.circular(15),
           ),
@@ -1262,23 +1323,35 @@ class _MyHomePageState extends State<MyHomePage> {
             time,
             style: highlightedDetailsStyle.copyWith(fontSize: 20),
           ),
-        )
+        ),
       ],
     );
   }
 
   Widget processMetaData(meta) {
     List<DataRow> datarows = [];
-    datarows.add(buildMetaRow(
-        "Home_Page_Meta_Timezone".tr(), meta["timezone"]?.toString() ?? ""));
+    datarows.add(
+      buildMetaRow(
+        "Home_Page_Meta_Timezone".tr(),
+        meta["timezone"]?.toString() ?? "",
+      ),
+    );
     // datarows.add(buildMetaRow(
     //     "Home_Page_Meta_Longitude".tr(), meta["longitude"]?.toString() ?? ""));
     // datarows.add(buildMetaRow(
     //     "Home_Page_Meta_Latitude".tr(), meta["latitude"]?.toString() ?? ""));
-    datarows.add(buildMetaRow("Home_Page_Meta_Method".tr(),
-        meta["method"]["name"]?.toString() ?? ""));
-    datarows.add(buildMetaRow(
-        "Home_Page_Meta_School".tr(), meta["school"]?.toString() ?? ""));
+    datarows.add(
+      buildMetaRow(
+        "Home_Page_Meta_Method".tr(),
+        meta["method"]["name"]?.toString() ?? "",
+      ),
+    );
+    datarows.add(
+      buildMetaRow(
+        "Home_Page_Meta_School".tr(),
+        meta["school"]?.toString() ?? "",
+      ),
+    );
     List<DataColumn> dataColumns = [];
     dataColumns.add(buildMetaColumn("Home_Page_Meta_Type".tr()));
     dataColumns.add(buildMetaColumn("Home_Page_Meta_Value".tr()));
@@ -1293,17 +1366,17 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   DataRow buildMetaRow(String label, String value) {
-    DataRow dataRow = DataRow(cells: [
-      DataCell(Container(
-        alignment: Alignment.center,
-        child: FittedBox(
-          child: Text(
-            label,
-            style: const TextStyle(color: textColor),
+    DataRow dataRow = DataRow(
+      cells: [
+        DataCell(
+          Container(
+            alignment: Alignment.center,
+            child: FittedBox(
+              child: Text(label, style: const TextStyle(color: textColor)),
+            ),
           ),
         ),
-      )),
-      DataCell(
+        DataCell(
           Container(
             alignment: Alignment.center,
             child: FittedBox(
@@ -1313,29 +1386,33 @@ class _MyHomePageState extends State<MyHomePage> {
                 textDirection: TextDirection.ltr,
               ),
             ),
-          ), onTap: () async {
-        await Clipboard.setData(ClipboardData(text: value));
-        EasyLoading.showSuccess("Copied".tr());
-      }),
-    ]);
+          ),
+          onTap: () async {
+            await Clipboard.setData(ClipboardData(text: value));
+            EasyLoading.showSuccess("Copied".tr());
+          },
+        ),
+      ],
+    );
     return dataRow;
   }
 
   DataColumn buildMetaColumn(String text) {
     return DataColumn(
-        label: Expanded(
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          FittedBox(
-            child: Text(
-              text,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: textColor),
+      label: Expanded(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            FittedBox(
+              child: Text(
+                text,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: textColor),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ));
+    );
   }
 }

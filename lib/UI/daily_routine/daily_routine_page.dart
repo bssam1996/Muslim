@@ -1041,9 +1041,10 @@ class _DailyRoutinePageClassState extends State<DailyRoutinePageClass> {
                         children: <Widget>[
                           Expanded(
                             child: Column(
+                              mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: <Widget>[
-                                AutoSizeText(
+                                Text(
                                   item.titleKey.tr(),
                                   style: TextStyle(
                                     color: checked
@@ -1056,18 +1057,16 @@ class _DailyRoutinePageClassState extends State<DailyRoutinePageClass> {
                                         : TextDecoration.none,
                                   ),
                                   maxLines: 2,
-                                  minFontSize: 12,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 const SizedBox(height: 4),
-                                AutoSizeText(
+                                Text(
                                   item.subtitleKey.tr(),
                                   style: const TextStyle(
                                     color: Colors.white70,
                                     fontSize: 13,
                                   ),
                                   maxLines: 2,
-                                  minFontSize: 10,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ],

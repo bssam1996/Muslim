@@ -755,8 +755,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                     hadith: hadithOfTheDay!,
                                   ),
                           ),
-                          _buildUtilitiesSection(),
                           _buildActivitiesSection(),
+                          _buildUtilitiesSection(),
                           // Visibility(
                           //   visible: hadithOfTheDay != "",
                           //   child: QuickHadithCardPageClass(hadith: hadithOfTheDay,),

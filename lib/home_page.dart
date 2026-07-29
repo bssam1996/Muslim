@@ -20,6 +20,7 @@ import 'package:muslim/UI/radio/radio_page.dart';
 import 'package:muslim/shared/constants.dart';
 import 'package:muslim/utils/api_utils.dart' as api_utils;
 import 'package:muslim/utils/hadith_utils.dart';
+import 'package:muslim/utils/review_utils.dart' as review_utils;
 import 'package:muslim/utils/share_utils.dart' as share_utils;
 import 'UI/hadith/quick_hadith_card.dart';
 import 'UI/settings/settings.dart';
@@ -106,6 +107,8 @@ class _MyHomePageState extends State<MyHomePage> {
                 dismissOnTap: true,
               );
             }
+          } else {
+            await _maybeShowReviewPrompt();
           }
         });
         getRandomHadith().then((value) {
@@ -125,6 +128,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
   String savedLocationAddress = "-";
   int _selectedDayIndex = 0;
+  bool _requestingReview = false;
+  bool _reviewPromptVisible = false;
   Timer? refreshTimer;
   Duration refreshDuration = const Duration(seconds: 1);
 
@@ -175,6 +180,114 @@ class _MyHomePageState extends State<MyHomePage> {
     7,
     {},
   );
+
+  Future<void> _maybeShowReviewPrompt() async {
+    if (_reviewPromptVisible || _requestingReview) {
+      return;
+    }
+
+    final bool shouldShow = await review_utils.shouldShowReviewPrompt(_prefs);
+    if (!mounted || !shouldShow) {
+      return;
+    }
+
+    setState(() {
+      _reviewPromptVisible = true;
+    });
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: settingsWidgetBGColor,
+          title: Text(
+            "Review_Prompt_Title".tr(),
+            style: const TextStyle(color: textColor),
+          ),
+          content: Text(
+            "Review_Prompt_Description".tr(),
+            style: const TextStyle(color: highlightedColor),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                await review_utils.deferReviewPrompt(
+                  _prefs,
+                  review_utils.reviewDeclinedCooldown,
+                );
+                if (dialogContext.mounted) {
+                  Navigator.of(dialogContext).pop();
+                }
+              },
+              child: Text("Review_Prompt_No".tr()),
+            ),
+            TextButton(
+              onPressed: () async {
+                await review_utils.deferReviewPrompt(
+                  _prefs,
+                  review_utils.reviewLaterCooldown,
+                );
+                if (dialogContext.mounted) {
+                  Navigator.of(dialogContext).pop();
+                }
+              },
+              child: Text("Review_Prompt_Later".tr()),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                unawaited(_requestReview());
+              },
+              child: Text("Review_Prompt_Yes".tr()),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _reviewPromptVisible = false;
+    });
+  }
+
+  Future<void> _requestReview() async {
+    if (_requestingReview) {
+      return;
+    }
+    setState(() {
+      _requestingReview = true;
+    });
+
+    final review_utils.ReviewRequestResult result = await review_utils
+        .requestReviewIfAllowed(_prefs);
+    if (!mounted) return;
+
+    setState(() {
+      _requestingReview = false;
+    });
+
+    switch (result) {
+      case review_utils.ReviewRequestResult.requested:
+        EasyLoading.showSuccess("Review_Thanks".tr());
+        break;
+      case review_utils.ReviewRequestResult.noNetwork:
+        EasyLoading.showError(
+          "No_Internet_Error".tr(),
+          duration: const Duration(seconds: 15),
+          dismissOnTap: true,
+        );
+        break;
+      case review_utils.ReviewRequestResult.alreadySubmitted:
+        break;
+      case review_utils.ReviewRequestResult.web:
+      case review_utils.ReviewRequestResult.unavailable:
+      case review_utils.ReviewRequestResult.failed:
+        EasyLoading.showError("Review_Unavailable".tr(), dismissOnTap: true);
+        break;
+    }
+  }
 
   Future<bool> FetchAPI() async {
     EasyLoading.show(status: 'loading...', dismissOnTap: false);

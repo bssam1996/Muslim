@@ -3,7 +3,10 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-void invalidateSharedData(Future<SharedPreferences> sharedPreferences,String name) async {
+void invalidateSharedData(
+  Future<SharedPreferences> sharedPreferences,
+  String name,
+) async {
   try {
     final SharedPreferences prefs = await sharedPreferences;
     final success = await prefs.remove(name);
@@ -21,11 +24,17 @@ void invalidateSharedData(Future<SharedPreferences> sharedPreferences,String nam
   }
 }
 
-Future<dynamic> getStringData(Future<SharedPreferences> sharedPreferences, String data, bool decode) async {
+Future<dynamic> getStringData(
+  Future<SharedPreferences> sharedPreferences,
+  String data,
+  bool decode,
+) async {
   try {
     final SharedPreferences prefs = await sharedPreferences;
     final String? sharedData = prefs.getString(data);
-    return (decode && sharedData != null)?json.decode(sharedData):sharedData;
+    return (decode && sharedData != null)
+        ? json.decode(sharedData)
+        : sharedData;
   } catch (e) {
     if (kDebugMode) {
       print(e);
@@ -34,7 +43,11 @@ Future<dynamic> getStringData(Future<SharedPreferences> sharedPreferences, Strin
   }
 }
 
-Future<bool> setStringData(Future<SharedPreferences> sharedPreferences, String key, String value) async {
+Future<bool> setStringData(
+  Future<SharedPreferences> sharedPreferences,
+  String key,
+  String value,
+) async {
   try {
     final SharedPreferences prefs = await sharedPreferences;
     await prefs.setString(key, value);
@@ -47,7 +60,10 @@ Future<bool> setStringData(Future<SharedPreferences> sharedPreferences, String k
   }
 }
 
-Future<dynamic> getBoolData(Future<SharedPreferences> sharedPreferences, String data) async {
+Future<dynamic> getBoolData(
+  Future<SharedPreferences> sharedPreferences,
+  String data,
+) async {
   try {
     final SharedPreferences prefs = await sharedPreferences;
     final bool? sharedData = prefs.getBool(data);
@@ -60,7 +76,11 @@ Future<dynamic> getBoolData(Future<SharedPreferences> sharedPreferences, String 
   }
 }
 
-Future<bool> setBoolData(Future<SharedPreferences> sharedPreferences, String key, bool value) async {
+Future<bool> setBoolData(
+  Future<SharedPreferences> sharedPreferences,
+  String key,
+  bool value,
+) async {
   try {
     final SharedPreferences prefs = await sharedPreferences;
     await prefs.setBool(key, value);
@@ -73,11 +93,15 @@ Future<bool> setBoolData(Future<SharedPreferences> sharedPreferences, String key
   }
 }
 
-Future<dynamic> getIntegerData(Future<SharedPreferences> sharedPreferences, String data, int def) async {
+Future<dynamic> getIntegerData(
+  Future<SharedPreferences> sharedPreferences,
+  String data,
+  int def,
+) async {
   try {
     final SharedPreferences prefs = await sharedPreferences;
     final int? sharedData = prefs.getInt(data);
-    return (sharedData != null)?sharedData:def;
+    return (sharedData != null) ? sharedData : def;
   } catch (e) {
     if (kDebugMode) {
       print(e);
@@ -86,7 +110,11 @@ Future<dynamic> getIntegerData(Future<SharedPreferences> sharedPreferences, Stri
   }
 }
 
-Future<bool> setIntegerData(Future<SharedPreferences> sharedPreferences, String key, int value) async {
+Future<bool> setIntegerData(
+  Future<SharedPreferences> sharedPreferences,
+  String key,
+  int value,
+) async {
   try {
     final SharedPreferences prefs = await sharedPreferences;
     await prefs.setInt(key, value);
@@ -99,7 +127,10 @@ Future<bool> setIntegerData(Future<SharedPreferences> sharedPreferences, String 
   }
 }
 
-Future<bool> checkExistenceData(Future<SharedPreferences> sharedPreferences, String key) async {
+Future<bool> checkExistenceData(
+  Future<SharedPreferences> sharedPreferences,
+  String key,
+) async {
   try {
     final SharedPreferences prefs = await sharedPreferences;
     return prefs.containsKey(key);
@@ -111,7 +142,9 @@ Future<bool> checkExistenceData(Future<SharedPreferences> sharedPreferences, Str
   }
 }
 
-Future<void> cleanupOldPrayerTimesData(Future<SharedPreferences> sharedPreferences) async {
+Future<void> cleanupOldPrayerTimesData(
+  Future<SharedPreferences> sharedPreferences,
+) async {
   try {
     final SharedPreferences prefs = await sharedPreferences;
     final DateTime now = DateTime.now();
@@ -156,5 +189,44 @@ Future<void> cleanupOldPrayerTimesData(Future<SharedPreferences> sharedPreferenc
     }
   } catch (e) {
     print('Error during prayer times cleanup: $e');
+  }
+}
+
+Future<void> cleanupOldDailyRoutineData(
+  Future<SharedPreferences> sharedPreferences,
+) async {
+  try {
+    final SharedPreferences prefs = await sharedPreferences;
+    final DateTime cutoffDate = DateTime(
+      DateTime.now().year,
+      DateTime.now().month,
+      DateTime.now().day,
+    ).subtract(const Duration(days: 2));
+
+    for (final key in prefs.getKeys()) {
+      if (!key.startsWith('dailyRoutine/')) {
+        continue;
+      }
+
+      final List<String> parts = key.split('/');
+      if (parts.length < 3) {
+        await prefs.remove(key);
+        continue;
+      }
+
+      final String datePart = parts[1] == 'kahf' ? parts[2] : parts[1];
+      try {
+        final DateTime storedDate = DateTime.parse(datePart);
+        if (storedDate.isBefore(cutoffDate)) {
+          await prefs.remove(key);
+        }
+      } catch (e) {
+        await prefs.remove(key);
+      }
+    }
+  } catch (e) {
+    if (kDebugMode) {
+      debugPrint('Error during daily routine cleanup: $e');
+    }
   }
 }

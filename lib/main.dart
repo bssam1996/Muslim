@@ -12,7 +12,8 @@ import 'package:muslim/shared/constants.dart' as constants;
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:muslim/utils/homewidget_utils.dart' as homewidget_utils;
-import 'package:muslim/utils/shared_preference_methods.dart' as shared_preference_methods;
+import 'package:muslim/utils/shared_preference_methods.dart'
+    as shared_preference_methods;
 import 'package:workmanager/workmanager.dart' as workmanager;
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -30,8 +31,9 @@ Duration _timeUntilNextMidnight() {
 }
 
 Future<void> _configureAndroidBackgroundTasks() async {
-  await workmanager.Workmanager()
-      .initialize(homewidget_utils.workManagerCallbackDispatcher);
+  await workmanager.Workmanager().initialize(
+    homewidget_utils.workManagerCallbackDispatcher,
+  );
   // Cleanup the legacy periodic worker name used by older app versions.
   await workmanager.Workmanager().cancelByUniqueName("Muslim");
   await workmanager.Workmanager().registerPeriodicTask(
@@ -70,11 +72,13 @@ void main() async {
   await EasyLocalization.ensureInitialized();
 
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    systemNavigationBarColor: Colors.transparent,
-    systemNavigationBarDividerColor: Colors.transparent,
-    statusBarColor: Colors.transparent,
-  ));
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarDividerColor: Colors.transparent,
+      statusBarColor: Colors.transparent,
+    ),
+  );
 
   if (!kIsWeb && Platform.isAndroid) {
     await _configureAndroidBackgroundTasks();
@@ -83,13 +87,17 @@ void main() async {
   await shared_preference_methods.cleanupOldPrayerTimesData(
     SharedPreferences.getInstance(),
   );
+  await shared_preference_methods.cleanupOldDailyRoutineData(
+    SharedPreferences.getInstance(),
+  );
 
   runApp(
     EasyLocalization(
-        supportedLocales: const [Locale('en', 'US'), Locale('ar', 'EG')],
-        path: 'assets/translations',
-        fallbackLocale: const Locale('en', 'US'),
-        child: const MyApp()),
+      supportedLocales: const [Locale('en', 'US'), Locale('ar', 'EG')],
+      path: 'assets/translations',
+      fallbackLocale: const Locale('en', 'US'),
+      child: const MyApp(),
+    ),
   );
 }
 
@@ -114,12 +122,16 @@ class MyApp extends StatelessWidget {
       ),
       home: const MyHomePage(title: 'App_Title'),
       // builder: EasyLoading.init(),
-      builder: EasyLoading.init(builder: (context, child) {
-        return MediaQuery(
-            data: MediaQuery.of(context)
-                .copyWith(textScaler: const TextScaler.linear(1)),
-            child: child!);
-      }),
+      builder: EasyLoading.init(
+        builder: (context, child) {
+          return MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: const TextScaler.linear(1)),
+            child: child!,
+          );
+        },
+      ),
       supportedLocales: context.supportedLocales,
       locale: context.locale,
       // localizationsDelegates: context.localizationDelegates

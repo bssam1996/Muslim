@@ -270,6 +270,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     switch (result) {
       case review_utils.ReviewRequestResult.requested:
+      case review_utils.ReviewRequestResult.storeListingOpened:
         EasyLoading.showSuccess("Review_Thanks".tr());
         break;
       case review_utils.ReviewRequestResult.noNetwork:
@@ -281,6 +282,43 @@ class _MyHomePageState extends State<MyHomePage> {
         break;
       case review_utils.ReviewRequestResult.alreadySubmitted:
         break;
+      case review_utils.ReviewRequestResult.web:
+      case review_utils.ReviewRequestResult.unavailable:
+      case review_utils.ReviewRequestResult.failed:
+        EasyLoading.showError("Review_Unavailable".tr(), dismissOnTap: true);
+        break;
+    }
+  }
+
+  Future<void> _openStoreListingForReview() async {
+    if (_requestingReview) {
+      return;
+    }
+    setState(() {
+      _requestingReview = true;
+    });
+
+    final review_utils.ReviewRequestResult result = await review_utils
+        .openStoreListingForReview();
+    if (!mounted) return;
+
+    setState(() {
+      _requestingReview = false;
+    });
+
+    switch (result) {
+      case review_utils.ReviewRequestResult.storeListingOpened:
+        EasyLoading.showSuccess("Review_Thanks".tr());
+        break;
+      case review_utils.ReviewRequestResult.noNetwork:
+        EasyLoading.showError(
+          "No_Internet_Error".tr(),
+          duration: const Duration(seconds: 15),
+          dismissOnTap: true,
+        );
+        break;
+      case review_utils.ReviewRequestResult.requested:
+      case review_utils.ReviewRequestResult.alreadySubmitted:
       case review_utils.ReviewRequestResult.web:
       case review_utils.ReviewRequestResult.unavailable:
       case review_utils.ReviewRequestResult.failed:
@@ -313,7 +351,7 @@ class _MyHomePageState extends State<MyHomePage> {
         );
         if (dataFromDay["error"] != "") {
           EasyLoading.showError(
-            "Something went wrong $dataFromDay",
+            dataFromDay["error"].toString(),
             dismissOnTap: true,
           );
           return false;
@@ -647,6 +685,20 @@ class _MyHomePageState extends State<MyHomePage> {
                             ),
                             onTap: () async {
                               share_utils.shareApp();
+                            },
+                          ),
+                          const Divider(color: textColor),
+                          ListTile(
+                            title: const Text(
+                              'Home_Panel_Rate',
+                              style: TextStyle(color: textColor),
+                            ).tr(),
+                            trailing: Image.asset(
+                              'assets/rating/rating.png',
+                              width: 24,
+                            ),
+                            onTap: () {
+                              unawaited(_openStoreListingForReview());
                             },
                           ),
                           const Divider(color: textColor),

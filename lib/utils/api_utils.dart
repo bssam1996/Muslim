@@ -2,30 +2,39 @@ import 'dart:convert';
 
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../shared/constants.dart' as constants;
 import 'helper.dart' as helper;
 import 'shared_preference_methods.dart' as shared_preference_methods;
 import 'package:seeip_client/seeip_client.dart';
 
-Future<Map<String, dynamic>> getSavedLocation() async{
+Future<Map<String, dynamic>> getSavedLocation() async {
   Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
 
   var savedLocation = await shared_preference_methods.getStringData(
-      _prefs, 'location', true);
+    _prefs,
+    'location',
+    true,
+  );
   if (savedLocation == null) {
     try {
       var seeip = SeeipClient();
       var ip = await seeip.getIP();
       var geoLocation = await seeip.getGeoIP(ip.ip);
       Map<String, dynamic> location = {
-        "location": "${geoLocation.city}, ${geoLocation.region}, ${geoLocation.country}",
+        "location":
+            "${geoLocation.city}, ${geoLocation.region}, ${geoLocation.country}",
         "type": "address",
-        "error": ""
+        "error": "",
       };
       bool result = await shared_preference_methods.setStringData(
-          _prefs, "location", json.encode(location));
+        _prefs,
+        "location",
+        json.encode(location),
+      );
       if (!result) {
-        if (kDebugMode){
+        if (kDebugMode) {
           print("Location_Missing_Error".tr());
         }
         return {"error": "error while saving location"};
@@ -34,89 +43,196 @@ Future<Map<String, dynamic>> getSavedLocation() async{
     } catch (e) {
       return {"error": "error while getting location $e"};
     }
-  }else{
+  } else {
     savedLocation["error"] = "";
   }
   return savedLocation;
 }
 
-Future<Map<String, dynamic>> getDataFromDay(int dayNumber, Map<String, dynamic> savedLocation) async{
-  Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
-  dynamic jsonData;
-  String? jsonEncoded = "";
-  bool fetchedFromSharedPreferences = false;
-  DateTime d = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day + dayNumber);
+bool isValidPrayerTimesResponse(dynamic jsonData) {
+  if (jsonData is! Map || jsonData['code'] != 200) {
+    return false;
+  }
+
+  final dynamic data = jsonData['data'];
+  if (data is! Map) {
+    return false;
+  }
+  final dynamic timings = data['timings'];
+  if (timings is! Map) {
+    return false;
+  }
+
+  return constants.PRAYER_NAMES.every((String prayerName) {
+    final dynamic value = timings[prayerName];
+    return value is String && value.isNotEmpty;
+  });
+}
+
+String _apiFailureMessage(http.Response response, dynamic jsonData) {
+  final dynamic apiCode = jsonData is Map ? jsonData['code'] : null;
+  final dynamic apiStatus = jsonData is Map ? jsonData['status'] : null;
+  debugPrint(
+    'Prayer-times API failed: HTTP ${response.statusCode}, '
+    'API code ${apiCode ?? 'unavailable'}, status ${apiStatus ?? 'unavailable'}.',
+  );
+
+  if (response.statusCode == 429) {
+    return 'Prayer-times service is busy. Please try again shortly.';
+  }
+  if (response.statusCode >= 500) {
+    return 'Prayer-times service is temporarily unavailable. Please try again shortly.';
+  }
+  if (response.statusCode != 200) {
+    return 'Prayer-times service rejected the request (HTTP ${response.statusCode}).';
+  }
+  return 'Prayer-times service returned an invalid response. Please check your location and settings.';
+}
+
+Future<Map<String, dynamic>> getDataFromDay(
+  int dayNumber,
+  Map<String, dynamic> savedLocation, {
+  Future<SharedPreferences>? preferences,
+  http.Client? client,
+}) async {
+  final Future<SharedPreferences> prefs =
+      preferences ?? SharedPreferences.getInstance();
+  DateTime d = DateTime(
+    DateTime.now().year,
+    DateTime.now().month,
+    DateTime.now().day + dayNumber,
+  );
   String formattedDate = helper.dateFormatter(d);
   // Construct API url from helpers
-  String? sharedKey = await helper.constructAPIParameters("", formattedDate, savedLocation, _prefs);
-  if (sharedKey == null){
-    if (kDebugMode){
+  String? sharedKey = await helper.constructAPIParameters(
+    "",
+    formattedDate,
+    savedLocation,
+    prefs,
+  );
+  if (sharedKey == null) {
+    if (kDebugMode) {
       print("Something went wrong: Couldn't construct shared key");
     }
-    return {"error":"Something went wrong: Couldn't construct shared key"};
+    return {"error": "Something went wrong: Couldn't construct shared key"};
   }
-  var sharedData = await shared_preference_methods.getStringData(
-      _prefs, sharedKey, true);
-  if (sharedData != null) {
-    fetchedFromSharedPreferences = true;
+  final SharedPreferences sharedPreferences = await prefs;
+  final String? cachedPayload = sharedPreferences.getString(sharedKey);
+  if (cachedPayload != null) {
     if (kDebugMode) {
       print("Fetching from shared-preferences");
     }
-    jsonData = sharedData;
-  } else {
-    if (kDebugMode) {
-      print("Fetching from API");
-    }
-    try{
-      var r =
-      await helper.fetchData("", formattedDate, savedLocation, _prefs);
-      jsonEncoded = r?.body;
-      jsonData = jsonDecode(jsonEncoded!);
-    }catch (e){
-      if (kDebugMode){
-        print("Something went wrong $e");
+    try {
+      final dynamic cachedData = jsonDecode(cachedPayload);
+      if (isValidPrayerTimesResponse(cachedData)) {
+        return {"jsonData": cachedData, "error": ""};
       }
-      return {"error":"Something went wrong $e"};
+    } catch (_) {
+      // The malformed cache entry is removed below and replaced by fresh data.
     }
+    await shared_preference_methods.invalidateSharedData(prefs, sharedKey);
+    debugPrint('Removed invalid cached prayer-times response.');
   }
-  // Save Date
-  if (jsonData != null && jsonData['code'] == 200) {
-    if (!fetchedFromSharedPreferences) {
-      await saveDateInSharedPreference(_prefs, sharedKey, jsonEncoded);
-    }
-  }else{
-    if (fetchedFromSharedPreferences) {
-      shared_preference_methods.invalidateSharedData(_prefs, formattedDate);
-    }
-    return {"error":"API didn't return any data!"};
+
+  if (kDebugMode) {
+    print("Fetching from API");
   }
-  return {
-    "jsonData": jsonData,
-    "error": ""
-  };
+
+  try {
+    final http.Response? response = await helper.fetchData(
+      "",
+      formattedDate,
+      savedLocation,
+      prefs,
+      client: client,
+    );
+    if (response == null) {
+      return {"error": "Couldn't construct a valid prayer-times request."};
+    }
+
+    dynamic jsonData;
+    try {
+      jsonData = jsonDecode(response.body);
+    } catch (e) {
+      debugPrint('Prayer-times API returned malformed JSON: $e');
+      return {"error": _apiFailureMessage(response, null)};
+    }
+    if (response.statusCode == 200 && isValidPrayerTimesResponse(jsonData)) {
+      await saveDateInSharedPreference(prefs, sharedKey, response.body);
+      return {"jsonData": jsonData, "error": ""};
+    }
+    return {"error": _apiFailureMessage(response, jsonData)};
+  } catch (e, stackTrace) {
+    debugPrint('Prayer-times request failed: $e\n$stackTrace');
+    return {
+      "error":
+          "Couldn't connect to the prayer-times service. Please check your connection and try again.",
+    };
+  }
 }
 
-Future<bool> saveDateInSharedPreference(Future<SharedPreferences> prefs, String sharedKey, String jsonEncoded) async{
+Future<void> cleanupInvalidPrayerTimesData(
+  Future<SharedPreferences> preferences,
+) async {
+  final SharedPreferences prefs = await preferences;
+  for (final String key in prefs.getKeys()) {
+    if (!key.startsWith('timings')) {
+      continue;
+    }
+
+    final String? cachedPayload = prefs.getString(key);
+    bool isValid = false;
+    if (cachedPayload != null) {
+      try {
+        isValid = isValidPrayerTimesResponse(jsonDecode(cachedPayload));
+      } catch (_) {
+        isValid = false;
+      }
+    }
+    if (!isValid) {
+      await prefs.remove(key);
+      debugPrint(
+        'Removed invalid cached prayer-times response during cleanup.',
+      );
+    }
+  }
+}
+
+Future<bool> saveDateInSharedPreference(
+  Future<SharedPreferences> prefs,
+  String sharedKey,
+  String jsonEncoded,
+) async {
   if (kDebugMode) {
     print("Setting in shared-preferences");
   }
   bool result = await shared_preference_methods.setStringData(
-      prefs, sharedKey, jsonEncoded);
+    prefs,
+    sharedKey,
+    jsonEncoded,
+  );
   if (!result) {
-    if (kDebugMode){
+    if (kDebugMode) {
       print("Couldn't save data");
     }
   }
   return result;
 }
-Future< Map<String, dynamic>> getTimings24System(Map<String, dynamic> originalTimes) async{
+
+Future<Map<String, dynamic>> getTimings24System(
+  Map<String, dynamic> originalTimes,
+) async {
   Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
   Map<String, dynamic> timings = Map.from(originalTimes);
   var exists = await shared_preference_methods.checkExistenceData(
-      _prefs, '24system');
+    _prefs,
+    '24system',
+  );
   if (exists) {
-    var shared24 =
-    await shared_preference_methods.getBoolData(_prefs, '24system');
+    var shared24 = await shared_preference_methods.getBoolData(
+      _prefs,
+      '24system',
+    );
     if (shared24 != null && shared24 == false) {
       // Convert to 12 system
       originalTimes.forEach((timingName, timingValue) {
@@ -124,14 +240,17 @@ Future< Map<String, dynamic>> getTimings24System(Map<String, dynamic> originalTi
         int timingHour = int.parse(timingWhole[0]);
         int timingMinute = int.parse(timingWhole[1]);
         DateTime constructedDateTime = DateTime(
-            DateTime.now().year,
-            DateTime.now().month,
-            DateTime.now().day,
-            timingHour,
-            timingMinute,
-            DateTime.now().second);
-        var newValue =
-        helper.customtimeFormatter("h:mm a", constructedDateTime);
+          DateTime.now().year,
+          DateTime.now().month,
+          DateTime.now().day,
+          timingHour,
+          timingMinute,
+          DateTime.now().second,
+        );
+        var newValue = helper.customtimeFormatter(
+          "h:mm a",
+          constructedDateTime,
+        );
         timings[timingName] = newValue;
       });
     }

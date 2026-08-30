@@ -1,13 +1,12 @@
 import 'dart:convert';
 
-import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../shared/constants.dart' as constants;
 import 'helper.dart' as helper;
+import 'prayer_location_utils.dart';
 import 'shared_preference_methods.dart' as shared_preference_methods;
-import 'package:seeip_client/seeip_client.dart';
 
 Future<Map<String, dynamic>> getSavedLocation() async {
   Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
@@ -18,35 +17,86 @@ Future<Map<String, dynamic>> getSavedLocation() async {
     true,
   );
   if (savedLocation == null) {
-    try {
-      var seeip = SeeipClient();
-      var ip = await seeip.getIP();
-      var geoLocation = await seeip.getGeoIP(ip.ip);
-      Map<String, dynamic> location = {
-        "location":
-            "${geoLocation.city}, ${geoLocation.region}, ${geoLocation.country}",
-        "type": "address",
-        "error": "",
-      };
-      bool result = await shared_preference_methods.setStringData(
-        _prefs,
-        "location",
-        json.encode(location),
-      );
-      if (!result) {
-        if (kDebugMode) {
-          print("Location_Missing_Error".tr());
-        }
-        return {"error": "error while saving location"};
-      }
-      savedLocation = location;
-    } catch (e) {
-      return {"error": "error while getting location $e"};
-    }
-  } else {
-    savedLocation["error"] = "";
+    // Do not silently use an IP-based estimate. It can point to the wrong city
+    // and produce inaccurate prayer times; the user chooses a location in
+    // Settings instead.
+    return {"error": "Location has not been chosen"};
   }
-  return savedLocation;
+
+  try {
+    savedLocation = await _ensureCityCountryLabel(savedLocation, _prefs);
+    savedLocation["error"] = "";
+    return savedLocation;
+  } on PrayerLocationException catch (error) {
+    return {"error": error.translationKey};
+  } catch (_) {
+    return {"error": "Location could not be verified"};
+  }
+}
+
+Future<Map<String, dynamic>> _ensureCityCountryLabel(
+  Map<String, dynamic> savedLocation,
+  Future<SharedPreferences> preferences,
+) async {
+  final String cityCountry = savedLocation['cityCountry']?.toString() ?? '';
+  if (cityCountry.isNotEmpty) return savedLocation;
+
+  final Map<String, dynamic> updatedLocation = Map<String, dynamic>.from(
+    savedLocation,
+  );
+  PrayerLocation resolvedLocation;
+  if (updatedLocation['type'] == 'coordinates') {
+    final double? latitude = _asDouble(updatedLocation['latitude']);
+    final double? longitude = _asDouble(updatedLocation['longitude']);
+    if (latitude == null || longitude == null) {
+      throw const PrayerLocationException(
+        'Settings_Location_City_Country_Unavailable',
+      );
+    }
+    resolvedLocation = await resolvePrayerLocationCoordinates(
+      latitude,
+      longitude,
+      source: updatedLocation['source']?.toString() ?? 'coordinates',
+    );
+  } else if (updatedLocation['type'] == 'address') {
+    final String address = updatedLocation['location']?.toString().trim() ?? '';
+    if (address.isEmpty) {
+      throw const PrayerLocationException(
+        'Settings_Location_City_Country_Unavailable',
+      );
+    }
+    final List<PrayerLocation> matches = await searchPrayerLocations(address);
+    if (matches.isEmpty) {
+      throw const PrayerLocationException(
+        'Settings_Location_City_Country_Unavailable',
+      );
+    }
+    resolvedLocation = await resolvePrayerLocationCoordinates(
+      matches.first.latitude,
+      matches.first.longitude,
+      source: 'address',
+    );
+    updatedLocation['latitude'] = resolvedLocation.latitude;
+    updatedLocation['longitude'] = resolvedLocation.longitude;
+  } else {
+    throw const PrayerLocationException(
+      'Settings_Location_City_Country_Unavailable',
+    );
+  }
+
+  updatedLocation['cityCountry'] = resolvedLocation.cityCountry;
+  updatedLocation['displayName'] = resolvedLocation.displayName;
+  await shared_preference_methods.setStringData(
+    preferences,
+    'location',
+    json.encode(updatedLocation),
+  );
+  return updatedLocation;
+}
+
+double? _asDouble(dynamic value) {
+  if (value is num) return value.toDouble();
+  return double.tryParse(value?.toString() ?? '');
 }
 
 bool isValidPrayerTimesResponse(dynamic jsonData) {

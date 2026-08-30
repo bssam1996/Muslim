@@ -76,17 +76,16 @@ class _MyHomePageState extends State<MyHomePage> {
         if (!mounted) return;
         FetchAPI().then((value) async {
           if (value == false) {
-            stopTimer();
-            if (!kIsWeb) {
-              if (await helper.networkAccess() == false) {
-                EasyLoading.showError(
-                  "No_Internet_Error".tr(),
-                  duration: const Duration(seconds: 15),
-                  dismissOnTap: true,
-                );
-                return;
-              }
+            // FetchAPI can fail because the prayer-time service is unavailable,
+            // not only because location is missing. Open Settings only when the
+            // saved location itself cannot be obtained or verified.
+            final Map<String, dynamic> savedLocation = await api_utils
+                .getSavedLocation();
+            if (savedLocation["error"] == "") {
+              return;
             }
+            stopTimer();
+            if (!mounted) return;
             await Navigator.push(
               context,
               MaterialPageRoute(
@@ -330,12 +329,14 @@ class _MyHomePageState extends State<MyHomePage> {
   Future<bool> FetchAPI() async {
     EasyLoading.show(status: 'loading...', dismissOnTap: false);
 
-    // Get Saved location from IP or shared preferences
+    // Get the saved, verified prayer-time location.
     final SharedPreferences prefs = await _prefs;
     Map<String, dynamic> savedLocation = await api_utils.getSavedLocation();
     if (savedLocation["error"] != "") {
       EasyLoading.showError(
-        "Location_Missing_Error".tr(),
+        savedLocation["error"] == "Settings_Location_City_Country_Unavailable"
+            ? "Settings_Location_City_Country_Unavailable".tr()
+            : "Location_Missing_Error".tr(),
         duration: const Duration(seconds: 15),
         dismissOnTap: true,
       );

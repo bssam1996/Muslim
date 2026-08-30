@@ -38,17 +38,32 @@ Future<String?> constructAPIParameters(
 ) async {
   try {
     String constructedParameters = "";
+    final bool hasCoordinates =
+        location["type"] == "coordinates" &&
+        location["latitude"] is num &&
+        location["longitude"] is num;
 
     if (callType == "") {
-      if (location["type"] != "address") {
+      if (hasCoordinates) {
         callType = "timings";
-        return null;
-      } else {
+        constructedParameters =
+            'latitude=${location["latitude"]}&longitude=${location["longitude"]}';
+      } else if (location["type"] == "address") {
         callType = "timingsByAddress";
         constructedParameters = 'address=${location["location"]}';
+      } else {
+        return null;
       }
     } else if (callType == "calendarByAddress") {
-      constructedParameters = 'address=${location["location"]}';
+      if (hasCoordinates) {
+        callType = "calendar";
+        constructedParameters =
+            'latitude=${location["latitude"]}&longitude=${location["longitude"]}';
+      } else if (location["type"] == "address") {
+        constructedParameters = 'address=${location["location"]}';
+      } else {
+        return null;
+      }
     }
     var sharedMethod = await shared_preference_methods.getStringData(
       prefs,
@@ -275,8 +290,12 @@ String getNowMinutes() {
 }
 
 String getAddressLocation(Map<String, dynamic> savedLocation) {
-  if (savedLocation["type"] == "address") {
-    return savedLocation["location"] ?? "-";
+  if (savedLocation["type"] == "coordinates") {
+    return savedLocation["cityCountry"] ??
+        savedLocation["displayName"] ??
+        '${savedLocation["latitude"]}, ${savedLocation["longitude"]}';
+  } else if (savedLocation["type"] == "address") {
+    return savedLocation["cityCountry"] ?? savedLocation["location"] ?? "-";
   } else {
     return "-";
   }

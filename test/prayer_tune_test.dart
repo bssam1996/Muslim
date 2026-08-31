@@ -17,7 +17,7 @@ void main() {
     expect(tuneParameter, '0,-2,1,3,4,5,0,6,0');
   });
 
-  test('adds tune parameter to constructed API path', () async {
+  test('adds tune parameter to coordinate-based API path', () async {
     SharedPreferences.setMockInitialValues({
       constants.prayerTunePreferenceKey('Fajr'): -2,
       constants.prayerTunePreferenceKey('Sunrise'): 1,
@@ -30,11 +30,13 @@ void main() {
     final apiPath = await helper.constructAPIParameters('', '09-03-2015', {
       'type': 'address',
       'location': 'Dubai,UAE',
+      'latitude': 25.2048,
+      'longitude': 55.2708,
     }, SharedPreferences.getInstance());
 
     expect(
       apiPath,
-      'timingsByAddress/09-03-2015?address=Dubai,UAE'
+      'timings/09-03-2015?latitude=25.2048&longitude=55.2708'
       '&tune=0,-2,1,3,4,5,0,6,0',
     );
   });
@@ -56,7 +58,7 @@ void main() {
         SharedPreferences.getInstance(),
       );
       final calendarPath = await helper.constructAPIParameters(
-        'calendarByAddress',
+        'calendar',
         '03-2015',
         location,
         SharedPreferences.getInstance(),
@@ -76,7 +78,7 @@ void main() {
   );
 
   test(
-    'keeps address and coordinate routes distinct while displaying city country',
+    'uses saved coordinates for address input while displaying city country',
     () async {
       SharedPreferences.setMockInitialValues({});
       const addressLocation = <String, dynamic>{
@@ -94,7 +96,10 @@ void main() {
         SharedPreferences.getInstance(),
       );
 
-      expect(addressPath, contains('timingsByAddress/09-03-2015?address='));
+      expect(
+        addressPath,
+        contains('timings/09-03-2015?latitude=51.5034&longitude=-0.1276'),
+      );
       expect(
         helper.getAddressLocation(addressLocation),
         'London, United Kingdom',

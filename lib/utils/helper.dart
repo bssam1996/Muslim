@@ -39,31 +39,17 @@ Future<String?> constructAPIParameters(
   try {
     String constructedParameters = "";
     final bool hasCoordinates =
-        location["type"] == "coordinates" &&
-        location["latitude"] is num &&
-        location["longitude"] is num;
+        location["latitude"] is num && location["longitude"] is num;
 
     if (callType == "") {
-      if (hasCoordinates) {
-        callType = "timings";
-        constructedParameters =
-            'latitude=${location["latitude"]}&longitude=${location["longitude"]}';
-      } else if (location["type"] == "address") {
-        callType = "timingsByAddress";
-        constructedParameters = 'address=${location["location"]}';
-      } else {
-        return null;
-      }
-    } else if (callType == "calendarByAddress") {
-      if (hasCoordinates) {
-        callType = "calendar";
-        constructedParameters =
-            'latitude=${location["latitude"]}&longitude=${location["longitude"]}';
-      } else if (location["type"] == "address") {
-        constructedParameters = 'address=${location["location"]}';
-      } else {
-        return null;
-      }
+      if (!hasCoordinates) return null;
+      callType = "timings";
+      constructedParameters =
+          'latitude=${location["latitude"]}&longitude=${location["longitude"]}';
+    } else if (callType == "calendar") {
+      if (!hasCoordinates) return null;
+      constructedParameters =
+          'latitude=${location["latitude"]}&longitude=${location["longitude"]}';
     }
     var sharedMethod = await shared_preference_methods.getStringData(
       prefs,
@@ -159,6 +145,15 @@ Future<String> constructAladhanTuneParameter(
   return constructAladhanTuneParameterFromSettings(tuneSettings);
 }
 
+/// Separates locally cached AlAdhan payloads from responses calculated by the
+/// self-hosted Muslim API while retaining the full coordinate/settings query.
+String prayerTimesCacheKey(String apiPath) {
+  if (apiPath.startsWith('timings/')) {
+    return apiPath.replaceFirst('timings/', 'timings-v1/');
+  }
+  return 'prayer-times-v1/$apiPath';
+}
+
 Future<http.Response?> fetchData(
   String callType,
   String requiredDate,
@@ -177,7 +172,7 @@ Future<http.Response?> fetchData(
   }
 
   final Uri uri = Uri.parse(
-    'https://api.aladhan.com/v1/$constructedParameters',
+    '${constants.prayerTimesApiUrl}$constructedParameters',
   );
   return (client?.get(uri) ?? http.get(uri)).timeout(
     const Duration(seconds: 15),

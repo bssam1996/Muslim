@@ -19,6 +19,12 @@ Map<String, dynamic> validPrayerTimesResponse() => {
       'Maghrib': '18:00',
       'Isha': '19:30',
     },
+    'date': {
+      'hijri': {
+        'date': '17-03-1448',
+        'month': {'en': "Rabi' al-Awwal"},
+      },
+    },
   },
 };
 
@@ -26,6 +32,8 @@ void main() {
   const location = <String, dynamic>{
     'type': 'address',
     'location': 'London, United Kingdom',
+    'latitude': 51.5074,
+    'longitude': -0.1278,
   };
 
   test('recognizes only complete successful prayer-time responses', () {
@@ -43,7 +51,40 @@ void main() {
       }),
       isFalse,
     );
+    expect(
+      api_utils.isValidPrayerTimesResponse({
+        'code': 200,
+        'data': {
+          'timings': validPrayerTimesResponse()['data']['timings'],
+          'date': {'hijri': null},
+        },
+      }),
+      isFalse,
+    );
   });
+
+  test(
+    'sends coordinate prayer-time requests to the self-hosted API',
+    () async {
+      SharedPreferences.setMockInitialValues({});
+      late http.Request capturedRequest;
+      final http.Client client = MockClient((http.Request request) async {
+        capturedRequest = request;
+        return http.Response(jsonEncode(validPrayerTimesResponse()), 200);
+      });
+
+      await helper.fetchData(
+        '',
+        '30-08-2026',
+        location,
+        SharedPreferences.getInstance(),
+        client: client,
+      );
+
+      expect(capturedRequest.url.host, 'muslim-api-mu.vercel.app');
+      expect(capturedRequest.url.path, '/v1/timings/30-08-2026');
+    },
+  );
 
   test(
     'replaces an invalid cached response with a fresh successful response',
@@ -52,12 +93,13 @@ void main() {
       final SharedPreferences preferences =
           await SharedPreferences.getInstance();
       final String date = helper.dateFormatter(DateTime.now());
-      final String cacheKey = (await helper.constructAPIParameters(
+      final String apiPath = (await helper.constructAPIParameters(
         '',
         date,
         location,
         Future<SharedPreferences>.value(preferences),
       ))!;
+      final String cacheKey = helper.prayerTimesCacheKey(apiPath);
       await preferences.setString(cacheKey, jsonEncode({'code': 503}));
 
       int requestCount = 0;
@@ -104,23 +146,11 @@ void main() {
   );
 
   test('startup cleanup removes malformed prayer-time cache entries', () async {
-    const invalidKey = 'timingsByAddress/28-08-2026?address=London';
-    const validKey = 'timingsByAddress/29-08-2026?address=London';
+    const invalidKey = 'timings/28-08-2026?latitude=51.5074&longitude=-0.1278';
+    const validKey = 'timings/29-08-2026?latitude=51.5074&longitude=-0.1278';
     SharedPreferences.setMockInitialValues({
       invalidKey: '{not valid JSON',
-      validKey: jsonEncode({
-        'code': 200,
-        'data': {
-          'timings': {
-            'Fajr': '05:00',
-            'Sunrise': '06:30',
-            'Dhuhr': '12:15',
-            'Asr': '15:30',
-            'Maghrib': '18:00',
-            'Isha': '19:30',
-          },
-        },
-      }),
+      validKey: jsonEncode(validPrayerTimesResponse()),
       'unrelatedSetting': 'preserved',
     });
     final SharedPreferences preferences = await SharedPreferences.getInstance();

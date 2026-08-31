@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 const MUSLIM_API_URL = "https://muslim-api-mu.vercel.app/";
+const prayerTimesApiUrl = "${MUSLIM_API_URL}v1/";
 const MUSLIM_GOOGLE_PLAY_URI =
     "https://play.google.com/store/apps/details?id=com.bplusplus.muslim";
 const primaryColor = Color.fromRGBO(23, 21, 59, 1.0);
@@ -49,20 +50,17 @@ const authorities = <String, int>{
   "KEMENAG - Kementerian Agama Republik Indonesia": 20,
   "Morocco": 21,
   "Comunidade Islamica de Lisboa": 22,
-  "Ministry of Awqaf, Islamic Affairs and Holy Places, Jordan": 23
+  "Ministry of Awqaf, Islamic Affairs and Holy Places, Jordan": 23,
 };
 
 const CalendarMethods = <String, String>{
   "High Judicial Council of Saudi Arabia": "HJCoSA",
   "Umm al-Qura": "UAQ",
   "Diyanet İşleri Başkanlığı": "DIYANET",
-  "MATHEMATICAL": "MATHEMATICAL"
+  "MATHEMATICAL": "MATHEMATICAL",
 };
 
-const schools = <String, int>{
-  "Shafi (Standard)": 0,
-  "Hanafi": 1,
-};
+const schools = <String, int>{"Shafi (Standard)": 0, "Hanafi": 1};
 
 Map<int, String> hijriMonthsNames = {
   1: "Muharram",
@@ -86,7 +84,7 @@ List<String> PRAYER_NAMES = [
   'Dhuhr',
   'Asr',
   'Maghrib',
-  'Isha'
+  'Isha',
 ];
 
 const List<String> aladhanTuneParameterOrder = [
@@ -109,7 +107,7 @@ List<String> PRAYER_NOTIFICATION_NAMES = [
   'Dhuhr',
   'Asr',
   'Maghrib',
-  'Isha'
+  'Isha',
 ];
 
 String prayerNotificationPreferenceKey(String prayerName) =>
@@ -141,8 +139,9 @@ String prayerNotificationAndroidChannelId(
 String adhanSoundKeyFromAssetPath(String assetPath) {
   final String fileName = assetPath.split('/').last;
   final int extensionIndex = fileName.lastIndexOf('.');
-  final String baseName =
-      extensionIndex >= 0 ? fileName.substring(0, extensionIndex) : fileName;
+  final String baseName = extensionIndex >= 0
+      ? fileName.substring(0, extensionIndex)
+      : fileName;
   return baseName.toLowerCase();
 }
 
@@ -155,8 +154,9 @@ String adhanSoundKeyFromStoredValue(String storedValue) {
     return adhanSoundKeyFromAssetPath(trimmed);
   }
   final int extensionIndex = trimmed.lastIndexOf('.');
-  final String baseName =
-      extensionIndex >= 0 ? trimmed.substring(0, extensionIndex) : trimmed;
+  final String baseName = extensionIndex >= 0
+      ? trimmed.substring(0, extensionIndex)
+      : trimmed;
   return baseName.toLowerCase();
 }
 

@@ -39,7 +39,10 @@ Future<Map<String, dynamic>> _ensureCityCountryLabel(
   Future<SharedPreferences> preferences,
 ) async {
   final String cityCountry = savedLocation['cityCountry']?.toString() ?? '';
-  if (cityCountry.isNotEmpty) return savedLocation;
+  final bool hasCoordinates =
+      _asDouble(savedLocation['latitude']) != null &&
+      _asDouble(savedLocation['longitude']) != null;
+  if (cityCountry.isNotEmpty && hasCoordinates) return savedLocation;
 
   final Map<String, dynamic> updatedLocation = Map<String, dynamic>.from(
     savedLocation,
@@ -113,6 +116,16 @@ bool isValidPrayerTimesResponse(dynamic jsonData) {
     return false;
   }
 
+  final dynamic hijri = data['date'] is Map ? data['date']['hijri'] : null;
+  if (hijri is! Map ||
+      hijri['date'] is! String ||
+      (hijri['date'] as String).isEmpty ||
+      hijri['month'] is! Map ||
+      hijri['month']['en'] is! String ||
+      (hijri['month']['en'] as String).isEmpty) {
+    return false;
+  }
+
   return constants.PRAYER_NAMES.every((String prayerName) {
     final dynamic value = timings[prayerName];
     return value is String && value.isNotEmpty;
@@ -167,7 +180,8 @@ Future<Map<String, dynamic>> getDataFromDay(
     return {"error": "Something went wrong: Couldn't construct shared key"};
   }
   final SharedPreferences sharedPreferences = await prefs;
-  final String? cachedPayload = sharedPreferences.getString(sharedKey);
+  final String cacheKey = helper.prayerTimesCacheKey(sharedKey);
+  final String? cachedPayload = sharedPreferences.getString(cacheKey);
   if (cachedPayload != null) {
     if (kDebugMode) {
       print("Fetching from shared-preferences");
@@ -180,7 +194,7 @@ Future<Map<String, dynamic>> getDataFromDay(
     } catch (_) {
       // The malformed cache entry is removed below and replaced by fresh data.
     }
-    await shared_preference_methods.invalidateSharedData(prefs, sharedKey);
+    await shared_preference_methods.invalidateSharedData(prefs, cacheKey);
     debugPrint('Removed invalid cached prayer-times response.');
   }
 
@@ -208,7 +222,7 @@ Future<Map<String, dynamic>> getDataFromDay(
       return {"error": _apiFailureMessage(response, null)};
     }
     if (response.statusCode == 200 && isValidPrayerTimesResponse(jsonData)) {
-      await saveDateInSharedPreference(prefs, sharedKey, response.body);
+      await saveDateInSharedPreference(prefs, cacheKey, response.body);
       return {"jsonData": jsonData, "error": ""};
     }
     return {"error": _apiFailureMessage(response, jsonData)};

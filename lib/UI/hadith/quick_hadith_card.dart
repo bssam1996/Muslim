@@ -14,46 +14,88 @@ class QuickHadithCardPageClass extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const double fontSize = kIsWeb ? 32 : 20;
+    const double fontSize = kIsWeb ? 32 : 24;
 
-    return FittedBox(
-      fit: BoxFit.fitHeight,
-      child: Center(
-        child: Card(
-          clipBehavior: Clip.antiAlias,
-          color: constants.fourthColor,
-          elevation: 8,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+    return Semantics(
+      button: true,
+      excludeSemantics: true,
+      label: '${'HOME_HADITH_TITLE'.tr()}. ${hadith.hadith}',
+      hint: 'Hadith_Read_More'.tr(),
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        color: Colors.transparent,
+        elevation: 8,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        margin: const EdgeInsets.only(bottom: 8),
+        child: Ink(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: <Color>[constants.primaryColor, constants.thirdColor],
+            ),
           ),
-          margin: const EdgeInsets.only(bottom: 8),
           child: InkWell(
             onTap: () => _showDetails(context),
             child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: SizedBox(
-                width: MediaQuery.sizeOf(context).width - 10,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    Text(
-                      hadith.hadith,
-                      style: const TextStyle(
-                        fontSize: fontSize,
-                        fontFamily: 'Uthman',
-                        color: constants.textColor,
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  Row(
+                    children: <Widget>[
+                      const Icon(
+                        Icons.auto_stories_rounded,
+                        color: constants.highlightedTextColor,
+                        size: 20,
                       ),
-                      textAlign: TextAlign.center,
-                      textDirection: ui.TextDirection.rtl,
+                      const SizedBox(width: 8),
+                      Text(
+                        'HOME_HADITH_TITLE'.tr(),
+                        style: const TextStyle(
+                          color: constants.highlightedTextColor,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    hadith.hadith,
+                    style: const TextStyle(
+                      fontSize: fontSize,
+                      height: 1.65,
+                      fontFamily: 'Uthman',
+                      color: constants.textColor,
                     ),
-                    const SizedBox(height: 8),
-                    const Icon(
-                      Icons.touch_app_outlined,
-                      size: 18,
-                      color: constants.highlightedTextColor,
-                    ),
-                  ],
-                ),
+                    textAlign: TextAlign.center,
+                    textDirection: ui.TextDirection.rtl,
+                  ),
+                  const SizedBox(height: 10),
+                  const Divider(color: constants.dividerColor, height: 1),
+                  const SizedBox(height: 6),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: <Widget>[
+                      Text(
+                        'Hadith_Read_More'.tr(),
+                        style: const TextStyle(
+                          color: constants.highlightedTextColor,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(
+                        Icons.arrow_forward_rounded,
+                        size: 18,
+                        color: constants.highlightedTextColor,
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),

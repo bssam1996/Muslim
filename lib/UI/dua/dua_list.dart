@@ -1,7 +1,14 @@
 import 'dua_items.dart';
 
-List<DuaItem> duaItems = [
-  duaTravel,
+final List<DuaItem> duaItems = <DuaItem>[duaTravel, duaUmrah, duaHajj];
+
+final List<DuaItem> umrahDuaItems = <DuaItem>[
+  duaUmrahTalbiyah,
+  duaUmrahTawaf,
+  duaUmrahSai,
+];
+
+final List<DuaItem> hajjDuaItems = <DuaItem>[
   duaMakkahToMina,
   duaArafatWay,
   duaArafat,
@@ -10,5 +17,5 @@ List<DuaItem> duaItems = [
   duaJamaratThrowing,
   duaMinaNahr,
   duaMinaTashreeq,
-  duaHijjFinishing
+  duaHajjFinishing,
 ];

@@ -1,17 +1,15 @@
-import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/material.dart';
 import 'package:muslim/UI/dua/dua_card_page.dart';
+import 'package:muslim/UI/dua/dua_collection_page.dart';
+import 'package:muslim/UI/dua/dua_items.dart';
 import 'package:muslim/UI/dua/dua_list.dart';
+import 'package:muslim/UI/dua/dua_search.dart';
 import 'package:muslim/shared/constants.dart';
 
-class DuaPageClass extends StatefulWidget {
+class DuaPageClass extends StatelessWidget {
   const DuaPageClass({super.key});
 
-  @override
-  State<DuaPageClass> createState() => _DuaPageClassState();
-}
-
-class _DuaPageClassState extends State<DuaPageClass> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -23,43 +21,63 @@ class _DuaPageClassState extends State<DuaPageClass> {
         iconTheme: const IconThemeData(color: textColor),
         backgroundColor: primaryColor,
       ),
-        backgroundColor: thirdColor,
-         body: SafeArea(
-           child: Padding(
-             padding: const EdgeInsets.all(20.0),
-             child: ListView.builder(
-            physics: const AlwaysScrollableScrollPhysics(),
-            shrinkWrap: true,
-            padding: EdgeInsets.zero,
-            itemCount: duaItems.length,
-            itemBuilder: (BuildContext context, int index) {
-              return Column(
-                children: [
-                  Card(
-                    shadowColor: Colors.grey.shade300,
-                    color: fourthColor,
-                    child: ListTile(
-                      title: Text(duaItems[index].title, style: const TextStyle(fontSize:24, color: textColor),).tr(),
-                      onTap: (){
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => DuaCardPageClass(
-                              title: duaItems[index].title.tr(),
-                              data: duaItems[index].data,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  const Divider(color: textColor,)
-                ],
-              );
-            },
+      backgroundColor: thirdColor,
+      body: SafeArea(
+        child: DuaSearchableList(
+          items: duaItems,
+          additionalSearchableTerms: _categorySearchableTerms,
+          onOpen: _openItem,
+        ),
+      ),
+    );
+  }
+
+  static Iterable<String> _categorySearchableTerms(DuaItem item) sync* {
+    List<DuaItem>? relatedItems;
+    if (item.title == 'Dua_Umrah') {
+      relatedItems = umrahDuaItems;
+    } else if (item.title == 'Dua_Hajj') {
+      relatedItems = hajjDuaItems;
+    }
+
+    if (relatedItems == null) {
+      return;
+    }
+
+    for (final DuaItem relatedItem in relatedItems) {
+      yield* DuaSearch.titleTerms(relatedItem.title);
+      yield relatedItem.description;
+      yield relatedItem.data;
+    }
+  }
+
+  static void _openItem(BuildContext context, DuaItem item) {
+    List<DuaItem>? relatedItems;
+    if (item.title == 'Dua_Umrah') {
+      relatedItems = umrahDuaItems;
+    } else if (item.title == 'Dua_Hajj') {
+      relatedItems = hajjDuaItems;
+    }
+
+    if (relatedItems != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute<void>(
+          builder: (BuildContext context) => DuaCollectionPageClass(
+            titleKey: item.title,
+            items: relatedItems!,
           ),
         ),
-      )
+      );
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (BuildContext context) =>
+            DuaCardPageClass(title: item.title.tr(), data: item.data),
+      ),
     );
   }
 }

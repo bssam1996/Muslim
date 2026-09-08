@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 2.12.0+67
+version: 2.14.0+69
 
 environment:
   sdk: '>=3.10.0 <4.0.0'
@@ -88,21 +88,23 @@ dev_dependencies:
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
-flutter_icons:
+flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "assets/icon/main.png"
+  image_path: "assets/icon/icon.png"
+  adaptive_icon_background: "#12114D"
+  adaptive_icon_foreground: "assets/icon/icon_adaptive_foreground.png"
   remove_alpha_ios: true
   windows:
     generate: true
-    image_path: "assets/icon/main.png"
+    image_path: "assets/icon/icon.png"
     icon_size: 48 # min:48, max:256, default: 48
   macos:
     generate: true
-    image_path: "assets/icon/main.png"
+    image_path: "assets/icon/icon.png"
   web:
     generate: true
-    image_path: "assets/icon/main.png"
+    image_path: "assets/icon/icon.png"
 # The following section is specific to Flutter packages.
 flutter:
 
@@ -129,7 +131,7 @@ flutter:
     - "assets/quiz/quiz.png"
     - "assets/umrah/main.png"
     - "assets/daily_routine/daily-routine.png"
-    - "assets/icon/main.png"
+    - "assets/icon/icon.png"
     - "assets/adhan/"
     - "assets/translations/"
   fonts:
@@ -170,6 +172,6 @@ msix_config:
   display_name: Muslim
   publisher_display_name: B++
   identity_name: com.bplusplus.muslim
-  msix_version: 1.22.1.0
-  logo_path: assets/icon/main.png
+  msix_version: 1.23.0.0
+  logo_path: assets/icon/icon.png
   capabilities: internetClient, location

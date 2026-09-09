@@ -163,4 +163,49 @@ void main() {
     expect(preferences.containsKey(validKey), isTrue);
     expect(preferences.getString('unrelatedSetting'), 'preserved');
   });
+
+  test(
+    'clears all prayer-time caches without changing user preferences',
+    () async {
+      SharedPreferences.setMockInitialValues({
+        'timings/28-08-2026?latitude=51.5074': jsonEncode(
+          validPrayerTimesResponse(),
+        ),
+        'timings-v1/29-08-2026?latitude=51.5074': jsonEncode(
+          validPrayerTimesResponse(),
+        ),
+        'prayer-times-v1/calendar/2026/8?latitude=51.5074': jsonEncode(
+          validPrayerTimesResponse(),
+        ),
+        'location': jsonEncode(location),
+        'prayerNotificationFajr': true,
+        'method': 'Muslim World League',
+      });
+      final SharedPreferences preferences =
+          await SharedPreferences.getInstance();
+
+      final int cleared = await api_utils.clearPrayerTimesCache(
+        Future<SharedPreferences>.value(preferences),
+      );
+
+      expect(cleared, 3);
+      expect(
+        preferences.containsKey('timings/28-08-2026?latitude=51.5074'),
+        isFalse,
+      );
+      expect(
+        preferences.containsKey('timings-v1/29-08-2026?latitude=51.5074'),
+        isFalse,
+      );
+      expect(
+        preferences.containsKey(
+          'prayer-times-v1/calendar/2026/8?latitude=51.5074',
+        ),
+        isFalse,
+      );
+      expect(preferences.getString('location'), jsonEncode(location));
+      expect(preferences.getBool('prayerNotificationFajr'), isTrue);
+      expect(preferences.getString('method'), 'Muslim World League');
+    },
+  );
 }

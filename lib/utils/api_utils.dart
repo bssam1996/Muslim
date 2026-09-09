@@ -240,7 +240,7 @@ Future<void> cleanupInvalidPrayerTimesData(
 ) async {
   final SharedPreferences prefs = await preferences;
   for (final String key in prefs.getKeys()) {
-    if (!key.startsWith('timings')) {
+    if (!_isPrayerTimesCacheKey(key)) {
       continue;
     }
 
@@ -260,6 +260,26 @@ Future<void> cleanupInvalidPrayerTimesData(
       );
     }
   }
+}
+
+/// Removes only saved prayer-time API responses. User preferences such as the
+/// chosen location, calculation settings, and prayer-notification alarms are
+/// deliberately left untouched.
+Future<int> clearPrayerTimesCache(Future<SharedPreferences> preferences) async {
+  final SharedPreferences prefs = await preferences;
+  final List<String> cacheKeys = prefs
+      .getKeys()
+      .where(_isPrayerTimesCacheKey)
+      .toList(growable: false);
+
+  for (final String key in cacheKeys) {
+    await prefs.remove(key);
+  }
+  return cacheKeys.length;
+}
+
+bool _isPrayerTimesCacheKey(String key) {
+  return key.startsWith('timings') || key.startsWith('prayer-times-v1/');
 }
 
 Future<bool> saveDateInSharedPreference(

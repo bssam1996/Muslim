@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../utils/shared_preference_methods.dart'
     as shared_preference_methods;
 import '../../utils/helper.dart' as helper;
+import '../../utils/api_utils.dart' as api_utils;
 import '../../utils/prayer_location_utils.dart';
 
 class SettingsPageClass extends StatefulWidget {
@@ -518,6 +519,7 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                     ),
                   ),
                   const Divider(height: 20, thickness: 5, color: dividerColor),
+                  _buildClearPrayerCacheButton(),
                 ],
               ),
             ),
@@ -549,6 +551,50 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
         ),
         trailing: const Icon(Icons.chevron_right, color: textColor),
         onTap: _showLocationPicker,
+      ),
+    );
+  }
+
+  Widget _buildClearPrayerCacheButton() {
+    return Align(
+      alignment: Alignment.center,
+      child: TextButton.icon(
+        onPressed: _confirmClearPrayerCache,
+        icon: const Icon(Icons.delete_outline, size: 18),
+        label: Text("Settings_Clear_Prayer_Cache".tr()),
+        style: TextButton.styleFrom(
+          foregroundColor: Colors.white70,
+          visualDensity: VisualDensity.compact,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmClearPrayerCache() async {
+    final bool? shouldClear = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) => AlertDialog(
+        title: Text("Settings_Clear_Prayer_Cache".tr()),
+        content: Text("Settings_Clear_Prayer_Cache_Confirm".tr()),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text("Cancel".tr()),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text("Settings_Clear".tr()),
+          ),
+        ],
+      ),
+    );
+    if (shouldClear != true) return;
+
+    final int cleared = await api_utils.clearPrayerTimesCache(widget.prefs);
+    if (!mounted) return;
+    EasyLoading.showSuccess(
+      "Settings_Clear_Prayer_Cache_Success".tr(
+        args: <String>[cleared.toString()],
       ),
     );
   }

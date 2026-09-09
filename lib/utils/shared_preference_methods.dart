@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-void invalidateSharedData(
+Future<void> invalidateSharedData(
   Future<SharedPreferences> sharedPreferences,
   String name,
 ) async {

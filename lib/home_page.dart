@@ -4,7 +4,6 @@ import 'dart:io' show Platform;
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:muslim/UI/azkar/azkar_page.dart';
 import 'package:muslim/UI/daily_routine/daily_routine_page.dart';
 import 'package:muslim/UI/dua/dua_page.dart';
@@ -23,6 +22,7 @@ import 'package:muslim/utils/hadith_utils.dart';
 import 'package:muslim/utils/review_utils.dart' as review_utils;
 import 'package:muslim/utils/share_utils.dart' as share_utils;
 import 'UI/hadith/quick_hadith_card.dart';
+import 'UI/prayer_metadata_sheet.dart';
 import 'UI/settings/settings.dart';
 import 'UI/umrah/umrah_page.dart';
 import 'utils/helper.dart' as helper;
@@ -76,17 +76,16 @@ class _MyHomePageState extends State<MyHomePage> {
         if (!mounted) return;
         FetchAPI().then((value) async {
           if (value == false) {
-            stopTimer();
-            if (!kIsWeb) {
-              if (await helper.networkAccess() == false) {
-                EasyLoading.showError(
-                  "No_Internet_Error".tr(),
-                  duration: const Duration(seconds: 15),
-                  dismissOnTap: true,
-                );
-                return;
-              }
+            // FetchAPI can fail because the prayer-time service is unavailable,
+            // not only because location is missing. Open Settings only when the
+            // saved location itself cannot be obtained or verified.
+            final Map<String, dynamic> savedLocation = await api_utils
+                .getSavedLocation();
+            if (savedLocation["error"] == "") {
+              return;
             }
+            stopTimer();
+            if (!mounted) return;
             await Navigator.push(
               context,
               MaterialPageRoute(
@@ -160,13 +159,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   RandomHadith? hadithOfTheDay;
 
-  Widget metaData = DataTable(
-    columns: [
-      DataColumn(label: Text("")),
-      DataColumn(label: Text("")),
-    ],
-    rows: [],
-  );
+  Map<String, dynamic> prayerMetadata = <String, dynamic>{};
 
   List<Map<String, dynamic>> jsonTimings = List<Map<String, dynamic>>.filled(
     7,
@@ -270,6 +263,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     switch (result) {
       case review_utils.ReviewRequestResult.requested:
+      case review_utils.ReviewRequestResult.storeListingOpened:
         EasyLoading.showSuccess("Review_Thanks".tr());
         break;
       case review_utils.ReviewRequestResult.noNetwork:
@@ -289,15 +283,54 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  Future<void> _openStoreListingForReview() async {
+    if (_requestingReview) {
+      return;
+    }
+    setState(() {
+      _requestingReview = true;
+    });
+
+    final review_utils.ReviewRequestResult result = await review_utils
+        .openStoreListingForReview();
+    if (!mounted) return;
+
+    setState(() {
+      _requestingReview = false;
+    });
+
+    switch (result) {
+      case review_utils.ReviewRequestResult.storeListingOpened:
+        EasyLoading.showSuccess("Review_Thanks".tr());
+        break;
+      case review_utils.ReviewRequestResult.noNetwork:
+        EasyLoading.showError(
+          "No_Internet_Error".tr(),
+          duration: const Duration(seconds: 15),
+          dismissOnTap: true,
+        );
+        break;
+      case review_utils.ReviewRequestResult.requested:
+      case review_utils.ReviewRequestResult.alreadySubmitted:
+      case review_utils.ReviewRequestResult.web:
+      case review_utils.ReviewRequestResult.unavailable:
+      case review_utils.ReviewRequestResult.failed:
+        EasyLoading.showError("Review_Unavailable".tr(), dismissOnTap: true);
+        break;
+    }
+  }
+
   Future<bool> FetchAPI() async {
     EasyLoading.show(status: 'loading...', dismissOnTap: false);
 
-    // Get Saved location from IP or shared preferences
+    // Get the saved, verified prayer-time location.
     final SharedPreferences prefs = await _prefs;
     Map<String, dynamic> savedLocation = await api_utils.getSavedLocation();
     if (savedLocation["error"] != "") {
       EasyLoading.showError(
-        "Location_Missing_Error".tr(),
+        savedLocation["error"] == "Settings_Location_City_Country_Unavailable"
+            ? "Settings_Location_City_Country_Unavailable".tr()
+            : "Location_Missing_Error".tr(),
         duration: const Duration(seconds: 15),
         dismissOnTap: true,
       );
@@ -313,7 +346,7 @@ class _MyHomePageState extends State<MyHomePage> {
         );
         if (dataFromDay["error"] != "") {
           EasyLoading.showError(
-            "Something went wrong $dataFromDay",
+            dataFromDay["error"].toString(),
             dismissOnTap: true,
           );
           return false;
@@ -371,7 +404,9 @@ class _MyHomePageState extends State<MyHomePage> {
             // Only call setstate once
             jsonDataDate[dayNumber] = jsonData['data']['date'];
             jsonTimings[dayNumber] = jsonData['data']['timings'];
-            metaData = processMetaData(jsonData['data']['meta']);
+            prayerMetadata = jsonData['data']['meta'] is Map
+                ? Map<String, dynamic>.from(jsonData['data']['meta'] as Map)
+                : <String, dynamic>{};
             savedLocationAddress = helper.getAddressLocation(savedLocation);
           });
           resetTimer();
@@ -398,16 +433,21 @@ class _MyHomePageState extends State<MyHomePage> {
   final drawerHeader = UserAccountsDrawerHeader(
     accountEmail: null,
     currentAccountPicture: CircleAvatar(
-      backgroundColor: thirdColor,
-      child: CircleAvatar(
-        backgroundColor: Colors.grey[100],
-        radius: 50.0,
-        child: ClipOval(
-          child: Image.asset(
-            'assets/icon/main.png',
-            width: 512.0,
-            height: 512.0,
-          ),
+      backgroundColor: primaryColor,
+      child: ClipOval(
+        child: Image.asset(
+          'assets/icon/icon.png',
+          width: 100,
+          height: 100,
+          fit: BoxFit.cover,
+          errorBuilder:
+              (BuildContext context, Object error, StackTrace? stackTrace) {
+                return const Icon(
+                  Icons.mosque_outlined,
+                  color: highlightedTextColor,
+                  size: 42,
+                );
+              },
         ),
       ),
     ),
@@ -650,6 +690,20 @@ class _MyHomePageState extends State<MyHomePage> {
                             },
                           ),
                           const Divider(color: textColor),
+                          ListTile(
+                            title: const Text(
+                              'Home_Panel_Rate',
+                              style: TextStyle(color: textColor),
+                            ).tr(),
+                            trailing: Image.asset(
+                              'assets/rating/rating.png',
+                              width: 24,
+                            ),
+                            onTap: () {
+                              unawaited(_openStoreListingForReview());
+                            },
+                          ),
+                          const Divider(color: textColor),
                         ],
                       ),
                     ],
@@ -730,41 +784,19 @@ class _MyHomePageState extends State<MyHomePage> {
                             Expanded(
                               child: GestureDetector(
                                 onTap: () {
-                                  showModalBottomSheet(
+                                  showModalBottomSheet<void>(
                                     context: context,
+                                    isScrollControlled: true,
                                     shape: const RoundedRectangleBorder(
                                       borderRadius: BorderRadius.vertical(
-                                        top: Radius.circular(25),
+                                        top: Radius.circular(28),
                                       ),
                                     ),
                                     backgroundColor: thirdColor,
                                     builder: (BuildContext context) {
-                                      return Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Align(
-                                            alignment: Alignment.center,
-                                            heightFactor: 2,
-                                            child: AutoSizeText(
-                                              "Home_Page_Meta_Title".tr(),
-                                              style: headline2Style,
-                                            ),
-                                          ),
-                                          Card(
-                                            elevation: 20,
-                                            color: primaryColor,
-                                            shadowColor: thirdColor,
-                                            child: Padding(
-                                              padding: const EdgeInsets.all(
-                                                8.0,
-                                              ),
-                                              child: metaData,
-                                            ),
-                                          ),
-                                          const Divider(height: 50),
-                                        ],
+                                      return PrayerMetadataSheet(
+                                        locationName: savedLocationAddress,
+                                        metadata: prayerMetadata,
                                       );
                                     },
                                   );
@@ -1438,94 +1470,6 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget processMetaData(meta) {
-    List<DataRow> datarows = [];
-    datarows.add(
-      buildMetaRow(
-        "Home_Page_Meta_Timezone".tr(),
-        meta["timezone"]?.toString() ?? "",
-      ),
-    );
-    // datarows.add(buildMetaRow(
-    //     "Home_Page_Meta_Longitude".tr(), meta["longitude"]?.toString() ?? ""));
-    // datarows.add(buildMetaRow(
-    //     "Home_Page_Meta_Latitude".tr(), meta["latitude"]?.toString() ?? ""));
-    datarows.add(
-      buildMetaRow(
-        "Home_Page_Meta_Method".tr(),
-        meta["method"]["name"]?.toString() ?? "",
-      ),
-    );
-    datarows.add(
-      buildMetaRow(
-        "Home_Page_Meta_School".tr(),
-        meta["school"]?.toString() ?? "",
-      ),
-    );
-    List<DataColumn> dataColumns = [];
-    dataColumns.add(buildMetaColumn("Home_Page_Meta_Type".tr()));
-    dataColumns.add(buildMetaColumn("Home_Page_Meta_Value".tr()));
-    DataTable dataTable = DataTable(
-      columns: dataColumns,
-      rows: datarows,
-      headingRowHeight: 22,
-      dataRowMinHeight: 22,
-      dataRowMaxHeight: 22,
-    );
-    return dataTable;
-  }
-
-  DataRow buildMetaRow(String label, String value) {
-    DataRow dataRow = DataRow(
-      cells: [
-        DataCell(
-          Container(
-            alignment: Alignment.center,
-            child: FittedBox(
-              child: Text(label, style: const TextStyle(color: textColor)),
-            ),
-          ),
-        ),
-        DataCell(
-          Container(
-            alignment: Alignment.center,
-            child: FittedBox(
-              child: Text(
-                value,
-                style: const TextStyle(color: textColor),
-                textDirection: TextDirection.ltr,
-              ),
-            ),
-          ),
-          onTap: () async {
-            await Clipboard.setData(ClipboardData(text: value));
-            EasyLoading.showSuccess("Copied".tr());
-          },
-        ),
-      ],
-    );
-    return dataRow;
-  }
-
-  DataColumn buildMetaColumn(String text) {
-    return DataColumn(
-      label: Expanded(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            FittedBox(
-              child: Text(
-                text,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: textColor),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

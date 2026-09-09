@@ -13,11 +13,31 @@ const Duration reviewLaterCooldown = Duration(days: 7);
 
 enum ReviewRequestResult {
   requested,
+  storeListingOpened,
   alreadySubmitted,
   noNetwork,
   unavailable,
   web,
   failed,
+}
+
+Future<ReviewRequestResult> openStoreListingForReview() async {
+  if (kIsWeb) {
+    return ReviewRequestResult.web;
+  }
+  if (!await helper.networkAccess()) {
+    return ReviewRequestResult.noNetwork;
+  }
+
+  try {
+    await InAppReview.instance.openStoreListing();
+    return ReviewRequestResult.storeListingOpened;
+  } catch (e) {
+    if (kDebugMode) {
+      print(e);
+    }
+    return ReviewRequestResult.failed;
+  }
 }
 
 Future<bool> hasSubmittedReview(Future<SharedPreferences> prefs) async {

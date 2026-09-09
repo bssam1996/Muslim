@@ -8,6 +8,7 @@ import 'package:month_year_picker/month_year_picker.dart';
 import 'package:muslim/home_page.dart';
 import 'package:muslim/shared/constants.dart';
 import 'package:muslim/utils/helper.dart';
+import 'package:muslim/utils/api_utils.dart' as api_utils;
 import 'package:muslim/shared/constants.dart' as constants;
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -80,16 +81,19 @@ void main() async {
     ),
   );
 
-  if (!kIsWeb && Platform.isAndroid) {
-    await _configureAndroidBackgroundTasks();
-  }
-
   await shared_preference_methods.cleanupOldPrayerTimesData(
+    SharedPreferences.getInstance(),
+  );
+  await api_utils.cleanupInvalidPrayerTimesData(
     SharedPreferences.getInstance(),
   );
   await shared_preference_methods.cleanupOldDailyRoutineData(
     SharedPreferences.getInstance(),
   );
+
+  if (!kIsWeb && Platform.isAndroid) {
+    await _configureAndroidBackgroundTasks();
+  }
 
   runApp(
     EasyLocalization(

@@ -30,46 +30,63 @@ String customtimeFormatter(String customFormat, DateTime d) {
   return formattedDate;
 }
 
-Future<String?> constructAPIParameters(String callType, String requiredDate,
-    Map<String, dynamic> location, Future<SharedPreferences> prefs) async {
+Future<String?> constructAPIParameters(
+  String callType,
+  String requiredDate,
+  Map<String, dynamic> location,
+  Future<SharedPreferences> prefs,
+) async {
   try {
     String constructedParameters = "";
+    final bool hasCoordinates =
+        location["latitude"] is num && location["longitude"] is num;
 
     if (callType == "") {
-      if (location["type"] != "address") {
-        callType = "timings";
-        return null;
-      } else {
-        callType = "timingsByAddress";
-        constructedParameters = 'address=${location["location"]}';
-      }
-    } else if (callType == "calendarByAddress") {
-      constructedParameters = 'address=${location["location"]}';
+      if (!hasCoordinates) return null;
+      callType = "timings";
+      constructedParameters =
+          'latitude=${location["latitude"]}&longitude=${location["longitude"]}';
+    } else if (callType == "calendar") {
+      if (!hasCoordinates) return null;
+      constructedParameters =
+          'latitude=${location["latitude"]}&longitude=${location["longitude"]}';
     }
-    var sharedMethod =
-        await shared_preference_methods.getStringData(prefs, "method", false);
+    var sharedMethod = await shared_preference_methods.getStringData(
+      prefs,
+      "method",
+      false,
+    );
     if (sharedMethod != null &&
         sharedMethod != "" &&
         sharedMethod != "Default") {
       String mappedMethod = constants.authorities[sharedMethod].toString();
       constructedParameters = '$constructedParameters&method=$mappedMethod';
     }
-    var sharedSchool =
-        await shared_preference_methods.getStringData(prefs, "school", false);
+    var sharedSchool = await shared_preference_methods.getStringData(
+      prefs,
+      "school",
+      false,
+    );
     if (sharedSchool != null && sharedSchool != "") {
       String mappedSchool = constants.schools[sharedSchool].toString();
       constructedParameters = '$constructedParameters&school=$mappedSchool';
     }
     var calendarMethod = await shared_preference_methods.getStringData(
-        prefs, "calendarMethod", false);
+      prefs,
+      "calendarMethod",
+      false,
+    );
     if (calendarMethod != null && calendarMethod != "") {
-      String mappedCalendarMethod =
-          constants.CalendarMethods[calendarMethod].toString();
+      String mappedCalendarMethod = constants.CalendarMethods[calendarMethod]
+          .toString();
       constructedParameters =
           '$constructedParameters&calendarMethod=$mappedCalendarMethod';
       if (calendarMethod.toString() == "MATHEMATICAL") {
         var sharedAdjustment = await shared_preference_methods.getIntegerData(
-            prefs, "adjustment", 1);
+          prefs,
+          "adjustment",
+          1,
+        );
         if (sharedAdjustment != null) {
           constructedParameters =
               '$constructedParameters&adjustment=${sharedAdjustment.toString()}';
@@ -77,8 +94,10 @@ Future<String?> constructAPIParameters(String callType, String requiredDate,
       }
     }
     final String tuneParameter = await constructAladhanTuneParameter(prefs);
-    constructedParameters =
-        _appendQueryParameter(constructedParameters, 'tune=$tuneParameter');
+    constructedParameters = _appendQueryParameter(
+      constructedParameters,
+      'tune=$tuneParameter',
+    );
 
     return '$callType/$requiredDate?$constructedParameters';
   } catch (e) {
@@ -90,10 +109,12 @@ Future<String?> constructAPIParameters(String callType, String requiredDate,
 }
 
 Future<Map<String, int>> getPrayerTimeTuneSettings(
-    Future<SharedPreferences> prefs) async {
+  Future<SharedPreferences> prefs,
+) async {
   final Map<String, int> tuneSettings = {};
   for (final prayerName in constants.PRAYER_NAMES) {
-    final int tuneValue = await shared_preference_methods.getIntegerData(
+    final int tuneValue =
+        await shared_preference_methods.getIntegerData(
           prefs,
           constants.prayerTunePreferenceKey(prayerName),
           0,
@@ -105,37 +126,57 @@ Future<Map<String, int>> getPrayerTimeTuneSettings(
 }
 
 String constructAladhanTuneParameterFromSettings(
-    Map<String, int> tuneSettings) {
-  return constants.aladhanTuneParameterOrder.map((prayerName) {
-    if (constants.PRAYER_NAMES.contains(prayerName)) {
-      return (tuneSettings[prayerName] ?? 0).toString();
-    }
-    return '0';
-  }).join(',');
+  Map<String, int> tuneSettings,
+) {
+  return constants.aladhanTuneParameterOrder
+      .map((prayerName) {
+        if (constants.PRAYER_NAMES.contains(prayerName)) {
+          return (tuneSettings[prayerName] ?? 0).toString();
+        }
+        return '0';
+      })
+      .join(',');
 }
 
 Future<String> constructAladhanTuneParameter(
-    Future<SharedPreferences> prefs) async {
+  Future<SharedPreferences> prefs,
+) async {
   final Map<String, int> tuneSettings = await getPrayerTimeTuneSettings(prefs);
   return constructAladhanTuneParameterFromSettings(tuneSettings);
 }
 
-Future<http.Response?>? fetchData(String callType, String requiredDate,
-    Map<String, dynamic> location, Future<SharedPreferences> prefs) async {
-  try {
-    String? constructedParameters =
-        await constructAPIParameters(callType, requiredDate, location, prefs);
-    if (constructedParameters == null) {
-      return null;
-    }
-    return http
-        .get(Uri.parse('https://api.aladhan.com/v1/$constructedParameters'));
-  } catch (e) {
-    if (kDebugMode) {
-      print(e);
-    }
+/// Separates locally cached AlAdhan payloads from responses calculated by the
+/// self-hosted Muslim API while retaining the full coordinate/settings query.
+String prayerTimesCacheKey(String apiPath) {
+  if (apiPath.startsWith('timings/')) {
+    return apiPath.replaceFirst('timings/', 'timings-v1/');
+  }
+  return 'prayer-times-v1/$apiPath';
+}
+
+Future<http.Response?> fetchData(
+  String callType,
+  String requiredDate,
+  Map<String, dynamic> location,
+  Future<SharedPreferences> prefs, {
+  http.Client? client,
+}) async {
+  String? constructedParameters = await constructAPIParameters(
+    callType,
+    requiredDate,
+    location,
+    prefs,
+  );
+  if (constructedParameters == null) {
     return null;
   }
+
+  final Uri uri = Uri.parse(
+    '${constants.prayerTimesApiUrl}$constructedParameters',
+  );
+  return (client?.get(uri) ?? http.get(uri)).timeout(
+    const Duration(seconds: 15),
+  );
 }
 
 Future<void> invalidateTodayCachedData(Future<SharedPreferences> prefs) async {
@@ -155,8 +196,14 @@ DateTime constructDateTime(String timeString) {
   List<String> timingWhole = timeString.toString().split(":");
   int timingHour = int.parse(timingWhole[0]);
   int timingMinute = int.parse(timingWhole[1]);
-  DateTime constructedDateTime = DateTime(DateTime.now().year,
-      DateTime.now().month, DateTime.now().day, timingHour, timingMinute, 0);
+  DateTime constructedDateTime = DateTime(
+    DateTime.now().year,
+    DateTime.now().month,
+    DateTime.now().day,
+    timingHour,
+    timingMinute,
+    0,
+  );
   return constructedDateTime;
 }
 
@@ -215,14 +262,20 @@ Future<bool> shouldFetchDailyData(SharedPreferences prefs) async {
     return true; // Never fetched before
   }
   final DateTime lastFetchedDate = DateTime.parse(lastFetchedDateString);
-  final DateTime today =
-      DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+  final DateTime today = DateTime(
+    DateTime.now().year,
+    DateTime.now().month,
+    DateTime.now().day,
+  );
   return !lastFetchedDate.isAtSameMomentAs(today);
 }
 
 Future<void> updateLastFetchedDate(SharedPreferences prefs) async {
-  final DateTime today =
-      DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+  final DateTime today = DateTime(
+    DateTime.now().year,
+    DateTime.now().month,
+    DateTime.now().day,
+  );
   await prefs.setString(_lastFetchedDateKey, today.toIso8601String());
 }
 
@@ -232,8 +285,12 @@ String getNowMinutes() {
 }
 
 String getAddressLocation(Map<String, dynamic> savedLocation) {
-  if (savedLocation["type"] == "address") {
-    return savedLocation["location"] ?? "-";
+  if (savedLocation["type"] == "coordinates") {
+    return savedLocation["cityCountry"] ??
+        savedLocation["displayName"] ??
+        '${savedLocation["latitude"]}, ${savedLocation["longitude"]}';
+  } else if (savedLocation["type"] == "address") {
+    return savedLocation["cityCountry"] ?? savedLocation["location"] ?? "-";
   } else {
     return "-";
   }
@@ -252,21 +309,21 @@ String constructDateFormat(String month, String fullDate) {
 }
 
 Future<Map<String, bool>> getPrayerNotificationSettings(
-    Future<SharedPreferences> prefs, bool defaultValue) async {
+  Future<SharedPreferences> prefs,
+  bool defaultValue,
+) async {
   final Map<String, bool> notificationSettings = {};
   for (final prayerName in constants.PRAYER_NOTIFICATION_NAMES) {
-    final String preferenceKey =
-        constants.prayerNotificationPreferenceKey(prayerName);
-    final bool preferenceExists =
-        await shared_preference_methods.checkExistenceData(
-      prefs,
-      preferenceKey,
+    final String preferenceKey = constants.prayerNotificationPreferenceKey(
+      prayerName,
     );
+    final bool preferenceExists = await shared_preference_methods
+        .checkExistenceData(prefs, preferenceKey);
     bool enabled = defaultValue;
     if (preferenceExists) {
       enabled =
           await shared_preference_methods.getBoolData(prefs, preferenceKey) ??
-              defaultValue;
+          defaultValue;
     } else {
       await shared_preference_methods.setBoolData(
         prefs,
@@ -280,19 +337,19 @@ Future<Map<String, bool>> getPrayerNotificationSettings(
 }
 
 Future<Map<String, String>> getPrayerNotificationModes(
-    Future<SharedPreferences> prefs) async {
+  Future<SharedPreferences> prefs,
+) async {
   final Map<String, String> modeSettings = {};
   for (final prayerName in constants.PRAYER_NOTIFICATION_NAMES) {
-    final String preferenceKey =
-        constants.prayerNotificationModePreferenceKey(prayerName);
-    final bool preferenceExists =
-        await shared_preference_methods.checkExistenceData(
-      prefs,
-      preferenceKey,
+    final String preferenceKey = constants.prayerNotificationModePreferenceKey(
+      prayerName,
     );
+    final bool preferenceExists = await shared_preference_methods
+        .checkExistenceData(prefs, preferenceKey);
     String modeValue = constants.prayerNotificationModeVibrationOnly;
     if (preferenceExists) {
-      modeValue = await shared_preference_methods.getStringData(
+      modeValue =
+          await shared_preference_methods.getStringData(
             prefs,
             preferenceKey,
             false,
@@ -311,27 +368,28 @@ Future<Map<String, String>> getPrayerNotificationModes(
 }
 
 Future<Map<String, String>> getPrayerNotificationSounds(
-    Future<SharedPreferences> prefs) async {
+  Future<SharedPreferences> prefs,
+) async {
   final Map<String, String> soundSettings = {};
   for (final prayerName in constants.PRAYER_NOTIFICATION_NAMES) {
-    final String preferenceKey =
-        constants.prayerNotificationSoundPreferenceKey(prayerName);
-    final bool preferenceExists =
-        await shared_preference_methods.checkExistenceData(
-      prefs,
-      preferenceKey,
+    final String preferenceKey = constants.prayerNotificationSoundPreferenceKey(
+      prayerName,
     );
+    final bool preferenceExists = await shared_preference_methods
+        .checkExistenceData(prefs, preferenceKey);
     String soundValue = "";
     if (preferenceExists) {
-      soundValue = await shared_preference_methods.getStringData(
+      soundValue =
+          await shared_preference_methods.getStringData(
             prefs,
             preferenceKey,
             false,
           ) ??
           "";
     }
-    final String normalizedValue =
-        constants.adhanSoundKeyFromStoredValue(soundValue);
+    final String normalizedValue = constants.adhanSoundKeyFromStoredValue(
+      soundValue,
+    );
     if (!preferenceExists || normalizedValue != soundValue) {
       await shared_preference_methods.setStringData(
         prefs,
@@ -344,8 +402,10 @@ Future<Map<String, String>> getPrayerNotificationSounds(
   return soundSettings;
 }
 
-Future<void> handleNotifications(Future<SharedPreferences> prefs,
-    List<Map<String, dynamic>> jsonTimings) async {
+Future<void> handleNotifications(
+  Future<SharedPreferences> prefs,
+  List<Map<String, dynamic>> jsonTimings,
+) async {
   var sharedprayerNotification = await shared_preference_methods
       .checkExistenceData(prefs, 'prayerNotification');
   var prayerNotificationValue = false;
@@ -407,26 +467,26 @@ Future<void> handleNotifications(Future<SharedPreferences> prefs,
         hourString = parsedHour.toString();
       }
       DateTime selectedTime = DateTime(
-          DateTime.now().year,
-          DateTime.now().month,
-          DateTime.now().day,
-          int.parse(hourString),
-          int.parse(minuteString),
-          0);
+        DateTime.now().year,
+        DateTime.now().month,
+        DateTime.now().day,
+        int.parse(hourString),
+        int.parse(minuteString),
+        0,
+      );
       if (selectedTime.isBefore(DateTime.now())) {
         continue;
       }
-      final String prayerMode = prayerNotificationModes[prayerName] ??
+      final String prayerMode =
+          prayerNotificationModes[prayerName] ??
           constants.prayerNotificationModeVibrationOnly;
       final String configuredSoundKey =
           prayerNotificationSounds[prayerName] ?? "";
       final String? soundResourceName =
           prayerMode == constants.prayerNotificationModeCustomSound &&
-                  configuredSoundKey.isNotEmpty
-              ? constants.androidRawResourceNameFromSoundKey(
-                  configuredSoundKey,
-                )
-              : null;
+              configuredSoundKey.isNotEmpty
+          ? constants.androidRawResourceNameFromSoundKey(configuredSoundKey)
+          : null;
       final String channelId = constants.prayerNotificationAndroidChannelId(
         prayerName,
         prayerMode,
@@ -456,7 +516,8 @@ Future<void> handleNotifications(Future<SharedPreferences> prefs,
     return;
   }
 }
-Future<bool> networkAccess() async{
+
+Future<bool> networkAccess() async {
   try {
     final result = await InternetAddress.lookup('example.com');
     if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {

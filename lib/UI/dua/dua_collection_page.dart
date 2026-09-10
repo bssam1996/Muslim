@@ -1,46 +1,8 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:muslim/UI/dua/dua_card_page.dart';
 import 'package:muslim/UI/dua/dua_items.dart';
 import 'package:muslim/UI/dua/dua_search.dart';
 import 'package:muslim/shared/constants.dart';
-
-class DuaCollectionPageClass extends StatelessWidget {
-  const DuaCollectionPageClass({
-    super.key,
-    required this.titleKey,
-    required this.items,
-  });
-
-  final String titleKey;
-  final List<DuaItem> items;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(titleKey.tr(), style: const TextStyle(color: textColor)),
-        iconTheme: const IconThemeData(color: textColor),
-        backgroundColor: primaryColor,
-      ),
-      backgroundColor: thirdColor,
-      body: SafeArea(
-        child: DuaSearchableList(
-          items: items,
-          onOpen: (BuildContext context, DuaItem item) {
-            Navigator.push(
-              context,
-              MaterialPageRoute<void>(
-                builder: (BuildContext context) =>
-                    DuaCardPageClass(title: item.title.tr(), data: item.data),
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-}
 
 class DuaSearchableList extends StatefulWidget {
   const DuaSearchableList({

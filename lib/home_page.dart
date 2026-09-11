@@ -508,6 +508,25 @@ class _MyHomePageState extends State<MyHomePage> {
                       const Divider(color: textColor),
                     ],
                   ),
+                  ListTile(
+                    title: const Text(
+                      'Home_Panel_Hadiths',
+                      style: TextStyle(color: textColor),
+                    ).tr(),
+                    trailing: Image.asset(
+                      "assets/hadith/hadith.png",
+                      width: 24,
+                    ),
+                    onTap: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const HadithHomePageClass(),
+                        ),
+                      );
+                    },
+                  ),
+                  const Divider(color: textColor),
                   Column(
                     children: [
                       ListTile(
@@ -627,25 +646,6 @@ class _MyHomePageState extends State<MyHomePage> {
                             context,
                             MaterialPageRoute(
                               builder: (context) => const ContactPageClass(),
-                            ),
-                          );
-                        },
-                      ),
-                      const Divider(color: textColor),
-                      ListTile(
-                        title: const Text(
-                          'Home_Panel_Hadiths',
-                          style: TextStyle(color: textColor),
-                        ).tr(),
-                        trailing: Image.asset(
-                          "assets/hadith/hadith.png",
-                          width: 24,
-                        ),
-                        onTap: () async {
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const HadithHomePageClass(),
                             ),
                           );
                         },

@@ -1,0 +1,11 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/modern_dates" android:layout_width="match_parent"
+    android:layout_height="28dp" android:orientation="horizontal" android:gravity="center_vertical">
+    <TextView android:id="@+id/modern_hijri_top" style="@style/ModernWidgetText"
+        android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+        android:gravity="start" android:textColor="@color/widget_modern_gold"
+        android:text="@string/hijriDate_text" />
+    <TextView android:id="@+id/modern_gregorian_top" style="@style/ModernWidgetLabel"
+        android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+        android:gravity="end" android:text="@string/gregorianDate_text" />
+</LinearLayout>

@@ -18,6 +18,7 @@
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon"
         android:label="Muslim"
+        android:supportsRtl="true"
         android:networkSecurityConfig="@xml/network_security_config">
         <receiver
             android:name="HomeAppWidget"
@@ -41,6 +42,24 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/home_app_widget_info_wide" />
+        </receiver>
+
+        <receiver android:name="HomeAppWidgetPortraitModern"
+            android:label="@string/widget_modern_portrait_name" android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider"
+                android:resource="@xml/home_app_widget_info_modern_portrait" />
+        </receiver>
+
+        <receiver android:name="HomeAppWidgetWideModern"
+            android:label="@string/widget_modern_wide_name" android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider"
+                android:resource="@xml/home_app_widget_info_modern_wide" />
         </receiver>
 
         <receiver android:name="es.antonborri.home_widget.HomeWidgetBackgroundReceiver" android:exported="true">

@@ -1,0 +1,250 @@
+[
+  {
+    "query": "new shirt",
+    "expected": "new-garment"
+  },
+  {
+    "query": "new clothes",
+    "expected": "new-garment"
+  },
+  {
+    "query": "new dress",
+    "expected": "new-garment"
+  },
+  {
+    "query": "new garment",
+    "expected": "new-garment"
+  },
+  {
+    "query": "لبس جديد",
+    "expected": "new-garment"
+  },
+  {
+    "query": "ملابس جديدة",
+    "expected": "new-garment"
+  },
+  {
+    "query": "ثوب جديد",
+    "expected": "new-garment"
+  },
+  {
+    "query": "اشتريت هدوم",
+    "expected": "new-garment"
+  },
+  {
+    "query": "I bought a new shirt",
+    "expected": "new-garment"
+  },
+  {
+    "query": "dua for new clothes",
+    "expected": "new-garment"
+  },
+  {
+    "query": "worried",
+    "expected": "worry"
+  },
+  {
+    "query": "worry",
+    "expected": "worry"
+  },
+  {
+    "query": "anxiety",
+    "expected": "worry"
+  },
+  {
+    "query": "grief",
+    "expected": "worry"
+  },
+  {
+    "query": "قلقان",
+    "expected": "worry"
+  },
+  {
+    "query": "هم وحزن",
+    "expected": "worry"
+  },
+  {
+    "query": "حزين",
+    "expected": "worry"
+  },
+  {
+    "query": "debt",
+    "expected": "worry"
+  },
+  {
+    "query": "debts",
+    "expected": "worry"
+  },
+  {
+    "query": "ديون",
+    "expected": "worry"
+  },
+  {
+    "query": "I feel worried",
+    "expected": "worry"
+  },
+  {
+    "query": "دعاء الدين",
+    "expected": "worry"
+  },
+  {
+    "query": "istikhara",
+    "expected": "istikhara"
+  },
+  {
+    "query": "istikharah",
+    "expected": "istikhara"
+  },
+  {
+    "query": "decision",
+    "expected": "istikhara"
+  },
+  {
+    "query": "استخارة",
+    "expected": "istikhara"
+  },
+  {
+    "query": "اختيار",
+    "expected": "istikhara"
+  },
+  {
+    "query": "dua for istikhara",
+    "expected": "istikhara"
+  },
+  {
+    "query": "exam",
+    "expected": "knowledge"
+  },
+  {
+    "query": "studying",
+    "expected": "knowledge"
+  },
+  {
+    "query": "study",
+    "expected": "knowledge"
+  },
+  {
+    "query": "مذاكرة",
+    "expected": "knowledge"
+  },
+  {
+    "query": "امتحان",
+    "expected": "knowledge"
+  },
+  {
+    "query": "I need dua for exam",
+    "expected": "knowledge"
+  },
+  {
+    "query": "travel",
+    "expected": "travel"
+  },
+  {
+    "query": "travelling",
+    "expected": "travel"
+  },
+  {
+    "query": "traveling",
+    "expected": "travel"
+  },
+  {
+    "query": "journey",
+    "expected": "travel"
+  },
+  {
+    "query": "سفر",
+    "expected": "travel"
+  },
+  {
+    "query": "مسافر",
+    "expected": "travel"
+  },
+  {
+    "query": "travel سفر",
+    "expected": "travel"
+  },
+  {
+    "query": "Muslim 1342",
+    "expected": "travel"
+  },
+  {
+    "query": "مسلم ١٣٤٢",
+    "expected": "travel"
+  },
+  {
+    "query": "new phone",
+    "expected": "gratitude"
+  },
+  {
+    "query": "new laptop",
+    "expected": "gratitude"
+  },
+  {
+    "query": "اشتريت موبايل",
+    "expected": "gratitude"
+  },
+  {
+    "query": "موبايل جديد",
+    "expected": "gratitude"
+  },
+  {
+    "query": "new home",
+    "expected": "gratitude"
+  },
+  {
+    "query": "new house",
+    "expected": "gratitude"
+  },
+  {
+    "query": "بيت جديد",
+    "expected": "gratitude"
+  },
+  {
+    "query": "شقة جديدة",
+    "expected": "gratitude"
+  },
+  {
+    "query": "new car",
+    "expected": "gratitude"
+  },
+  {
+    "query": "سيارة جديدة",
+    "expected": "gratitude"
+  },
+  {
+    "query": "job interview",
+    "expected": "provision"
+  },
+  {
+    "query": "interview",
+    "expected": "provision"
+  },
+  {
+    "query": "مقابلة عمل",
+    "expected": "provision"
+  },
+  {
+    "query": "انترفيو",
+    "expected": "provision"
+  },
+  {
+    "query": "rizq",
+    "expected": "provision"
+  },
+  {
+    "query": "rizk",
+    "expected": "provision"
+  },
+  {
+    "query": "رزق",
+    "expected": "provision"
+  },
+  {
+    "query": "pain",
+    "expected": "pain"
+  },
+  {
+    "query": "ألم",
+    "expected": "pain"
+  }
+]

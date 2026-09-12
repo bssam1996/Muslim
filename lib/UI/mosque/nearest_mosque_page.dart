@@ -15,7 +15,13 @@ class NearestMosquePageClass extends StatefulWidget {
 }
 
 class _NearestMosquePageClassState extends State<NearestMosquePageClass> {
-  static const List<int> _radiusOptionsMeters = <int>[1000, 3000, 5000, 10000, 25000];
+  static const List<int> _radiusOptionsMeters = <int>[
+    1000,
+    3000,
+    5000,
+    10000,
+    25000,
+  ];
 
   int _selectedRadiusMeters = 3000;
   int _searchedRadiusMeters = 3000;
@@ -125,17 +131,24 @@ class _NearestMosquePageClassState extends State<NearestMosquePageClass> {
                 enabledBorder: const OutlineInputBorder(
                   borderSide: BorderSide(color: boxesBorderColor),
                 ),
+                disabledBorder: const OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.white70),
+                ),
                 focusedBorder: const OutlineInputBorder(
                   borderSide: BorderSide(color: highlightedBoxesBorderColor),
                 ),
               ),
               iconEnabledColor: textColor,
+              iconDisabledColor: Colors.white70,
               style: const TextStyle(color: textColor),
               items: _radiusOptionsMeters
                   .map(
                     (int radius) => DropdownMenuItem<int>(
                       value: radius,
-                      child: Text(formatMosqueDistance(radius.toDouble())),
+                      child: Text(
+                        formatMosqueDistance(radius.toDouble()),
+                        style: const TextStyle(color: textColor),
+                      ),
                     ),
                   )
                   .toList(),
@@ -155,6 +168,8 @@ class _NearestMosquePageClassState extends State<NearestMosquePageClass> {
             style: ElevatedButton.styleFrom(
               backgroundColor: highlightedColor,
               foregroundColor: Colors.white,
+              disabledBackgroundColor: thirdColor,
+              disabledForegroundColor: textColor,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
             ),
             icon: const Icon(Icons.search),

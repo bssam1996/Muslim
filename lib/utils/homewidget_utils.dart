@@ -310,6 +310,14 @@ Future<bool> refreshWidgetOnly({String source = "unknown"}) async {
         name: "HomeAppWidgetWide",
         androidName: "HomeAppWidgetWide",
       );
+      await HomeWidget.updateWidget(
+        name: "HomeAppWidgetPortraitModern",
+        androidName: "HomeAppWidgetPortraitModern",
+      );
+      await HomeWidget.updateWidget(
+        name: "HomeAppWidgetWideModern",
+        androidName: "HomeAppWidgetWideModern",
+      );
     }
     if (kDebugMode) {
       print("[$source] Widget refresh completed");

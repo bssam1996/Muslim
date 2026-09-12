@@ -4,7 +4,7 @@
     android:id="@+id/layout_root"
     android:theme="@style/Theme.Android.AppWidgetContainer"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="match_parent"
     android:background="@drawable/home_widget_bg_root"
     android:orientation="horizontal"
     android:padding="8dp">

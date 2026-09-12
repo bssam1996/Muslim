@@ -24,7 +24,7 @@ import 'package:muslim/utils/share_utils.dart' as share_utils;
 import 'UI/hadith/quick_hadith_card.dart';
 import 'UI/prayer_metadata_sheet.dart';
 import 'UI/settings/settings.dart';
-import 'UI/umrah/umrah_page.dart';
+import 'UI/home/pilgrimage_menu_entries.dart';
 import 'utils/helper.dart' as helper;
 import 'utils/homewidget_utils.dart' as homewidget_utils;
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -508,6 +508,25 @@ class _MyHomePageState extends State<MyHomePage> {
                       const Divider(color: textColor),
                     ],
                   ),
+                  ListTile(
+                    title: const Text(
+                      'Home_Panel_Hadiths',
+                      style: TextStyle(color: textColor),
+                    ).tr(),
+                    trailing: Image.asset(
+                      "assets/hadith/hadith.png",
+                      width: 24,
+                    ),
+                    onTap: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const HadithHomePageClass(),
+                        ),
+                      );
+                    },
+                  ),
+                  const Divider(color: textColor),
                   Column(
                     children: [
                       ListTile(
@@ -551,29 +570,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       const Divider(color: textColor),
                     ],
                   ),
-                  Column(
-                    children: [
-                      ListTile(
-                        title: const Text(
-                          'Home_Panel_Umrah',
-                          style: TextStyle(color: textColor),
-                        ).tr(),
-                        trailing: Image.asset(
-                          "assets/umrah/main.png",
-                          width: 24,
-                        ),
-                        onTap: () async {
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const UmrahPageClass(),
-                            ),
-                          );
-                        },
-                      ),
-                      const Divider(color: textColor),
-                    ],
-                  ),
+                  const PilgrimageMenuEntries(),
                   Column(
                     children: [
                       ListTile(
@@ -649,25 +646,6 @@ class _MyHomePageState extends State<MyHomePage> {
                             context,
                             MaterialPageRoute(
                               builder: (context) => const ContactPageClass(),
-                            ),
-                          );
-                        },
-                      ),
-                      const Divider(color: textColor),
-                      ListTile(
-                        title: const Text(
-                          'Home_Panel_Hadiths',
-                          style: TextStyle(color: textColor),
-                        ).tr(),
-                        trailing: Image.asset(
-                          "assets/hadith/hadith.png",
-                          width: 24,
-                        ),
-                        onTap: () async {
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const HadithHomePageClass(),
                             ),
                           );
                         },

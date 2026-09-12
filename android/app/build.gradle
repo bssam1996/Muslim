@@ -83,6 +83,9 @@ android {
     buildFeatures {
         viewBinding true
     }
+    testOptions {
+        unitTests.includeAndroidResources = true
+    }
 }
 
 kotlin {
@@ -94,7 +97,16 @@ kotlin {
 flutter {
     source '../..'
 }
+// AGP's resource-aware unit tests also consume the assets copied by Flutter.
+tasks.configureEach { task ->
+    if (task.name.startsWith('package') && task.name.endsWith('UnitTestForUnitTest')) {
+        def variant = task.name.substring('package'.length(), task.name.length() - 'UnitTestForUnitTest'.length())
+        task.dependsOn("copyFlutterAssets${variant}")
+    }
+}
 dependencies {
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.robolectric:robolectric:4.16.1'
     // For AGP 7.4+
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
 }

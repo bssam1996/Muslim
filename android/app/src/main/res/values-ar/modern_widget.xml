@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_modern_portrait_name">عمودي عصري</string>
+    <string name="widget_modern_wide_name">أفقي عصري</string>
+    <string name="widget_modern_portrait_description">جدول مواقيت الصلاة مع تاريخ بخط عريض وتمييز الصلاة القادمة بالذهبي.</string>
+    <string name="widget_modern_wide_description">مواقيت الصلاة بتصميم كحلي وذهبي ونص يتكيف مع الحجم.</string>
+</resources>

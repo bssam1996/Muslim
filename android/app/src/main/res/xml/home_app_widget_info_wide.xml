@@ -5,6 +5,7 @@
     android:initialLayout="@layout/home_app_widget_wide"
     android:minWidth="110dp"
     android:minHeight="10dp"
+    android:minResizeHeight="1dp"
     android:previewImage="@drawable/example_appwidget_preview"
     android:previewLayout="@layout/home_app_widget_wide"
     android:targetCellWidth="3"

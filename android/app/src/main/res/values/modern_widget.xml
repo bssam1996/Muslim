@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_modern_portrait_name">Modern Portrait</string>
+    <string name="widget_modern_wide_name">Modern Wide</string>
+    <string name="widget_modern_portrait_description">A clean prayer timetable with bold dates and a gold next-prayer highlight.</string>
+    <string name="widget_modern_wide_description">A compact navy and gold prayer strip with text that adapts as you resize it.</string>
+    <string name="widget_preview_fajr" translatable="false">05:10</string>
+    <string name="widget_preview_sunrise" translatable="false">06:35</string>
+    <string name="widget_preview_dhuhr" translatable="false">12:45</string>
+    <string name="widget_preview_asr" translatable="false">16:20</string>
+    <string name="widget_preview_maghrib" translatable="false">18:50</string>
+    <string name="widget_preview_isha" translatable="false">20:15</string>
+    <color name="widget_modern_text">#F5F3EC</color>
+    <color name="widget_modern_muted">#AFBDCF</color>
+    <color name="widget_modern_gold">#E6C885</color>
+    <style name="ModernWidgetText" parent="">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textColor">@color/widget_modern_text</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
+    <style name="ModernWidgetLabel" parent="ModernWidgetText">
+        <item name="android:textColor">@color/widget_modern_muted</item>
+        <item name="android:textSize">11sp</item>
+    </style>
+    <style name="ModernWidgetTime" parent="ModernWidgetText">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:fontFeatureSettings">tnum</item>
+        <item name="android:textDirection">locale</item>
+    </style>
+</resources>

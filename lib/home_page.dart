@@ -5,6 +5,7 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:muslim/UI/azkar/azkar_page.dart';
+import 'package:muslim/UI/biographies/biography_page.dart';
 import 'package:muslim/UI/daily_routine/daily_routine_page.dart';
 import 'package:muslim/UI/dua/dua_page.dart';
 import 'package:muslim/UI/hadith/main_page.dart';
@@ -571,6 +572,23 @@ class _MyHomePageState extends State<MyHomePage> {
                     ],
                   ),
                   const PilgrimageMenuEntries(),
+                  ListTile(
+                    title: const Text(
+                      'Biography_Title',
+                      style: TextStyle(color: textColor),
+                    ).tr(),
+                    trailing: Image.asset(biographyIcon, width: 24),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const BiographyPage(),
+                        ),
+                      );
+                    },
+                  ),
+                  const Divider(color: textColor),
                   Column(
                     children: [
                       ListTile(

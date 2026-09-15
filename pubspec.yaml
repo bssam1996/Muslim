@@ -72,6 +72,9 @@ dependencies:
   url_launcher: ^6.3.2
   font_awesome_flutter: ^11.0.0
   in_app_review: ^2.0.12
+  pdfrx: ^2.4.8
+  path_provider: ^2.1.6
+  web: ^1.1.1
 
 
 dev_dependencies:
@@ -135,6 +138,7 @@ flutter:
     - "assets/umrah/main.png"
     - "assets/hajj/hajj.png"
     - "assets/daily_routine/daily-routine.png"
+    - "assets/biographies/prophet_muhammed_biography_2.png"
     - "assets/icon/icon.png"
     - "assets/adhan/"
     - "assets/translations/"

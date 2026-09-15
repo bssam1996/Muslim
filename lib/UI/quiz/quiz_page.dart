@@ -162,13 +162,6 @@ class _QuizPageClassState extends State<QuizPageClass>
           style: const TextStyle(color: textColor),
         ),
         centerTitle: true,
-        actions: <Widget>[
-          IconButton(
-            tooltip: 'Quiz_New_Question'.tr(),
-            icon: const Icon(Icons.refresh),
-            onPressed: _loading ? null : _fetchQuestion,
-          ),
-        ],
       ),
       body: Stack(
         children: <Widget>[
@@ -341,6 +334,20 @@ class _QuizPageClassState extends State<QuizPageClass>
                     ),
                     icon: const Icon(Icons.visibility_outlined),
                     label: Text('Quiz_Show_Answer'.tr()),
+                  ),
+                  const SizedBox(height: 14),
+                  ElevatedButton.icon(
+                    onPressed: _loading ? null : _fetchQuestion,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: highlightedColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    icon: const Icon(Icons.arrow_forward),
+                    label: Text('Quiz_New_Question'.tr()),
                   ),
                   const SizedBox(height: 10),
                   Text(

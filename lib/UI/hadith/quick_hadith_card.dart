@@ -1,9 +1,9 @@
 import 'dart:ui' as ui;
 
 import 'package:easy_localization/easy_localization.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:muslim/shared/constants.dart' as constants;
+import 'package:muslim/shared/web_home_style.dart';
 import 'package:muslim/utils/hadith_utils.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -14,7 +14,8 @@ class QuickHadithCardPageClass extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const double fontSize = kIsWeb ? 32 : 24;
+    const double fontSize = 24;
+    final styled = useWebHomeStyle(context);
 
     return Semantics(
       button: true,
@@ -24,21 +25,30 @@ class QuickHadithCardPageClass extends StatelessWidget {
       child: Card(
         clipBehavior: Clip.antiAlias,
         color: Colors.transparent,
-        elevation: 8,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: styled ? 0 : 8,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(styled ? 24 : 16),
+          side: styled
+              ? const BorderSide(color: webBorderColor)
+              : BorderSide.none,
+        ),
         margin: const EdgeInsets.only(bottom: 8),
         child: Ink(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: <Color>[constants.primaryColor, constants.thirdColor],
+              colors: styled
+                  ? const <Color>[Color(0xFF233B45), webPanelColor]
+                  : const <Color>[constants.primaryColor, constants.thirdColor],
             ),
           ),
           child: InkWell(
             onTap: () => _showDetails(context),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+              padding: styled
+                  ? const EdgeInsets.fromLTRB(24, 22, 24, 16)
+                  : const EdgeInsets.fromLTRB(20, 16, 20, 12),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,

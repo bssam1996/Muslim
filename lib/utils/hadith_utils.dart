@@ -67,7 +67,9 @@ class RandomHadith {
 
 Future<RandomHadith?> getRandomHadith() async {
   try{
-    if(await helper.networkAccess() == false){
+    // Browsers cannot use the native DNS probe. The request below handles
+    // connection failures through its existing error handling.
+    if(!kIsWeb && await helper.networkAccess() == false){
         EasyLoading.showError("No_Internet_Error".tr(),
             duration: const Duration(seconds: 15), dismissOnTap: true);
         return null;

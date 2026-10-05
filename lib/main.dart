@@ -7,6 +7,7 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:month_year_picker/month_year_picker.dart';
 import 'package:muslim/home_page.dart';
 import 'package:muslim/shared/constants.dart';
+import 'package:muslim/shared/responsive_web_layout.dart';
 import 'package:muslim/utils/helper.dart';
 import 'package:muslim/utils/api_utils.dart' as api_utils;
 import 'package:muslim/shared/constants.dart' as constants;
@@ -132,7 +133,7 @@ class MyApp extends StatelessWidget {
             data: MediaQuery.of(
               context,
             ).copyWith(textScaler: const TextScaler.linear(1)),
-            child: child!,
+            child: kIsWeb ? ResponsiveWebViewport(child: child!) : child!,
           );
         },
       ),

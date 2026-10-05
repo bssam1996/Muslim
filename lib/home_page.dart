@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:muslim/UI/azkar/azkar_page.dart';
 import 'package:muslim/UI/biographies/biography_page.dart';
+import 'package:muslim/UI/prophets/prophets_page.dart';
 import 'package:muslim/UI/daily_routine/daily_routine_page.dart';
 import 'package:muslim/UI/dua/dua_page.dart';
 import 'package:muslim/UI/hadith/main_page.dart';
@@ -594,6 +595,21 @@ class _MyHomePageState extends State<MyHomePage> {
                       );
                     },
                   ),
+                  ListTile(
+                    title: const Text(
+                      'Prophets_Title',
+                      style: TextStyle(color: textColor),
+                    ).tr(),
+                    trailing: Image.asset(
+                      prophetsHomeIcon,
+                      width: 28,
+                      height: 28,
+                    ),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      await _openProphetsPage();
+                    },
+                  ),
                   const Divider(color: textColor),
                   Column(
                     children: [
@@ -1128,6 +1144,11 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget _buildActivitiesSection() {
     final activityItems = <_UtilityItem>[
       _UtilityItem(
+        titleKey: 'Prophets_Title',
+        assetPath: prophetsHomeIcon,
+        onTap: _openProphetsPage,
+      ),
+      _UtilityItem(
         titleKey: 'Home_Activities_Daily_Routine',
         assetPath: 'assets/daily_routine/daily-routine.png',
         onTap: _openDailyRoutinePage,
@@ -1195,6 +1216,13 @@ class _MyHomePageState extends State<MyHomePage> {
     await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const QuizPageClass()),
+    );
+  }
+
+  Future<void> _openProphetsPage() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ProphetsPage()),
     );
   }
 

@@ -60,6 +60,7 @@ dependencies:
   smooth_page_indicator: ^1.1.0
   win32: 5.15.0
   upgrader: ^13.4.0
+  package_info_plus: ^8.1.1
   flutter_launch_store: ^1.0.8
   background_fetch: ^1.5.0
   share_plus: ^12.0.2

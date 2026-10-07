@@ -36,6 +36,7 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'utils/shared_preference_methods.dart' as shared_preference_methods;
 import 'package:home_widget/home_widget.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:easy_localization/easy_localization.dart' as easy_localization;
 import 'package:upgrader/upgrader.dart';
 // import 'package:muslim/shared/rainbow_button.dart';
@@ -145,6 +146,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Duration refreshDuration = const Duration(seconds: 1);
 
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
+  final Future<PackageInfo> _packageInfo = PackageInfo.fromPlatform();
 
   static const headline2Style = TextStyle(
     fontSize: 20,
@@ -475,6 +477,29 @@ class _MyHomePageState extends State<MyHomePage> {
   final daysListViewController = ScrollController();
   // final pages = List.generate(7, (index) => Container());
 
+  Widget _buildAppVersionFooter() {
+    return FutureBuilder<PackageInfo>(
+      future: _packageInfo,
+      builder: (context, snapshot) {
+        final version = snapshot.data?.version;
+        if (version == null || version.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Text(
+            'Home_Panel_Version'.tr(namedArgs: {'version': version}),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: textColor.withValues(alpha: 0.65),
+              fontSize: 12,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return UpgradeAlert(
@@ -488,244 +513,260 @@ class _MyHomePageState extends State<MyHomePage> {
           drawer: Drawer(
             backgroundColor: thirdColor,
             child: SafeArea(
-              child: ListView(
-                padding: EdgeInsets.zero,
+              child: Column(
                 children: [
-                  drawerHeader,
-                  Column(
-                    children: [
-                      ListTile(
-                        title: const Text(
-                          'Home_Panel_Quran',
-                          style: TextStyle(color: textColor),
-                        ).tr(),
-                        trailing: Image.asset(
-                          "assets/quran/quran.png",
-                          width: 24,
-                          color: textColor,
-                        ),
-                        onTap: () async {
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const QuranPageClass(),
+                  Expanded(
+                    child: ListView(
+                      padding: EdgeInsets.zero,
+                      children: [
+                        drawerHeader,
+                        Column(
+                          children: [
+                            ListTile(
+                              title: const Text(
+                                'Home_Panel_Quran',
+                                style: TextStyle(color: textColor),
+                              ).tr(),
+                              trailing: Image.asset(
+                                "assets/quran/quran.png",
+                                width: 24,
+                                color: textColor,
+                              ),
+                              onTap: () async {
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const QuranPageClass(),
+                                  ),
+                                );
+                              },
                             ),
-                          );
-                        },
-                      ),
-                      const Divider(color: textColor),
-                    ],
-                  ),
-                  ListTile(
-                    title: const Text(
-                      'Home_Panel_Hadiths',
-                      style: TextStyle(color: textColor),
-                    ).tr(),
-                    trailing: Image.asset(
-                      "assets/hadith/hadith.png",
-                      width: 24,
-                    ),
-                    onTap: () async {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const HadithHomePageClass(),
+                            const Divider(color: textColor),
+                          ],
                         ),
-                      );
-                    },
-                  ),
-                  const Divider(color: textColor),
-                  Column(
-                    children: [
-                      ListTile(
-                        title: const Text(
-                          'Home_Panel_Dua',
-                          style: TextStyle(color: textColor),
-                        ).tr(),
-                        trailing: Image.asset("assets/dua/dua.png", width: 24),
-                        onTap: () async {
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const DuaPageClass(),
-                            ),
-                          );
-                        },
-                      ),
-                      const Divider(color: textColor),
-                    ],
-                  ),
-                  Column(
-                    children: [
-                      ListTile(
-                        title: const Text(
-                          'Home_Panel_Azkar',
-                          style: TextStyle(color: textColor),
-                        ).tr(),
-                        trailing: Image.asset(
-                          "assets/azkar/azkar.png",
-                          width: 24,
-                        ),
-                        onTap: () async {
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const AzkarPageClass(),
-                            ),
-                          );
-                        },
-                      ),
-                      const Divider(color: textColor),
-                    ],
-                  ),
-                  const PilgrimageMenuEntries(),
-                  ListTile(
-                    title: const Text(
-                      'Biography_Title',
-                      style: TextStyle(color: textColor),
-                    ).tr(),
-                    trailing: Image.asset(biographyIcon, width: 24),
-                    onTap: () async {
-                      Navigator.pop(context);
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const BiographyPage(),
-                        ),
-                      );
-                    },
-                  ),
-                  ListTile(
-                    title: const Text(
-                      'Prophets_Title',
-                      style: TextStyle(color: textColor),
-                    ).tr(),
-                    trailing: Image.asset(
-                      prophetsHomeIcon,
-                      width: 28,
-                      height: 28,
-                    ),
-                    onTap: () async {
-                      Navigator.pop(context);
-                      await _openProphetsPage();
-                    },
-                  ),
-                  const Divider(color: textColor),
-                  Column(
-                    children: [
-                      ListTile(
-                        title: const Text(
-                          'Home_Panel_Settings',
-                          style: TextStyle(color: textColor),
-                        ).tr(),
-                        trailing: const Icon(
-                          Icons.settings,
-                          color: textColor,
-                          size: 24,
-                        ),
-                        onTap: () async {
-                          stopTimer();
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  SettingsPageClass(prefs: _prefs),
-                            ),
-                          );
-                          // helper.invalidateTodayCachedData(_prefs);
-                          var location = await shared_preference_methods
-                              .getStringData(_prefs, 'location', true);
-                          if (location != null) {
-                            FetchAPI();
-                          }
-                        },
-                      ),
-                      const Divider(color: textColor),
-                      Visibility(
-                        visible: (!kIsWeb && Platform.isAndroid),
-                        child: ListTile(
+                        ListTile(
                           title: const Text(
-                            'Home_Panel_Prayer_Notifications',
+                            'Home_Panel_Hadiths',
                             style: TextStyle(color: textColor),
                           ).tr(),
-                          trailing: const Icon(
-                            Icons.notifications,
-                            color: textColor,
-                            size: 24,
+                          trailing: Image.asset(
+                            "assets/hadith/hadith.png",
+                            width: 24,
                           ),
                           onTap: () async {
-                            stopTimer();
                             await Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (context) =>
-                                    PrayerNotificationsPageClass(prefs: _prefs),
+                                    const HadithHomePageClass(),
                               ),
                             );
-                            var location = await shared_preference_methods
-                                .getStringData(_prefs, 'location', true);
-                            if (location != null) {
-                              FetchAPI();
-                            }
                           },
                         ),
-                      ),
-                      const Divider(color: textColor),
-                      ListTile(
-                        title: const Text(
-                          'Home_Panel_Contact',
-                          style: TextStyle(color: textColor),
-                        ).tr(),
-                        trailing: const Icon(
-                          Icons.contact_support,
-                          color: textColor,
-                          size: 24,
+                        const Divider(color: textColor),
+                        Column(
+                          children: [
+                            ListTile(
+                              title: const Text(
+                                'Home_Panel_Dua',
+                                style: TextStyle(color: textColor),
+                              ).tr(),
+                              trailing: Image.asset(
+                                "assets/dua/dua.png",
+                                width: 24,
+                              ),
+                              onTap: () async {
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const DuaPageClass(),
+                                  ),
+                                );
+                              },
+                            ),
+                            const Divider(color: textColor),
+                          ],
                         ),
-                        onTap: () async {
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const ContactPageClass(),
+                        Column(
+                          children: [
+                            ListTile(
+                              title: const Text(
+                                'Home_Panel_Azkar',
+                                style: TextStyle(color: textColor),
+                              ).tr(),
+                              trailing: Image.asset(
+                                "assets/azkar/azkar.png",
+                                width: 24,
+                              ),
+                              onTap: () async {
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const AzkarPageClass(),
+                                  ),
+                                );
+                              },
                             ),
-                          );
-                        },
-                      ),
-                      const Divider(color: textColor),
-                      Column(
-                        children: [
-                          ListTile(
-                            title: const Text(
-                              'Home_Panel_Share',
-                              style: TextStyle(color: textColor),
-                            ).tr(),
-                            trailing: const Icon(
-                              Icons.share,
-                              color: textColor,
-                              size: 24,
-                            ),
-                            onTap: () async {
-                              share_utils.shareApp();
-                            },
+                            const Divider(color: textColor),
+                          ],
+                        ),
+                        const PilgrimageMenuEntries(),
+                        ListTile(
+                          title: const Text(
+                            'Biography_Title',
+                            style: TextStyle(color: textColor),
+                          ).tr(),
+                          trailing: Image.asset(biographyIcon, width: 24),
+                          onTap: () async {
+                            Navigator.pop(context);
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const BiographyPage(),
+                              ),
+                            );
+                          },
+                        ),
+                        ListTile(
+                          title: const Text(
+                            'Prophets_Title',
+                            style: TextStyle(color: textColor),
+                          ).tr(),
+                          trailing: Image.asset(
+                            prophetsHomeIcon,
+                            width: 28,
+                            height: 28,
                           ),
-                          const Divider(color: textColor),
-                          ListTile(
-                            title: const Text(
-                              'Home_Panel_Rate',
-                              style: TextStyle(color: textColor),
-                            ).tr(),
-                            trailing: Image.asset(
-                              'assets/rating/rating.png',
-                              width: 24,
+                          onTap: () async {
+                            Navigator.pop(context);
+                            await _openProphetsPage();
+                          },
+                        ),
+                        const Divider(color: textColor),
+                        Column(
+                          children: [
+                            ListTile(
+                              title: const Text(
+                                'Home_Panel_Settings',
+                                style: TextStyle(color: textColor),
+                              ).tr(),
+                              trailing: const Icon(
+                                Icons.settings,
+                                color: textColor,
+                                size: 24,
+                              ),
+                              onTap: () async {
+                                stopTimer();
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        SettingsPageClass(prefs: _prefs),
+                                  ),
+                                );
+                                // helper.invalidateTodayCachedData(_prefs);
+                                var location = await shared_preference_methods
+                                    .getStringData(_prefs, 'location', true);
+                                if (location != null) {
+                                  FetchAPI();
+                                }
+                              },
                             ),
-                            onTap: () {
-                              unawaited(_openStoreListingForReview());
-                            },
-                          ),
-                          const Divider(color: textColor),
-                        ],
-                      ),
-                    ],
+                            const Divider(color: textColor),
+                            Visibility(
+                              visible: (!kIsWeb && Platform.isAndroid),
+                              child: ListTile(
+                                title: const Text(
+                                  'Home_Panel_Prayer_Notifications',
+                                  style: TextStyle(color: textColor),
+                                ).tr(),
+                                trailing: const Icon(
+                                  Icons.notifications,
+                                  color: textColor,
+                                  size: 24,
+                                ),
+                                onTap: () async {
+                                  stopTimer();
+                                  await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          PrayerNotificationsPageClass(
+                                            prefs: _prefs,
+                                          ),
+                                    ),
+                                  );
+                                  var location = await shared_preference_methods
+                                      .getStringData(_prefs, 'location', true);
+                                  if (location != null) {
+                                    FetchAPI();
+                                  }
+                                },
+                              ),
+                            ),
+                            const Divider(color: textColor),
+                            ListTile(
+                              title: const Text(
+                                'Home_Panel_Contact',
+                                style: TextStyle(color: textColor),
+                              ).tr(),
+                              trailing: const Icon(
+                                Icons.contact_support,
+                                color: textColor,
+                                size: 24,
+                              ),
+                              onTap: () async {
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const ContactPageClass(),
+                                  ),
+                                );
+                              },
+                            ),
+                            const Divider(color: textColor),
+                            Column(
+                              children: [
+                                ListTile(
+                                  title: const Text(
+                                    'Home_Panel_Share',
+                                    style: TextStyle(color: textColor),
+                                  ).tr(),
+                                  trailing: const Icon(
+                                    Icons.share,
+                                    color: textColor,
+                                    size: 24,
+                                  ),
+                                  onTap: () async {
+                                    share_utils.shareApp();
+                                  },
+                                ),
+                                const Divider(color: textColor),
+                                ListTile(
+                                  title: const Text(
+                                    'Home_Panel_Rate',
+                                    style: TextStyle(color: textColor),
+                                  ).tr(),
+                                  trailing: Image.asset(
+                                    'assets/rating/rating.png',
+                                    width: 24,
+                                  ),
+                                  onTap: () {
+                                    unawaited(_openStoreListingForReview());
+                                  },
+                                ),
+                                const Divider(color: textColor),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
+                  _buildAppVersionFooter(),
                 ],
               ),
             ),

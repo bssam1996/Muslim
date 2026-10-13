@@ -1,12 +1,14 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/services.dart';
 import "package:flutter_local_notifications/flutter_local_notifications.dart";
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
+import 'prayer_alarm_scheduler.dart';
 
-class NotificationService {
+class NotificationService implements PrayerAlarmBackend {
   static final NotificationService _instance = NotificationService._internal();
 
   factory NotificationService() {
@@ -18,12 +20,39 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _notificationsPlugin =
       FlutterLocalNotificationsPlugin();
   bool _initialized = false;
+  @override
+  Future<Set<int>> pendingIds() async {
+    await init();
+    return (await _notificationsPlugin.pendingNotificationRequests().timeout(
+      const Duration(seconds: 10),
+    )).map((request) => request.id).toSet();
+  }
+
+  @override
+  Future<void> cancel(int id) => clearNotification(id);
+
+  @override
+  Future<void> schedule(PrayerAlarm alarm) async {
+    final error = await schedulePrayerOccurrence(
+      alarm.time,
+      alarm.id,
+      alarm.channelId,
+      alarm.name,
+      "${"Don't forget praying".tr()} ${alarm.name.tr()}",
+      playSound: alarm.sound != null,
+      soundResourceName: alarm.sound,
+    );
+    if (error.isNotEmpty) throw StateError(error);
+  }
+
   Future<void> clearAllNotifications() async {
     await _notificationsPlugin.cancelAll();
   }
 
   Future<void> clearNotification(int id) async {
-    await _notificationsPlugin.cancel(id: id);
+    await _notificationsPlugin
+        .cancel(id: id)
+        .timeout(const Duration(seconds: 5));
   }
 
   Future<void> init() async {
@@ -37,25 +66,25 @@ class NotificationService {
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/launcher_icon');
 
-    final InitializationSettings initializationSettings =
-        InitializationSettings(
-      android: initializationSettingsAndroid,
-    );
+    const InitializationSettings initializationSettings =
+        InitializationSettings(android: initializationSettingsAndroid);
 
-    await _notificationsPlugin.initialize(
-      settings: initializationSettings,
-    );
+    await _notificationsPlugin
+        .initialize(settings: initializationSettings)
+        .timeout(const Duration(seconds: 10));
     _initialized = true;
   }
 
   Future<bool> requestExactAlarmPermissionIfNeeded() async {
     await init();
-    if(kIsWeb || !Platform.isAndroid) {
+    if (kIsWeb || !Platform.isAndroid) {
       return true;
     }
     final AndroidFlutterLocalNotificationsPlugin? androidPlugin =
-        _notificationsPlugin.resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+        _notificationsPlugin
+            .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin
+            >();
     if (androidPlugin == null) {
       return false;
     }
@@ -67,7 +96,44 @@ class NotificationService {
     return await androidPlugin.requestExactAlarmsPermission() ?? false;
   }
 
-  Future<String> scheduleDailyNotification(
+  Future<(bool?, bool?)> readPermissions() async {
+    if (kIsWeb || !Platform.isAndroid) return (null, null);
+    await init();
+    final android = _notificationsPlugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+    return (
+      await android?.areNotificationsEnabled(),
+      await android?.canScheduleExactNotifications(),
+    );
+  }
+
+  Future<void> showTestNotification(String title, String body) async {
+    if (kIsWeb || !Platform.isAndroid) {
+      throw UnsupportedError('Android notifications');
+    }
+    await init();
+    final (granted, _) = await readPermissions();
+    if (granted != true) throw StateError('Notification permission required');
+    await _notificationsPlugin
+        .show(
+          id: 900000,
+          title: title,
+          body: body,
+          notificationDetails: NotificationDetails(
+            android: AndroidNotificationDetails(
+              'app_test_notification_v1',
+              'Notifications_Test'.tr(),
+              importance: Importance.high,
+              priority: Priority.high,
+            ),
+          ),
+        )
+        .timeout(const Duration(seconds: 10));
+  }
+
+  Future<String> schedulePrayerOccurrence(
     DateTime selectedTime,
     int zoneId,
     String channelId,
@@ -78,94 +144,56 @@ class NotificationService {
     bool enableVibration = true,
   }) async {
     await init();
-    final tz.TZDateTime scheduledTime =
-        tz.TZDateTime.from(selectedTime, tz.local);
-    tz.TZDateTime.local(selectedTime.year, selectedTime.month, selectedTime.day,
-        selectedTime.hour, selectedTime.minute, selectedTime.second);
+    final tz.TZDateTime scheduledTime = tz.TZDateTime.from(
+      selectedTime,
+      tz.local,
+    );
 
-    // Exact-first strategy:
-    // in background isolates canScheduleExactNotifications() may report false
-    // even when exact alarms are actually permitted. We attempt exact first and
-    // only downgrade when the platform explicitly rejects exact alarms.
-    const AndroidScheduleMode preferredMode =
-        AndroidScheduleMode.exactAllowWhileIdle;
-
-    try {
-      await _notificationsPlugin.zonedSchedule(
-        id: zoneId,
-        title: title,
-        body: body,
-        scheduledDate: scheduledTime,
-        notificationDetails: _notificationDetails(
-          channelId,
-          title,
-          body,
-          selectedTime,
-          playSound: playSound,
-          soundResourceName: soundResourceName,
-          enableVibration: enableVibration,
-        ),
-        matchDateTimeComponents: DateTimeComponents.time,
-        androidScheduleMode: preferredMode,
-      );
-      print(
-          'Notification scheduled successfully for $scheduledTime with mode $preferredMode and sound ${playSound ? "enabled" : "disabled"} and resource ${soundResourceName ?? "default"}');
-      return "";
-    } on PlatformException catch (e) {
-      if (e.code == "invalid_sound" && playSound) {
-        print(
-            "Notification sound resource '$soundResourceName' was unavailable. Falling back to vibration-only notification.");
-        await _notificationsPlugin.zonedSchedule(
-          id: zoneId,
-          title: title,
-          body: body,
-          scheduledDate: scheduledTime,
-          notificationDetails: _notificationDetails(
-            '${channelId}_fallback',
-            title,
-            body,
-            selectedTime,
-            playSound: false,
-            soundResourceName: null,
-            enableVibration: enableVibration,
-          ),
-          matchDateTimeComponents: DateTimeComponents.time,
-          androidScheduleMode: preferredMode,
-        );
-        return "";
-      }
-      if (e.code == "exact_alarms_not_permitted" &&
-          (preferredMode == AndroidScheduleMode.alarmClock ||
-              preferredMode == AndroidScheduleMode.exact ||
-              preferredMode == AndroidScheduleMode.exactAllowWhileIdle)) {
-        if (kDebugMode) {
-          print("Exact alarms unavailable. Falling back to inexact schedule.");
+    var mode = AndroidScheduleMode.exactAllowWhileIdle;
+    var effectiveSound = playSound;
+    var effectiveChannel = channelId;
+    // Retry independently: an unavailable sound and denied exact permission
+    // can occur together. Every attempt remains a one-time dated alarm.
+    for (var attempt = 0; attempt < 3; attempt++) {
+      try {
+        await _notificationsPlugin
+            .zonedSchedule(
+              id: zoneId,
+              title: title,
+              body: body,
+              scheduledDate: scheduledTime,
+              notificationDetails: _notificationDetails(
+                effectiveChannel,
+                title,
+                body,
+                selectedTime,
+                playSound: effectiveSound,
+                soundResourceName: effectiveSound ? soundResourceName : null,
+                enableVibration: enableVibration,
+              ),
+              androidScheduleMode: mode,
+            )
+            .timeout(const Duration(seconds: 5));
+        return '';
+      } on PlatformException catch (error) {
+        if (error.code == 'invalid_sound' && effectiveSound) {
+          effectiveSound = false;
+          effectiveChannel = '${channelId}_fallback';
+          continue;
         }
-        await _notificationsPlugin.zonedSchedule(
-          id: zoneId,
-          title: title,
-          body: body,
-          scheduledDate: scheduledTime,
-          notificationDetails: _notificationDetails(
-            channelId,
-            title,
-            body,
-            selectedTime,
-            playSound: playSound,
-            soundResourceName: soundResourceName,
-            enableVibration: enableVibration,
-          ),
-          matchDateTimeComponents: DateTimeComponents.time,
-          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-        );
-        return "";
+        if (error.code == 'exact_alarms_not_permitted' &&
+            mode == AndroidScheduleMode.exactAllowWhileIdle) {
+          mode = AndroidScheduleMode.inexactAllowWhileIdle;
+          continue;
+        }
+        debugPrint('Prayer occurrence scheduling failed: $error');
+        return 'Prayer occurrence scheduling failed: $error';
+      } catch (error) {
+        debugPrint('Prayer occurrence scheduling failed: $error');
+        return 'Prayer occurrence scheduling failed: $error';
       }
-      print('Error scheduling notification: $e');
-      return 'Error scheduling notification: $e';
-    } catch (e) {
-      print('Error scheduling notification: $e');
-      return 'Error scheduling notification: $e';
     }
+    return 'Prayer occurrence scheduling failed after fallback attempts';
   }
 
   NotificationDetails _notificationDetails(

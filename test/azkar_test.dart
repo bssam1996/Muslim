@@ -401,17 +401,9 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
       addTearDown(tester.view.resetViewInsets);
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-      // Mirror main.dart's fixed root scale. Each overlay must restore the device scale.
+      // The root and reader overlays inherit the device text scaler.
       await tester.pumpWidget(
-        MaterialApp(
-          builder: (context, child) => MediaQuery(
-            data: MediaQuery.of(
-              context,
-            ).copyWith(textScaler: TextScaler.noScaling),
-            child: child!,
-          ),
-          home: const AzkarCardPageClass(keyname: 'Azkar_Wakeup'),
-        ),
+        const MaterialApp(home: AzkarCardPageClass(keyname: 'Azkar_Wakeup')),
       );
       await tester.pumpAndSettle();
       await reveal(tester, find.byKey(const ValueKey('azkar-count-button')));

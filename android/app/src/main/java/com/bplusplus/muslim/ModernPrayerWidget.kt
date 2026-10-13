@@ -81,10 +81,10 @@ abstract class ModernPrayerWidget(private val wide: Boolean) : HomeWidgetProvide
                 "maghrib" -> R.string.maghrib_label
                 else -> R.string.isha_label
             })) }
-        val times = prayers.map { it.time to (data.getString("${it.key}_text", "—") ?: "—") }
-        val hijri = data.getString("hijriDate_text", "—") ?: "—"
-        val gregorian = data.getString("gregorianDate_text", "—") ?: "—"
-        val nextKey = data.getString("next_prayer_key", "")?.trim()?.lowercase(Locale.ROOT)
+        val times = prayers.map { it.time to (prayerWidgetText(context, data, "${it.key}_text", "—") ?: "—") }
+        val hijri = prayerWidgetText(context, data, "hijriDate_text", "—") ?: "—"
+        val gregorian = prayerWidgetText(context, data, "gregorianDate_text", "—") ?: "—"
+        val nextKey = prayerWidgetText(context, data, "next_prayer_key", "")?.trim()?.lowercase(Locale.ROOT)
         val nextIndex = prayers.indexOfFirst { it.key == nextKey }
         val rtl = !Bidi(labels.first().second, Bidi.DIRECTION_DEFAULT_LEFT_TO_RIGHT).baseIsLeftToRight()
         val compactWide = wide && height < 100f

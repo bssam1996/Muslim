@@ -4,6 +4,20 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('Phase B status labels have intact Arabic translations', () {
+    final translations =
+        jsonDecode(File('assets/translations/ar-EG.json').readAsStringSync())
+            as Map;
+    for (final key in [
+      'Prayer_Notifications_Refresh_Error',
+      'Prayer_Times_Unavailable',
+      'Daily_Routine_Estimated',
+    ]) {
+      expect(translations[key], matches(RegExp(r'[\u0600-\u06ff]')));
+      expect(translations[key], isNot(contains('???')));
+    }
+  });
+
   test('translation assets include the radio page labels', () {
     final Map<String, dynamic> englishTranslations =
         jsonDecode(File('assets/translations/en-US.json').readAsStringSync())

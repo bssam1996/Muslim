@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:muslim/shared/web_home_style.dart';
+import 'package:muslim/shared/app_theme.dart';
 
 /// Bounds the web navigator and gives routes the size they actually occupy.
 class ResponsiveWebViewport extends StatelessWidget {
@@ -15,7 +15,7 @@ class ResponsiveWebViewport extends StatelessWidget {
       final width = math.min(constraints.maxWidth, 1120.0);
       final mediaQuery = MediaQuery.of(context);
       return ColoredBox(
-        color: webCanvasColor,
+        color: AppPalette.of(context).canvas,
         child: Center(
           child: SizedBox(
             width: width,
@@ -39,25 +39,29 @@ class HomeDashboardLayout extends StatelessWidget {
     required this.prayerPanel,
     required this.contentPanel,
     required this.allowWideLayout,
+    this.stretchPanels = true,
   });
 
   final Widget prayerPanel;
   final Widget contentPanel;
   final bool allowWideLayout;
+  final bool stretchPanels;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       if (allowWideLayout && constraints.maxWidth >= 960) {
-        // Measure both columns at their natural height, then stretch them to
-        // the taller one. Fixed column widths avoid intrinsic viewport queries.
+        // Content-sized pagers need loose heights so their measurements can
+        // update the table. Fixed widths avoid intrinsic viewport queries.
         return Table(
           columnWidths: const {
             0: FixedColumnWidth(420),
             1: FixedColumnWidth(24),
             2: FlexColumnWidth(),
           },
-          defaultVerticalAlignment: TableCellVerticalAlignment.intrinsicHeight,
+          defaultVerticalAlignment: stretchPanels
+              ? TableCellVerticalAlignment.intrinsicHeight
+              : TableCellVerticalAlignment.top,
           children: [
             TableRow(
               children: [prayerPanel, const SizedBox.shrink(), contentPanel],

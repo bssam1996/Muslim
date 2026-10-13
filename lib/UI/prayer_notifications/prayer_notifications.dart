@@ -1,3 +1,5 @@
+import '../../utils/prayer_notification_status.dart';
+import 'package:muslim/shared/app_theme.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -13,13 +15,26 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../shared/constants.dart';
 import '../../utils/helper.dart' as helper;
 import '../../utils/notification_service.dart';
+import '../../utils/prayer_data_repository.dart';
+import '../../shared/retry_notice.dart';
 import '../../utils/shared_preference_methods.dart'
     as shared_preference_methods;
 
 class PrayerNotificationsPageClass extends StatefulWidget {
   final Future<SharedPreferences> prefs;
 
-  const PrayerNotificationsPageClass({super.key, required this.prefs});
+  const PrayerNotificationsPageClass({
+    super.key,
+    required this.prefs,
+    this.loadStatus,
+    this.reconcile,
+    this.requestPermissions,
+    this.testNotification,
+  });
+  final Future<PrayerNotificationStatus> Function()? loadStatus;
+  final Future<bool> Function()? reconcile;
+  final Future<bool> Function()? requestPermissions;
+  final Future<void> Function()? testNotification;
 
   @override
   State<PrayerNotificationsPageClass> createState() =>
@@ -27,12 +42,26 @@ class PrayerNotificationsPageClass extends StatefulWidget {
 }
 
 class _PrayerNotificationsPageClassState
-    extends State<PrayerNotificationsPageClass> {
-  static const detailsStyle =
-      TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: textColor);
-  static const helperStyle =
-      TextStyle(fontSize: 13, color: highlightedColor, height: 1.4);
+    extends State<PrayerNotificationsPageClass>
+    with WidgetsBindingObserver {
+  TextStyle get detailsStyle => TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w500,
+    color: AppPalette.of(context).text,
+  );
+  TextStyle get helperStyle => TextStyle(
+    fontSize: 13,
+    color: AppPalette.of(context).accent,
+    height: 1.4,
+  );
 
+  PrayerNotificationStatus? _status;
+  bool _statusFailed = false;
+  int _statusRequest = 0;
+  bool get _supported =>
+      widget.loadStatus != null || (!kIsWeb && Platform.isAndroid);
+  bool _scheduleBusy = false;
+  bool _scheduleFailed = false;
   bool prayerNotification = false;
   List<String> adhanOptions = [];
   Map<String, bool> prayerNotifications = {
@@ -54,6 +83,8 @@ class _PrayerNotificationsPageClassState
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    unawaited(_readStatus());
     _previewCompleteSubscription = _previewPlayer.onPlayerComplete.listen((_) {
       if (!mounted) {
         return;
@@ -64,7 +95,7 @@ class _PrayerNotificationsPageClassState
         _previewSoundKey = null;
       });
     });
-    EasyLoading.showInfo("Prayer_Notifications_Loading_Tip".tr());
+
     try {
       WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
         _updatePrayerNotifications();
@@ -78,11 +109,8 @@ class _PrayerNotificationsPageClassState
   }
 
   Future<void> _updatePrayerNotifications() async {
-    final bool sharedPrayerNotification =
-        await shared_preference_methods.checkExistenceData(
-      widget.prefs,
-      'prayerNotification',
-    );
+    final bool sharedPrayerNotification = await shared_preference_methods
+        .checkExistenceData(widget.prefs, 'prayerNotification');
     bool prayerNotificationValue = false;
 
     if (sharedPrayerNotification) {
@@ -97,32 +125,13 @@ class _PrayerNotificationsPageClassState
         prayerNotificationValue,
       );
     }
-    Map<String, bool> prayerNotificationValues =
-        await helper.getPrayerNotificationSettings(
-      widget.prefs,
-      prayerNotificationValue,
-    );
+    Map<String, bool> prayerNotificationValues = await helper
+        .getPrayerNotificationSettings(widget.prefs, true);
     final List<String> adhanOptionValues = await _loadAdhanOptions();
-    Map<String, String> prayerNotificationModeValues =
-        await helper.getPrayerNotificationModes(widget.prefs);
-    Map<String, String> prayerNotificationSoundValues =
-        await helper.getPrayerNotificationSounds(widget.prefs);
-    if (!prayerNotificationValue &&
-        prayerNotificationValues.values.any((enabled) => enabled)) {
-      prayerNotificationValues = {
-        for (final prayerName in PRAYER_NOTIFICATION_NAMES) prayerName: false,
-      };
-      await _savePrayerNotifications(prayerNotificationValues);
-    }
-    if (prayerNotificationValue &&
-        prayerNotificationValues.values.every((enabled) => !enabled)) {
-      prayerNotificationValue = false;
-      await shared_preference_methods.setBoolData(
-        widget.prefs,
-        'prayerNotification',
-        false,
-      );
-    }
+    Map<String, String> prayerNotificationModeValues = await helper
+        .getPrayerNotificationModes(widget.prefs);
+    Map<String, String> prayerNotificationSoundValues = await helper
+        .getPrayerNotificationSounds(widget.prefs);
     prayerNotificationSoundValues = await _normalizePrayerSoundSelections(
       prayerNotificationModeValues,
       prayerNotificationSoundValues,
@@ -146,36 +155,25 @@ class _PrayerNotificationsPageClassState
 
   Future<List<String>> _loadAdhanOptions() async {
     try {
-      final AssetManifest manifest =
-          await AssetManifest.loadFromAssetBundle(rootBundle);
-      final List<String> options = manifest
-          .listAssets()
-          .where(
-            (assetPath) =>
-                assetPath.startsWith('assets/adhan/') &&
-                assetPath.toLowerCase().endsWith('.mp3'),
-          )
-          .map(adhanSoundKeyFromAssetPath)
-          .toSet()
-          .toList()
-        ..sort();
+      final AssetManifest manifest = await AssetManifest.loadFromAssetBundle(
+        rootBundle,
+      );
+      final List<String> options =
+          manifest
+              .listAssets()
+              .where(
+                (assetPath) =>
+                    assetPath.startsWith('assets/adhan/') &&
+                    assetPath.toLowerCase().endsWith('.mp3'),
+              )
+              .map(adhanSoundKeyFromAssetPath)
+              .toSet()
+              .toList()
+            ..sort();
       return options;
     } catch (_) {
       return [];
     }
-  }
-
-  Future<bool> _savePrayerNotifications(Map<String, bool> values) async {
-    bool result = true;
-    for (final entry in values.entries) {
-      final bool saved = await shared_preference_methods.setBoolData(
-        widget.prefs,
-        prayerNotificationPreferenceKey(entry.key),
-        entry.value,
-      );
-      result = result && saved;
-    }
-    return result;
   }
 
   Future<bool> _savePrayerNotificationModes(Map<String, String> values) async {
@@ -238,13 +236,15 @@ class _PrayerNotificationsPageClassState
       return soundKey;
     }
     final List<String> parts = cleaned.split(RegExp(r'\s+'));
-    return parts.map((part) {
-      if (part.isEmpty) {
-        return part;
-      }
-      final String lower = part.toLowerCase();
-      return lower[0].toUpperCase() + lower.substring(1);
-    }).join(' ');
+    return parts
+        .map((part) {
+          if (part.isEmpty) {
+            return part;
+          }
+          final String lower = part.toLowerCase();
+          return lower[0].toUpperCase() + lower.substring(1);
+        })
+        .join(' ');
   }
 
   String _assetSourceFromSoundKey(String soundKey) {
@@ -278,7 +278,9 @@ class _PrayerNotificationsPageClassState
     }
     await _stopSoundPreview(updateState: false);
     try {
-      await _previewPlayer.play(AssetSource(_assetSourceFromSoundKey(soundKey)));
+      await _previewPlayer.play(
+        AssetSource(_assetSourceFromSoundKey(soundKey)),
+      );
       if (!mounted) {
         return;
       }
@@ -291,104 +293,87 @@ class _PrayerNotificationsPageClassState
       if (kDebugMode) {
         print(e);
       }
+      _feedback('Audio_Preview_Error');
     }
   }
 
-  Future<void> _changePrayerNotification(bool value) async {
-    if(kIsWeb || !Platform.isAndroid) {
-      EasyLoading.showError(
-        "Prayer_Notifications_Not_Supported".tr(),
-        dismissOnTap: true,
+  Future<void> _performNotificationChange(
+    Future<void> Function() change,
+  ) async {
+    if (_scheduleBusy || !mounted) return;
+    setState(() {
+      _scheduleBusy = true;
+      _scheduleFailed = false;
+    });
+    try {
+      await change();
+      final success =
+          await (widget.reconcile?.call() ??
+              reconcileSavedPrayerNotifications());
+      await _readStatus();
+      if (mounted) setState(() => _scheduleFailed = !success);
+    } catch (_) {
+      if (mounted) setState(() => _scheduleFailed = true);
+    } finally {
+      if (mounted) setState(() => _scheduleBusy = false);
+    }
+  }
+
+  Future<void> _changePrayerNotification(bool value) =>
+      _performNotificationChange(() => _persistPrayerNotification(value));
+  Future<void> _changeSinglePrayerNotification(String name, bool value) =>
+      _performNotificationChange(
+        () => _persistSinglePrayerNotification(name, value),
       );
+  Future<void> _changePrayerNotificationMode(String name, String mode) =>
+      _performNotificationChange(
+        () => _persistPrayerNotificationMode(name, mode),
+      );
+  Future<void> _changePrayerNotificationSound(String name, String sound) =>
+      _performNotificationChange(
+        () => _persistPrayerNotificationSound(name, sound),
+      );
+
+  Future<void> _persistPrayerNotification(bool value) async {
+    if (!_supported) {
+      _feedback('Prayer_Notifications_Not_Supported');
       return;
     }
-
     if (value) {
-      final bool notificationGranted =
-          await Permission.notification.request().isGranted;
-      if (!notificationGranted) {
-        EasyLoading.showError(
-          "Unable to get notifications permission".tr(),
-          dismissOnTap: true,
-        );
+      final granted = widget.requestPermissions != null
+          ? await widget.requestPermissions!()
+          : await Permission.notification.request().isGranted;
+      if (!granted) {
+        _feedback('Unable to get notifications permission');
         return;
       }
-
-      final bool exactAlarmGranted =
-          await NotificationService().requestExactAlarmPermissionIfNeeded();
-      if (!exactAlarmGranted) {
-        EasyLoading.showInfo(
-          "Prayer_Notifications_Exact_Alarm_Info".tr(),
-          dismissOnTap: true,
-        );
+      if (widget.requestPermissions == null &&
+          !await NotificationService().requestExactAlarmPermissionIfNeeded()) {
+        _feedback('Prayer_Notifications_Exact_Alarm_Info');
       }
-    } else {
-      await NotificationService().clearAllNotifications();
     }
-
-    final Map<String, bool> nextPrayerNotifications = {
-      for (final prayerName in PRAYER_NOTIFICATION_NAMES) prayerName: value,
-    };
-    final bool mainSaved = await shared_preference_methods.setBoolData(
-      widget.prefs,
-      'prayerNotification',
-      value,
-    );
-    final bool prayerSaved =
-        await _savePrayerNotifications(nextPrayerNotifications);
-    if (!mainSaved || !prayerSaved) {
-      EasyLoading.showError("Couldn't save data".tr(), dismissOnTap: true);
+    final prefs = await widget.prefs;
+    if (!await prefs.setBool('prayerNotification', value)) {
+      throw StateError('Save failed');
     }
     await _updatePrayerNotifications();
   }
 
-  Future<void> _changeSinglePrayerNotification(
+  Future<void> _persistSinglePrayerNotification(
     String prayerName,
     bool value,
   ) async {
-    if (!prayerNotification) {
-      return;
-    }
-
-    final Map<String, bool> nextPrayerNotifications =
-        Map<String, bool>.from(prayerNotifications);
-    nextPrayerNotifications[prayerName] = value;
-    final bool hasEnabledPrayer =
-        nextPrayerNotifications.values.any((enabled) => enabled);
-
-    final bool prayerSaved = await shared_preference_methods.setBoolData(
-      widget.prefs,
+    final prefs = await widget.prefs;
+    if (!await prefs.setBool(
       prayerNotificationPreferenceKey(prayerName),
       value,
-    );
-    final bool mainSaved = await shared_preference_methods.setBoolData(
-      widget.prefs,
-      'prayerNotification',
-      hasEnabledPrayer,
-    );
-    if (!prayerSaved || !mainSaved) {
-      EasyLoading.showError("Couldn't save data".tr(), dismissOnTap: true);
-      return;
+    )) {
+      throw StateError('Save failed');
     }
-
-    if (!hasEnabledPrayer) {
-      await NotificationService().clearAllNotifications();
-    } else if (!value) {
-      await NotificationService().clearNotification(
-        PRAYER_NAMES.indexOf(prayerName),
-      );
-    }
-
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      prayerNotification = hasEnabledPrayer;
-      prayerNotifications = nextPrayerNotifications;
-    });
+    if (mounted) setState(() => prayerNotifications[prayerName] = value);
   }
 
-  Future<void> _changePrayerNotificationMode(
+  Future<void> _persistPrayerNotificationMode(
     String prayerName,
     String mode,
   ) async {
@@ -428,7 +413,7 @@ class _PrayerNotificationsPageClassState
     });
   }
 
-  Future<void> _changePrayerNotificationSound(
+  Future<void> _persistPrayerNotificationSound(
     String prayerName,
     String soundKey,
   ) async {
@@ -453,15 +438,153 @@ class _PrayerNotificationsPageClassState
     });
   }
 
-  Widget _buildCard({required Widget child}) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        borderRadius: const BorderRadius.all(Radius.circular(10)),
-        color: settingsWidgetBGColor,
-        border: Border.all(color: boxesBorderColor, width: 1),
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) unawaited(_readStatus());
+  }
+
+  void _feedback(String key) {
+    if (mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(key.tr())));
+    }
+  }
+
+  Future<void> _readStatus() async {
+    final request = ++_statusRequest;
+    try {
+      final value =
+          await (widget.loadStatus?.call() ?? readPrayerNotificationStatus())
+              .timeout(const Duration(seconds: 15));
+      if (mounted && request == _statusRequest) {
+        setState(() {
+          _status = value;
+          _statusFailed = false;
+        });
+      }
+    } catch (_) {
+      if (mounted && request == _statusRequest) {
+        setState(() => _statusFailed = true);
+      }
+    }
+  }
+
+  Future<void> _sendTest() async {
+    if (_scheduleBusy) return;
+    setState(() => _scheduleBusy = true);
+    try {
+      await (widget.testNotification?.call() ??
+          NotificationService().showTestNotification(
+            'App_Title'.tr(),
+            'Notifications_Test_Body'.tr(),
+          ));
+      _feedback('Notifications_Test_Requested');
+    } catch (_) {
+      _feedback('Notifications_Test_Failed');
+    } finally {
+      if (mounted) setState(() => _scheduleBusy = false);
+    }
+  }
+
+  String _permission(bool? granted) =>
+      (granted == true
+              ? 'Notifications_Granted'
+              : granted == false
+              ? 'Notifications_Denied'
+              : 'Notifications_Unknown')
+          .tr();
+
+  Widget _buildStatusCard() {
+    final status = _status;
+    final alarm = status?.nextAlarm;
+    return _buildCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Notifications_Status'.tr(),
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 8),
+          if (status?.supported == false)
+            Text('Prayer_Notifications_Not_Supported'.tr())
+          else ...[
+            Text(
+              '${'Notifications_Permission'.tr()}: ${_permission(status?.notifications)}',
+            ),
+            Text(
+              '${'Notifications_Exact_Permission'.tr()}: ${_permission(status?.exactAlarms)}',
+            ),
+            if (status?.exactAlarms == false)
+              Text(
+                'Prayer_Notifications_Exact_Alarm_Info'.tr(),
+                style: helperStyle,
+              ),
+            if (status != null)
+              Text(
+                alarm == null
+                    ? 'Notifications_None_Scheduled'.tr()
+                    : 'Notifications_Next_Scheduled'.tr(
+                        namedArgs: {
+                          'prayer': alarm.name.tr(),
+                          'date': DateFormat.MMMd(
+                            context.locale.toString(),
+                          ).format(alarm.time),
+                          'time': DateFormat(
+                            status.use24Hour ? 'HH:mm' : 'h:mm a',
+                          ).format(alarm.time),
+                        },
+                      ),
+              ),
+            Wrap(
+              spacing: 8,
+              children: [
+                TextButton.icon(
+                  key: const ValueKey('test_notification'),
+                  onPressed: _scheduleBusy || status?.notifications != true
+                      ? null
+                      : _sendTest,
+                  icon: const Icon(Icons.notifications_active_outlined),
+                  label: Text('Notifications_Test'.tr()),
+                ),
+                if (status?.exactAlarms == false)
+                  TextButton(
+                    onPressed: _scheduleBusy
+                        ? null
+                        : () => _performNotificationChange(() async {
+                            await NotificationService()
+                                .requestExactAlarmPermissionIfNeeded();
+                          }),
+                    child: Text('Notifications_Enable_Exact'.tr()),
+                  ),
+              ],
+            ),
+            Text('Notifications_Test_Help'.tr(), style: helperStyle),
+          ],
+          if (_statusFailed)
+            RetryNotice(
+              message: 'Notifications_Status_Error'.tr(),
+              onRetry: _readStatus,
+            ),
+          TextButton.icon(
+            onPressed: _readStatus,
+            icon: const Icon(Icons.refresh),
+            label: Text('Reload'.tr()),
+          ),
+        ],
       ),
-      child: child,
+    );
+  }
+
+  Widget _buildCard({required Widget child}) {
+    return Material(
+      color: AppPalette.of(context).panel,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: BorderSide(color: AppPalette.of(context).border),
+      ),
+      child: Padding(padding: const EdgeInsets.all(12), child: child),
     );
   }
 
@@ -474,134 +597,141 @@ class _PrayerNotificationsPageClassState
     return Padding(
       padding: const EdgeInsets.only(top: 12),
       child: DropdownButtonFormField<String>(
+        isExpanded: true,
+        itemHeight: null,
+        isDense: false,
         initialValue: value,
-        iconEnabledColor: textColor,
-        dropdownColor: settingsWidgetBGColor,
+        iconEnabledColor: AppPalette.of(context).text,
+        dropdownColor: AppPalette.of(context).panel,
         style: detailsStyle,
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: textColor),
+          labelStyle: TextStyle(color: AppPalette.of(context).text),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: boxesBorderColor),
+            borderSide: BorderSide(color: AppPalette.of(context).border),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: highlightedColor),
+            borderSide: BorderSide(color: AppPalette.of(context).accent),
           ),
         ),
         items: items,
-        onChanged: onChanged,
+        onChanged: _scheduleBusy ? null : onChanged,
       ),
     );
   }
 
   Widget _buildPrayerOptions(String prayerName) {
     final bool enabled = prayerNotifications[prayerName] ?? false;
-    final String selectedMode = prayerNotificationModes[prayerName] ??
+    final String selectedMode =
+        prayerNotificationModes[prayerName] ??
         prayerNotificationModeVibrationOnly;
     final String selectedSound = prayerNotificationSounds[prayerName] ?? "";
-    final String fallbackSound =
-        adhanOptions.isNotEmpty ? adhanOptions.first : "";
+    final String fallbackSound = adhanOptions.isNotEmpty
+        ? adhanOptions.first
+        : "";
     final String resolvedSound = adhanOptions.contains(selectedSound)
         ? selectedSound
         : fallbackSound;
-    final bool isPreviewingSound = _isPreviewPlaying &&
+    final bool isPreviewingSound =
+        _isPreviewPlaying &&
         _previewPrayerName == prayerName &&
         _previewSoundKey == resolvedSound;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return ExpansionTile(
+      key: PageStorageKey('prayer_options_$prayerName'),
+      tilePadding: EdgeInsets.zero,
+      childrenPadding: const EdgeInsets.only(bottom: 12),
+      title: Text(prayerName.tr(), style: detailsStyle),
+      subtitle: Text(
+        selectedMode == prayerNotificationModeCustomSound
+            ? _adhanLabel(resolvedSound)
+            : 'Prayer_Notifications_Mode_Vibration_Only'.tr(),
+        style: helperStyle,
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Switch(
+            key: ValueKey('prayer_switch_$prayerName'),
+            value: enabled,
+            onChanged: _scheduleBusy || !_supported
+                ? null
+                : (value) => _changeSinglePrayerNotification(prayerName, value),
+          ),
+          const Icon(Icons.expand_more),
+        ],
+      ),
       children: [
-        Row(
-          children: [
-            Expanded(
-              flex: 4,
-              child: Text(
-                prayerName.tr(),
-                style: detailsStyle,
-              ),
+        _buildDropdownField(
+          label: "Prayer_Notifications_Mode_Title".tr(),
+          value: selectedMode,
+          items: [
+            DropdownMenuItem(
+              value: prayerNotificationModeVibrationOnly,
+              child: Text("Prayer_Notifications_Mode_Vibration_Only".tr()),
             ),
-            Expanded(
-              child: Switch(
-                activeThumbColor: textColor,
-                inactiveThumbColor: Colors.grey,
-                value: enabled,
-                onChanged: prayerNotification
-                    ? (value) =>
-                        _changeSinglePrayerNotification(prayerName, value)
-                    : null,
-              ),
+            DropdownMenuItem(
+              value: prayerNotificationModeCustomSound,
+              child: Text("Prayer_Notifications_Mode_Custom_Sound".tr()),
             ),
           ],
+          onChanged: (value) {
+            if (value == null) {
+              return;
+            }
+            _changePrayerNotificationMode(prayerName, value);
+          },
         ),
-        if (enabled) ...[
-          _buildDropdownField(
-            label: "Prayer_Notifications_Mode_Title".tr(),
-            value: selectedMode,
-            items: [
-              DropdownMenuItem(
-                value: prayerNotificationModeVibrationOnly,
-                child: Text("Prayer_Notifications_Mode_Vibration_Only".tr()),
+        if (selectedMode == prayerNotificationModeCustomSound &&
+            adhanOptions.isNotEmpty)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _buildDropdownField(
+                  label: "Prayer_Notifications_Sound_Title".tr(),
+                  value: resolvedSound,
+                  items: adhanOptions
+                      .map(
+                        (soundKey) => DropdownMenuItem(
+                          value: soundKey,
+                          child: Text(_adhanLabel(soundKey)),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) {
+                    if (value == null) {
+                      return;
+                    }
+                    _changePrayerNotificationSound(prayerName, value);
+                  },
+                ),
               ),
-              DropdownMenuItem(
-                value: prayerNotificationModeCustomSound,
-                child: Text("Prayer_Notifications_Mode_Custom_Sound".tr()),
+              const SizedBox(width: 8),
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: IconButton(
+                  tooltip: (isPreviewingSound ? 'Audio_Stop' : 'Audio_Preview')
+                      .tr(),
+                  icon: Icon(
+                    isPreviewingSound ? Icons.stop : Icons.play_arrow,
+                    color: AppPalette.of(context).text,
+                  ),
+                  onPressed: resolvedSound.isEmpty
+                      ? null
+                      : () => _toggleSoundPreview(prayerName, resolvedSound),
+                ),
               ),
             ],
-            onChanged: (value) {
-              if (value == null) {
-                return;
-              }
-              _changePrayerNotificationMode(prayerName, value);
-            },
           ),
-          if (selectedMode == prayerNotificationModeCustomSound &&
-              adhanOptions.isNotEmpty)
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: _buildDropdownField(
-                    label: "Prayer_Notifications_Sound_Title".tr(),
-                    value: resolvedSound,
-                    items: adhanOptions
-                        .map(
-                          (soundKey) => DropdownMenuItem(
-                            value: soundKey,
-                            child: Text(_adhanLabel(soundKey)),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) {
-                      if (value == null) {
-                        return;
-                      }
-                      _changePrayerNotificationSound(prayerName, value);
-                    },
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: IconButton(
-                    icon: Icon(
-                      isPreviewingSound ? Icons.stop : Icons.play_arrow,
-                      color: textColor,
-                    ),
-                    onPressed: resolvedSound.isEmpty
-                        ? null
-                        : () => _toggleSoundPreview(prayerName, resolvedSound),
-                  ),
-                ),
-              ],
-            ),
-        ],
       ],
     );
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _previewCompleteSubscription.cancel();
     unawaited(_previewPlayer.stop());
     unawaited(_previewPlayer.dispose());
@@ -614,24 +744,24 @@ class _PrayerNotificationsPageClassState
       appBar: AppBar(
         title: Text(
           "Prayer_Notifications_Title".tr(),
-          style: const TextStyle(color: textColor),
+          style: TextStyle(color: AppPalette.of(context).text),
         ),
-        backgroundColor: primaryColor,
+        backgroundColor: AppPalette.of(context).canvas,
         centerTitle: true,
-        iconTheme: const IconThemeData(color: textColor),
+        iconTheme: IconThemeData(color: AppPalette.of(context).text),
       ),
-      backgroundColor: thirdColor,
+      backgroundColor: AppPalette.of(context).panel,
       body: DecoratedBox(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              interpolatedColor7,
-              thirdColor,
-              interpolatedColor1,
-              interpolatedColor2,
-              interpolatedColor3,
+              AppPalette.of(context).canvas,
+              AppPalette.of(context).panel,
+              AppPalette.of(context).canvas,
+              AppPalette.of(context).canvas,
+              AppPalette.of(context).canvas,
             ],
           ),
         ),
@@ -641,14 +771,30 @@ class _PrayerNotificationsPageClassState
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
+                  if (!prayerNotification)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Text('Notifications_Master_Paused'.tr()),
+                    ),
+                  _buildStatusCard(),
+                  const SizedBox(height: 12),
+                  if (_scheduleBusy)
+                    LinearProgressIndicator(
+                      color: AppPalette.of(context).accent,
+                    ),
+                  if (_scheduleFailed)
+                    RetryNotice(
+                      message: 'Prayer_Notifications_Refresh_Error'.tr(),
+                      onRetry: () => _performNotificationChange(() async {}),
+                    ),
                   _buildCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           "Prayer_Notifications_Title".tr(),
-                          style: const TextStyle(
-                            color: textColor,
+                          style: TextStyle(
+                            color: AppPalette.of(context).text,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
@@ -661,10 +807,10 @@ class _PrayerNotificationsPageClassState
                       ],
                     ),
                   ),
-                  const Divider(
+                  Divider(
                     height: 20,
                     thickness: 5,
-                    color: dividerColor,
+                    color: AppPalette.of(context).border,
                   ),
                   _buildCard(
                     child: Row(
@@ -686,21 +832,24 @@ class _PrayerNotificationsPageClassState
                             ],
                           ),
                         ),
-                        Expanded(
+                        SizedBox(
+                          width: 56,
                           child: Switch(
-                            activeThumbColor: textColor,
+                            activeThumbColor: AppPalette.of(context).text,
                             inactiveThumbColor: Colors.grey,
                             value: prayerNotification,
-                            onChanged: _changePrayerNotification,
+                            onChanged: _scheduleBusy || !_supported
+                                ? null
+                                : _changePrayerNotification,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const Divider(
+                  Divider(
                     height: 20,
                     thickness: 5,
-                    color: dividerColor,
+                    color: AppPalette.of(context).border,
                   ),
                   _buildCard(
                     child: Column(
@@ -708,8 +857,8 @@ class _PrayerNotificationsPageClassState
                       children: [
                         Text(
                           "Prayer_Notifications_Prayers_Title".tr(),
-                          style: const TextStyle(
-                            color: textColor,
+                          style: TextStyle(
+                            color: AppPalette.of(context).text,
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
@@ -720,13 +869,15 @@ class _PrayerNotificationsPageClassState
                           style: helperStyle,
                         ),
                         const SizedBox(height: 8),
-                        for (int i = 0;
-                            i < PRAYER_NOTIFICATION_NAMES.length;
-                            i++) ...[
+                        for (
+                          int i = 0;
+                          i < PRAYER_NOTIFICATION_NAMES.length;
+                          i++
+                        ) ...[
                           _buildPrayerOptions(PRAYER_NOTIFICATION_NAMES[i]),
                           if (i != PRAYER_NOTIFICATION_NAMES.length - 1)
-                            const Divider(
-                              color: dividerColor,
+                            Divider(
+                              color: AppPalette.of(context).border,
                               height: 20,
                             ),
                         ],

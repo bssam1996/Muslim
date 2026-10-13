@@ -1,32 +1,48 @@
+import 'package:muslim/shared/app_theme.dart';
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
-import 'package:auto_size_text/auto_size_text.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:muslim/UI/azkar/azkar_items.dart';
 import 'package:muslim/UI/azkar/azkar_list.dart';
-import 'package:muslim/shared/constants.dart';
 import 'package:muslim/utils/api_utils.dart' as api_utils;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../utils/prayer_schedule.dart';
+import '../../shared/retry_notice.dart';
 
 class DailyRoutinePageClass extends StatefulWidget {
   const DailyRoutinePageClass({
     super.key,
     this.todayTimings = const <String, dynamic>{},
+    this.prayerDays = const [],
+    this.now,
+    this.loadDay,
   });
 
   final Map<String, dynamic> todayTimings;
+  final List<PrayerDay> prayerDays;
+  final DateTime Function()? now;
+  final Future<PrayerDay?> Function(DateTime)? loadDay;
 
   @override
   State<DailyRoutinePageClass> createState() => _DailyRoutinePageClassState();
 }
 
-class _DailyRoutinePageClassState extends State<DailyRoutinePageClass> {
+class _DailyRoutinePageClassState extends State<DailyRoutinePageClass>
+    with WidgetsBindingObserver {
   static const String _storagePrefix = 'dailyRoutine';
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
   final DateFormat _keyFormatter = DateFormat('yyyy-MM-dd');
 
+  DateTime get _now => widget.now?.call() ?? DateTime.now();
+  late final DateTime _providedDate;
+  Timer? _boundaryTimer;
+  int _requestId = 0;
+  Future<void> _saveQueue = Future.value();
+  final Map<String, int> _saveRevisions = {};
+  bool _estimated = false;
   bool _loading = true;
   bool _celebrationShown = false;
   String? _loadError;
@@ -39,32 +55,56 @@ class _DailyRoutinePageClassState extends State<DailyRoutinePageClass> {
   @override
   void initState() {
     super.initState();
+    _providedDate = prayerDate(_now);
+    WidgetsBinding.instance.addObserver(this);
     _loadRoutine();
   }
 
+  @override
+  void dispose() {
+    _boundaryTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      unawaited(_loadRoutine());
+    }
+  }
+
   Future<void> _loadRoutine() async {
+    final requestId = ++_requestId;
     try {
+      await _saveQueue;
       final SharedPreferences prefs = await _prefs;
       await _cleanupOldDailyRoutineData(prefs);
 
-      final DateTime now = DateTime.now();
-      final DateTime today = _dateOnly(now);
-      Map<String, dynamic> todayTimings = Map<String, dynamic>.from(
-        widget.todayTimings,
+      final now = _now;
+      final today = prayerDate(now);
+      final todayDay = await _loadPrayerDay(today);
+      final todayFajr = todayDay?.times['Fajr'];
+      final beforeFajr = todayFajr != null && now.isBefore(todayFajr);
+      final yesterdayDay = beforeFajr
+          ? await _loadPrayerDay(prayerDate(now, -1))
+          : null;
+      final tomorrowDay = beforeFajr
+          ? null
+          : await _loadPrayerDay(prayerDate(now, 1));
+      final window = routinePrayerWindow(
+        now: now,
+        yesterday: yesterdayDay,
+        today: todayDay,
+        tomorrow: tomorrowDay,
       );
-      todayTimings = await _ensureTimingsForOffset(todayTimings, 0);
-
-      final DateTime? todayFajr = _timeOnDate(todayTimings, 'Fajr', today);
-      final int routineOffset = todayFajr != null && now.isBefore(todayFajr)
-          ? -1
-          : 0;
-      final DateTime routineDate = today.add(Duration(days: routineOffset));
-      final Map<String, dynamic> routineTimings = routineOffset == 0
-          ? todayTimings
-          : await _ensureTimingsForOffset(<String, dynamic>{}, routineOffset);
-
-      final DateTime? fajr = _timeOnDate(routineTimings, 'Fajr', routineDate);
-      final DateTime? tomorrowFajr = todayFajr?.add(const Duration(days: 1));
+      final routineDate = window.date;
+      final todayTimings = todayDay?.timings ?? <String, dynamic>{};
+      final routineTimings =
+          (beforeFajr ? yesterdayDay : todayDay)?.timings ??
+          <String, dynamic>{};
+      final fajr = window.startsAt;
+      final tomorrowFajr = window.endsAt;
       final DateTime? maghribToday = _timeOnDate(
         todayTimings,
         'Maghrib',
@@ -84,8 +124,18 @@ class _DailyRoutinePageClassState extends State<DailyRoutinePageClass> {
         }
       }
 
-      if (!mounted) return;
+      if (!mounted || requestId != _requestId) return;
+      await _saveQueue;
+      if (!mounted || requestId != _requestId) return;
+      // Include saves completed while the prayer data was loading.
+      checkedKeys.clear();
+      for (final item in items) {
+        if (prefs.getBool(item.storageKey) ?? false) {
+          checkedKeys.add(item.storageKey);
+        }
+      }
       setState(() {
+        _estimated = fajr == null || tomorrowFajr == null;
         _routineDate = routineDate;
         _routineStartsAt = fajr;
         _routineEndsAt = tomorrowFajr;
@@ -94,9 +144,25 @@ class _DailyRoutinePageClassState extends State<DailyRoutinePageClass> {
         _loading = false;
         _loadError = null;
       });
+      _boundaryTimer?.cancel();
+      final boundaries = [
+        prayerDate(now, 1),
+        if (todayFajr != null && todayFajr.isAfter(now)) todayFajr,
+        if (maghribToday != null &&
+            maghribToday.isAfter(now) &&
+            (now.weekday == DateTime.thursday ||
+                now.weekday == DateTime.friday))
+          maghribToday,
+      ]..sort();
+      _boundaryTimer = Timer(
+        boundaries.first.difference(_now) + const Duration(seconds: 1),
+        () {
+          if (mounted) unawaited(_loadRoutine());
+        },
+      );
       _maybeCelebrate();
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || requestId != _requestId) return;
       setState(() {
         _loading = false;
         _loadError = e.toString();
@@ -104,30 +170,27 @@ class _DailyRoutinePageClassState extends State<DailyRoutinePageClass> {
     }
   }
 
-  Future<Map<String, dynamic>> _ensureTimingsForOffset(
-    Map<String, dynamic> timings,
-    int dayOffset,
-  ) async {
-    if (timings.containsKey('Fajr') && timings.containsKey('Maghrib')) {
-      return timings;
+  Future<PrayerDay?> _loadPrayerDay(DateTime date) async {
+    final provided = widget.prayerDays.where((d) => d.date == date).firstOrNull;
+    if (provided != null) return provided;
+    if (widget.loadDay != null) {
+      final day = await widget.loadDay!(date);
+      return day?.date == date ? day : null;
     }
-
-    final Map<String, dynamic> savedLocation = await api_utils
-        .getSavedLocation();
-    if (savedLocation['error'] != '') {
-      return timings;
+    if (date == _providedDate && widget.todayTimings.isNotEmpty) {
+      try {
+        return PrayerDay(date, widget.todayTimings);
+      } on FormatException {
+        /* Load validated data below. */
+      }
     }
-
-    final Map<String, dynamic> data = await api_utils.getDataFromDay(
-      dayOffset,
-      savedLocation,
-    );
-    if (data['error'] != '') {
-      return timings;
-    }
-
-    return Map<String, dynamic>.from(
-      data['jsonData']['data']['timings'] as Map<dynamic, dynamic>,
+    final location = await api_utils.getSavedLocation();
+    if (location['error'] != '') return null;
+    final data = await api_utils.getDataFromDay(0, location, baseDate: date);
+    if (data['error'] != '') return null;
+    return PrayerDay(
+      date,
+      Map<String, dynamic>.from(data['jsonData']['data']['timings'] as Map),
     );
   }
 
@@ -539,32 +602,7 @@ class _DailyRoutinePageClassState extends State<DailyRoutinePageClass> {
     String key,
     DateTime date,
   ) {
-    final String? value = timings[key]?.toString();
-    if (value == null || value.trim().isEmpty) {
-      return null;
-    }
-
-    final String normalized = value
-        .toLowerCase()
-        .replaceAll(RegExp(r'\([^)]*\)'), '')
-        .replaceAll(RegExp(r'\s+'), ' ')
-        .trim();
-    final RegExpMatch? match = RegExp(
-      r'(\d{1,2})\s*:\s*(\d{2})',
-    ).firstMatch(normalized);
-    if (match == null) {
-      return null;
-    }
-
-    int hour = int.parse(match.group(1)!);
-    final int minute = int.parse(match.group(2)!);
-    if (normalized.contains('pm') && hour < 12) {
-      hour += 12;
-    }
-    if (normalized.contains('am') && hour == 12) {
-      hour = 0;
-    }
-    return DateTime(date.year, date.month, date.day, hour, minute);
+    return prayerTimeOnDate(timings[key], date);
   }
 
   DateTime _dateOnly(DateTime date) =>
@@ -594,10 +632,9 @@ class _DailyRoutinePageClassState extends State<DailyRoutinePageClass> {
   }
 
   Future<void> _toggleItem(_DailyRoutineItem item) async {
-    final SharedPreferences prefs = await _prefs;
-    final bool checked = !_checkedKeys.contains(item.storageKey);
-    await prefs.setBool(item.storageKey, checked);
-    if (!mounted) return;
+    final checked = !_checkedKeys.contains(item.storageKey);
+    final revision = (_saveRevisions[item.storageKey] ?? 0) + 1;
+    _saveRevisions[item.storageKey] = revision;
     setState(() {
       if (checked) {
         _checkedKeys.add(item.storageKey);
@@ -606,7 +643,27 @@ class _DailyRoutinePageClassState extends State<DailyRoutinePageClass> {
         _celebrationShown = false;
       }
     });
-    _maybeCelebrate();
+    _saveQueue = _saveQueue.then((_) async {
+      var saved = false;
+      try {
+        saved = await (await _prefs).setBool(item.storageKey, checked);
+      } catch (_) {}
+      if (!mounted) return;
+      if (!saved && _saveRevisions[item.storageKey] == revision) {
+        setState(() {
+          if (checked) {
+            _checkedKeys.remove(item.storageKey);
+          } else {
+            _checkedKeys.add(item.storageKey);
+          }
+        });
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Couldn't save data".tr())));
+      }
+      if (saved) _maybeCelebrate();
+    });
+    await _saveQueue;
   }
 
   Future<void> _cleanupOldDailyRoutineData(SharedPreferences prefs) async {
@@ -647,19 +704,22 @@ class _DailyRoutinePageClassState extends State<DailyRoutinePageClass> {
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
-            backgroundColor: primaryColor,
+            backgroundColor: AppPalette.of(context).canvas,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
-              side: const BorderSide(color: highlightedBoxesBorderColor),
+              side: BorderSide(color: AppPalette.of(context).accent),
             ),
             title: Text(
               'Daily_Routine_Celebration_Title'.tr(),
-              style: const TextStyle(color: textColor),
+              style: TextStyle(color: AppPalette.of(context).text),
               textAlign: TextAlign.center,
             ),
             content: Text(
               'Daily_Routine_Celebration_Body'.tr(),
-              style: const TextStyle(color: textColor, fontSize: 16),
+              style: TextStyle(
+                color: AppPalette.of(context).text,
+                fontSize: 16,
+              ),
               textAlign: TextAlign.center,
             ),
             actions: <Widget>[
@@ -667,7 +727,7 @@ class _DailyRoutinePageClassState extends State<DailyRoutinePageClass> {
                 onPressed: () => Navigator.pop(context),
                 child: Text(
                   'OK'.tr(),
-                  style: const TextStyle(color: highlightedTextColor),
+                  style: TextStyle(color: AppPalette.of(context).accent),
                 ),
               ),
             ],
@@ -681,7 +741,7 @@ class _DailyRoutinePageClassState extends State<DailyRoutinePageClass> {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: primaryColor,
+      backgroundColor: AppPalette.of(context).canvas,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
       ),
@@ -701,15 +761,15 @@ class _DailyRoutinePageClassState extends State<DailyRoutinePageClass> {
                       width: 42,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: Colors.white38,
+                        color: AppPalette.of(context).muted,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
                     const SizedBox(height: 12),
                     Text(
                       item.titleKey.tr(),
-                      style: const TextStyle(
-                        color: textColor,
+                      style: TextStyle(
+                        color: AppPalette.of(context).text,
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                       ),
@@ -720,8 +780,10 @@ class _DailyRoutinePageClassState extends State<DailyRoutinePageClass> {
                       child: ListView.separated(
                         shrinkWrap: true,
                         itemCount: item.details.length,
-                        separatorBuilder: (_, __) =>
-                            const Divider(color: dividerColor, height: 24),
+                        separatorBuilder: (_, __) => Divider(
+                          color: AppPalette.of(context).border,
+                          height: 24,
+                        ),
                         itemBuilder: (BuildContext context, int index) {
                           final _RoutineDetail detail = item.details[index];
                           return Column(
@@ -729,8 +791,8 @@ class _DailyRoutinePageClassState extends State<DailyRoutinePageClass> {
                             children: <Widget>[
                               Text(
                                 detail.title,
-                                style: const TextStyle(
-                                  color: highlightedTextColor,
+                                style: TextStyle(
+                                  color: AppPalette.of(context).accent,
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -739,8 +801,8 @@ class _DailyRoutinePageClassState extends State<DailyRoutinePageClass> {
                               const SizedBox(height: 8),
                               SelectableText(
                                 detail.body,
-                                style: const TextStyle(
-                                  color: textColor,
+                                style: TextStyle(
+                                  color: AppPalette.of(context).text,
                                   fontSize: 20,
                                   height: 1.8,
                                   fontFamily: 'Uthman',
@@ -766,35 +828,45 @@ class _DailyRoutinePageClassState extends State<DailyRoutinePageClass> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: interpolatedColor3,
+      backgroundColor: AppPalette.of(context).canvas,
       appBar: AppBar(
-        backgroundColor: primaryColor,
-        iconTheme: const IconThemeData(color: textColor),
+        backgroundColor: AppPalette.of(context).canvas,
+        iconTheme: IconThemeData(color: AppPalette.of(context).text),
         title: Text(
           'Daily_Routine_Title'.tr(),
-          style: const TextStyle(color: textColor),
+          style: TextStyle(color: AppPalette.of(context).text),
         ),
       ),
       body: SafeArea(
         child: _loading
-            ? const Center(
-                child: CircularProgressIndicator(color: highlightedTextColor),
+            ? Center(
+                child: CircularProgressIndicator(
+                  color: AppPalette.of(context).accent,
+                ),
               )
             : _loadError != null
             ? _buildError()
             : Column(
                 children: <Widget>[
+                  if (_estimated)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: RetryNotice(
+                        message: 'Daily_Routine_Estimated'.tr(),
+                        onRetry: _loadRoutine,
+                      ),
+                    ),
                   _buildProgressHeader(),
                   Expanded(
                     child: Container(
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         gradient: LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: <Color>[
-                            interpolatedColor3,
-                            interpolatedColor6,
-                            primaryColor,
+                            AppPalette.of(context).canvas,
+                            AppPalette.of(context).canvas,
+                            AppPalette.of(context).canvas,
                           ],
                         ),
                       ),
@@ -824,15 +896,18 @@ class _DailyRoutinePageClassState extends State<DailyRoutinePageClass> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            const Icon(
+            Icon(
               Icons.error_outline,
-              color: highlightedTextColor,
+              color: AppPalette.of(context).accent,
               size: 42,
             ),
             const SizedBox(height: 12),
             Text(
               'Daily_Routine_Load_Error'.tr(),
-              style: const TextStyle(color: textColor, fontSize: 18),
+              style: TextStyle(
+                color: AppPalette.of(context).text,
+                fontSize: 18,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -863,7 +938,7 @@ class _DailyRoutinePageClassState extends State<DailyRoutinePageClass> {
 
     return Container(
       width: double.infinity,
-      color: primaryColor,
+      color: AppPalette.of(context).canvas,
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -880,29 +955,27 @@ class _DailyRoutinePageClassState extends State<DailyRoutinePageClass> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    AutoSizeText(
+                    Text(
                       'Daily_Routine_Progress_Title'.tr(
                         args: <String>[completed.toString(), total.toString()],
                       ),
-                      style: const TextStyle(
-                        color: textColor,
+                      style: TextStyle(
+                        color: AppPalette.of(context).text,
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                       maxLines: 1,
-                      minFontSize: 12,
                     ),
                     const SizedBox(height: 2),
-                    AutoSizeText(
+                    Text(
                       'Daily_Routine_Day_Window'.tr(
                         args: <String>[dateText, startText, endText],
                       ),
-                      style: const TextStyle(
-                        color: Colors.white70,
+                      style: TextStyle(
+                        color: AppPalette.of(context).muted,
                         fontSize: 12,
                       ),
                       maxLines: 2,
-                      minFontSize: 10,
                     ),
                   ],
                 ),
@@ -916,17 +989,18 @@ class _DailyRoutinePageClassState extends State<DailyRoutinePageClass> {
                     CircularProgressIndicator(
                       value: progress,
                       strokeWidth: 5,
-                      backgroundColor: Colors.white24,
-                      color: highlightedTextColor,
+                      backgroundColor: AppPalette.of(context).muted,
+                      color: AppPalette.of(context).accent,
                     ),
-                    Text(
-                      '${(progress * 100).round()}%',
-                      style: const TextStyle(
-                        color: textColor,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
+                    if (MediaQuery.textScalerOf(context).scale(11) <= 16)
+                      Text(
+                        '${(progress * 100).round()}%',
+                        style: TextStyle(
+                          color: AppPalette.of(context).text,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -938,9 +1012,9 @@ class _DailyRoutinePageClassState extends State<DailyRoutinePageClass> {
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 8,
-              backgroundColor: Colors.white24,
-              valueColor: const AlwaysStoppedAnimation<Color>(
-                highlightedTextColor,
+              backgroundColor: AppPalette.of(context).muted,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                AppPalette.of(context).accent,
               ),
             ),
           ),
@@ -955,6 +1029,30 @@ class _DailyRoutinePageClassState extends State<DailyRoutinePageClass> {
     final bool isLast = index == _items.length - 1;
     final String time = DateFormat.Hm().format(item.time);
 
+    if (MediaQuery.textScalerOf(context).scale(14) > 21) {
+      return Card(
+        margin: const EdgeInsets.symmetric(vertical: 6),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Text(time, textDirection: ui.TextDirection.ltr),
+            ),
+            CheckboxListTile(
+              value: checked,
+              onChanged: (_) => _toggleItem(item),
+              title: Text(item.titleKey.tr()),
+              subtitle: Text(item.subtitleKey.tr()),
+            ),
+            TextButton(
+              onPressed: () => _showDetails(item),
+              child: Text('Daily_Routine_Details'.tr()),
+            ),
+          ],
+        ),
+      );
+    }
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -966,8 +1064,8 @@ class _DailyRoutinePageClassState extends State<DailyRoutinePageClass> {
               child: Text(
                 time,
                 textDirection: ui.TextDirection.ltr,
-                style: const TextStyle(
-                  color: Colors.white70,
+                style: TextStyle(
+                  color: AppPalette.of(context).muted,
                   fontWeight: FontWeight.bold,
                   fontSize: 12,
                 ),
@@ -989,9 +1087,14 @@ class _DailyRoutinePageClassState extends State<DailyRoutinePageClass> {
                   width: 34,
                   height: 34,
                   decoration: BoxDecoration(
-                    color: checked ? highlightedColor : item.accent,
+                    color: checked
+                        ? AppPalette.of(context).accent
+                        : item.accent,
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white70, width: 1),
+                    border: Border.all(
+                      color: AppPalette.of(context).muted,
+                      width: 1,
+                    ),
                     boxShadow: <BoxShadow>[
                       BoxShadow(
                         color: item.accent.withValues(alpha: 0.28),
@@ -1002,7 +1105,7 @@ class _DailyRoutinePageClassState extends State<DailyRoutinePageClass> {
                   ),
                   child: Icon(
                     checked ? Icons.check : item.icon,
-                    color: primaryColor,
+                    color: AppPalette.of(context).canvas,
                     size: 18,
                   ),
                 ),
@@ -1022,12 +1125,14 @@ class _DailyRoutinePageClassState extends State<DailyRoutinePageClass> {
                 message: 'Daily_Routine_Long_Press_Tip'.tr(),
                 child: Card(
                   margin: EdgeInsets.zero,
-                  color: checked ? interpolatedColor5 : primaryColor,
+                  color: checked
+                      ? AppPalette.of(context).accentSurface
+                      : AppPalette.of(context).canvas,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                     side: BorderSide(
                       color: checked
-                          ? highlightedBoxesBorderColor
+                          ? AppPalette.of(context).accent
                           : item.accent,
                     ),
                   ),
@@ -1048,8 +1153,8 @@ class _DailyRoutinePageClassState extends State<DailyRoutinePageClass> {
                                   item.titleKey.tr(),
                                   style: TextStyle(
                                     color: checked
-                                        ? highlightedTextColor
-                                        : textColor,
+                                        ? AppPalette.of(context).accent
+                                        : AppPalette.of(context).text,
                                     fontSize: 17,
                                     fontWeight: FontWeight.bold,
                                     decoration: checked
@@ -1062,8 +1167,8 @@ class _DailyRoutinePageClassState extends State<DailyRoutinePageClass> {
                                 const SizedBox(height: 4),
                                 Text(
                                   item.subtitleKey.tr(),
-                                  style: const TextStyle(
-                                    color: Colors.white70,
+                                  style: TextStyle(
+                                    color: AppPalette.of(context).muted,
                                     fontSize: 13,
                                   ),
                                   maxLines: 2,
@@ -1081,9 +1186,11 @@ class _DailyRoutinePageClassState extends State<DailyRoutinePageClass> {
                             child: Checkbox(
                               value: checked,
                               onChanged: (_) => _toggleItem(item),
-                              activeColor: highlightedColor,
-                              checkColor: primaryColor,
-                              side: const BorderSide(color: Colors.white70),
+                              activeColor: AppPalette.of(context).accent,
+                              checkColor: AppPalette.of(context).canvas,
+                              side: BorderSide(
+                                color: AppPalette.of(context).muted,
+                              ),
                             ),
                           ),
                         ],

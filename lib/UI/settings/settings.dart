@@ -1,3 +1,11 @@
+import 'dart:async';
+import 'dart:io' show Platform;
+import '../../utils/serial_task_queue.dart';
+import '../../utils/prayer_data_repository.dart';
+import '../../utils/prayer_schedule.dart';
+import '../prayer_notifications/prayer_notifications.dart';
+import 'package:muslim/shared/app_theme.dart';
+import 'package:muslim/shared/appearance_picker.dart';
 import 'dart:convert';
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -5,7 +13,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:muslim/shared/constants.dart';
-import 'package:number_inc_dec/number_inc_dec.dart';
+import 'package:muslim/shared/number_field.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../utils/shared_preference_methods.dart'
     as shared_preference_methods;
@@ -15,18 +23,28 @@ import '../../utils/prayer_location_utils.dart';
 
 class SettingsPageClass extends StatefulWidget {
   final Future<SharedPreferences> prefs;
-  const SettingsPageClass({Key? key, required this.prefs}) : super(key: key);
+  final bool openLocation;
+  const SettingsPageClass({
+    Key? key,
+    required this.prefs,
+    this.openLocation = false,
+  }) : super(key: key);
 
   @override
   State<SettingsPageClass> createState() => _SettingsPageClassState();
 }
 
 class _SettingsPageClassState extends State<SettingsPageClass> {
-  static const detailsStyle = TextStyle(
+  TextStyle get detailsStyle => TextStyle(
     fontSize: 14,
     fontWeight: FontWeight.w500,
-    color: textColor,
+    color: AppPalette.of(context).text,
   );
+  final _saves = SerialTaskQueue();
+  String? _saveFeedback;
+  int _saveRevision = 0;
+  PrayerDay? _previewDay;
+  Map<String, int> _previewOffsets = {};
   bool is24 = true;
   bool _hasSavedLocation = false;
   bool _didPromptForInitialLocation = false;
@@ -43,7 +61,7 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
   @override
   void initState() {
     super.initState();
-    EasyLoading.showInfo("Settings_Loading_Tip");
+
     try {
       WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
         _updateSettings();
@@ -65,7 +83,8 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
     super.dispose();
   }
 
-  void _updateSettings() async {
+  Future<void> _updateSettings() async {
+    if (!mounted) return;
     // 24 System
     var shared24Exists = await shared_preference_methods.checkExistenceData(
       widget.prefs,
@@ -123,9 +142,11 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
       'adjustment',
       0,
     );
+    if (!mounted) return;
     adjustmentsController.text = adjustment.toString();
     final Map<String, int> tuneSettings = await helper
         .getPrayerTimeTuneSettings(widget.prefs);
+    if (!mounted) return;
     for (final prayerName in PRAYER_NAMES) {
       tuneControllers[prayerName]?.text = (tuneSettings[prayerName] ?? 0)
           .toString();
@@ -140,7 +161,9 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
       selectedlocale = "English";
     }
     EasyLoading.dismiss();
-    if (!_hasSavedLocation && !_didPromptForInitialLocation) {
+    unawaited(_loadPreview());
+    if ((!_hasSavedLocation || widget.openLocation) &&
+        !_didPromptForInitialLocation) {
       _didPromptForInitialLocation = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _showLocationPicker();
@@ -148,16 +171,85 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
     }
   }
 
-  void _change24HourSystem(value) async {
-    var result = await shared_preference_methods.setBoolData(
-      widget.prefs,
-      '24system',
-      value,
-    );
-    if (!result) {
-      EasyLoading.showError("Couldn't save data".tr(), dismissOnTap: true);
+  void _change24HourSystem(value) =>
+      unawaited(_saveSetting('24system', value as bool));
+
+  Future<void> _loadPreview() async {
+    try {
+      final window = await loadSavedPrayerWindow(cacheOnly: true);
+      final offsets = await helper.getPrayerTimeTuneSettings(widget.prefs);
+      if (!mounted) return;
+      setState(() {
+        _previewDay = window.days
+            .where((day) => day.date == window.date)
+            .firstOrNull;
+        _previewOffsets = offsets;
+      });
+    } catch (_) {
+      // An unavailable preview does not prevent changing settings.
     }
-    _updateSettings();
+  }
+
+  Future<bool> _saveSetting(
+    String key,
+    Object value, {
+    bool prayerData = true,
+  }) {
+    final revision = ++_saveRevision;
+    if (mounted) setState(() => _saveFeedback = 'Settings_Saving_Inline');
+    return _saves.run(() async {
+      try {
+        final prefs = await widget.prefs;
+        final saved = switch (value) {
+          String text => await prefs.setString(key, text),
+          int number => await prefs.setInt(key, number),
+          bool enabled => await prefs.setBool(key, enabled),
+          _ => false,
+        };
+        if (!saved) throw StateError('Preference write failed');
+        if (prayerData && key != '24system') {
+          await helper.invalidateTodayCachedData(widget.prefs);
+        }
+        if (mounted) {
+          setState(() {
+            if (key == 'method') selectedMethod = value as String;
+            if (key == 'school') selectedSchool = value as String;
+            if (key == 'calendarMethod') {
+              selectedCalendarMethod = value as String;
+            }
+            if (key == '24system') is24 = value as bool;
+            if (key == 'location' || key == 'method' || key == 'school') {
+              _previewDay = null;
+            }
+            if (revision == _saveRevision) {
+              _saveFeedback = 'Settings_Success_Save';
+            }
+          });
+        }
+        if (prayerData) unawaited(_refreshPrayerSettings(revision));
+        return true;
+      } catch (_) {
+        if (mounted && revision == _saveRevision) {
+          setState(() => _saveFeedback = 'Settings_Unable_To_Save');
+        }
+        return false;
+      }
+    });
+  }
+
+  Future<void> _refreshPrayerSettings(int revision) async {
+    try {
+      final updated = await refreshSavedPrayerConfiguration();
+      if (!mounted || revision != _saveRevision) return;
+      if (!updated) {
+        setState(() => _saveFeedback = 'Settings_Saved_Update_Pending');
+      }
+      await _loadPreview();
+    } catch (_) {
+      if (mounted && revision == _saveRevision) {
+        setState(() => _saveFeedback = 'Settings_Saved_Update_Pending');
+      }
+    }
   }
 
   PopupProps<String> _settingsPopupProps({bool showSearchBox = true}) {
@@ -166,30 +258,33 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
       showSelectedItems: true,
       fit: FlexFit.loose,
       constraints: const BoxConstraints(maxHeight: 360),
-      menuProps: const MenuProps(
-        backgroundColor: settingsWidgetBGColor,
-        surfaceTintColor: settingsWidgetBGColor,
+      menuProps: MenuProps(
+        backgroundColor: AppPalette.of(context).panel,
+        surfaceTintColor: AppPalette.of(context).panel,
         elevation: 12,
         shadowColor: Colors.black54,
-        borderRadius: BorderRadius.all(Radius.circular(14)),
+        borderRadius: const BorderRadius.all(Radius.circular(14)),
       ),
       searchFieldProps: TextFieldProps(
-        style: const TextStyle(color: textColor),
-        cursorColor: highlightedTextColor,
+        style: TextStyle(color: AppPalette.of(context).text),
+        cursorColor: AppPalette.of(context).accent,
         decoration: InputDecoration(
           hintText: "Settings_Dropdown_Search".tr(),
-          hintStyle: const TextStyle(color: highlightedColor),
-          prefixIcon: const Icon(Icons.search, color: highlightedTextColor),
+          hintStyle: TextStyle(color: AppPalette.of(context).accent),
+          prefixIcon: Icon(Icons.search, color: AppPalette.of(context).accent),
           filled: true,
-          fillColor: primaryColor,
+          fillColor: AppPalette.of(context).canvas,
           contentPadding: const EdgeInsets.symmetric(horizontal: 14),
-          enabledBorder: const OutlineInputBorder(
-            borderSide: BorderSide(color: boxesBorderColor),
-            borderRadius: BorderRadius.all(Radius.circular(10)),
+          enabledBorder: OutlineInputBorder(
+            borderSide: BorderSide(color: AppPalette.of(context).border),
+            borderRadius: const BorderRadius.all(Radius.circular(10)),
           ),
-          focusedBorder: const OutlineInputBorder(
-            borderSide: BorderSide(color: highlightedTextColor, width: 1.5),
-            borderRadius: BorderRadius.all(Radius.circular(10)),
+          focusedBorder: OutlineInputBorder(
+            borderSide: BorderSide(
+              color: AppPalette.of(context).accent,
+              width: 1.5,
+            ),
+            borderRadius: const BorderRadius.all(Radius.circular(10)),
           ),
         ),
       ),
@@ -199,7 +294,7 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
         child: Text(
           "Settings_Dropdown_No_Results".tr(),
           textAlign: TextAlign.center,
-          style: const TextStyle(color: highlightedColor),
+          style: TextStyle(color: AppPalette.of(context).accent),
         ),
       ),
     );
@@ -210,22 +305,25 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
     required String helperText,
   }) {
     return DropDownDecoratorProps(
-      baseStyle: const TextStyle(
-        color: textColor,
+      baseStyle: TextStyle(
+        color: AppPalette.of(context).text,
         fontSize: 14,
         fontWeight: FontWeight.w600,
       ),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: highlightedTextColor),
+        labelStyle: TextStyle(color: AppPalette.of(context).accent),
         helperText: helperText,
-        helperStyle: const TextStyle(color: highlightedColor),
-        suffixIconColor: highlightedTextColor,
-        enabledBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: boxesBorderColor),
+        helperStyle: TextStyle(color: AppPalette.of(context).accent),
+        suffixIconColor: AppPalette.of(context).accent,
+        enabledBorder: UnderlineInputBorder(
+          borderSide: BorderSide(color: AppPalette.of(context).border),
         ),
-        focusedBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: highlightedTextColor, width: 1.5),
+        focusedBorder: UnderlineInputBorder(
+          borderSide: BorderSide(
+            color: AppPalette.of(context).accent,
+            width: 1.5,
+          ),
         ),
       ),
     );
@@ -236,320 +334,317 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
     String item,
     bool isDisabled,
     bool isSelected,
-  ) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: isSelected ? highlightedColor.withValues(alpha: 0.22) : null,
-        borderRadius: const BorderRadius.all(Radius.circular(10)),
-        border: isSelected
-            ? Border.all(color: highlightedColor)
-            : Border.all(color: Colors.transparent),
+  ) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+    child: Material(
+      color: isSelected
+          ? AppPalette.of(context).accentSurface
+          : Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSpacing.radius),
+        side: BorderSide(
+          color: isSelected
+              ? AppPalette.of(context).accent
+              : Colors.transparent,
+        ),
       ),
       child: ListTile(
-        dense: true,
         title: Text(
           item,
           style: TextStyle(
-            color: isDisabled ? Colors.white38 : textColor,
-            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+            color: isDisabled
+                ? AppPalette.of(context).muted
+                : AppPalette.of(context).text,
           ),
         ),
         trailing: isSelected
-            ? const Icon(Icons.check_circle, color: highlightedTextColor)
+            ? Icon(Icons.check, color: AppPalette.of(context).accent)
             : null,
       ),
-    );
-  }
+    ),
+  );
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          "Settings_Title".tr(),
-          style: const TextStyle(color: textColor),
-        ),
-        backgroundColor: primaryColor,
-        centerTitle: true,
-        iconTheme: const IconThemeData(color: textColor),
-        // actions: [
-        //   IconButton(onPressed: (){
-        //     _updateSettings();
-        //   }, icon: const Icon(Icons.save, color: Colors.white54,))
-        // ],
-      ),
-      backgroundColor: thirdColor,
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              interpolatedColor7,
-              thirdColor,
-              interpolatedColor1,
-              interpolatedColor2,
-              interpolatedColor3,
-              // interpolatedColor4,
-            ],
+  Widget _section(String title, List<Widget> children) => Padding(
+    key: ValueKey('settings_section_$title'),
+    padding: const EdgeInsets.only(bottom: 24),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Semantics(
+          header: true,
+          child: Text(
+            title.tr(),
+            style: Theme.of(context).textTheme.titleMedium,
           ),
         ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
+        const SizedBox(height: 8),
+        ...children,
+      ],
+    ),
+  );
+
+  Widget _dropdown(
+    String title,
+    String description,
+    List<String> values,
+    String selected,
+    ValueChanged<String?> onChanged,
+  ) => Padding(
+    padding: const EdgeInsets.only(bottom: 12),
+    child: DropdownSearch<String>(
+      popupProps: _settingsPopupProps(showSearchBox: values.length > 3),
+      items: (filter, infiniteScrollProps) => values,
+      decoratorProps: _settingsDropdownDecorator(
+        label: title.tr(),
+        helperText: description.tr(),
+      ),
+      selectedItem: selected,
+      onChanged: onChanged,
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: Text('Settings_Title'.tr())),
+    body: SafeArea(
+      child: SingleChildScrollView(
+        key: const PageStorageKey('settings_scroll'),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (_saveFeedback != null)
+              Semantics(
+                liveRegion: true,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    _saveFeedback!.tr(),
+                    key: const ValueKey('settings_save_feedback'),
+                    style: TextStyle(color: AppPalette.of(context).muted),
+                  ),
+                ),
+              ),
+            _section('Settings_Location_Title', [_buildLocationSelector()]),
+            _section('Settings_Appearance_Section', [
+              const AppearancePicker(),
+              const SizedBox(height: 12),
+              _dropdown(
+                'Settings_Language_Title',
+                'Settings_Language_Desc',
+                const ['English', 'العربية'],
+                selectedlocale,
+                _changelanguage,
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text('Settings_Use24Hour'.tr()),
+                value: is24,
+                onChanged: _change24HourSystem,
+              ),
+            ]),
+            _section('Settings_Prayer_Section', [
+              _dropdown(
+                'Settings_Method',
+                'Settings_Method_Desc',
+                authorities.keys.toList(),
+                selectedMethod,
+                saveMethodParameter,
+              ),
+              _dropdown(
+                'Settings_School',
+                'Settings_School_Desc',
+                schools.keys.toList(),
+                selectedSchool,
+                saveSchoolParameter,
+              ),
+              _dropdown(
+                'Settings_Calendar_Methods',
+                'Settings_Calendar_Methods_Desc',
+                CalendarMethods.keys.toList(),
+                selectedCalendarMethod,
+                saveCalendarMethodParameter,
+              ),
+              if (selectedCalendarMethod == 'MATHEMATICAL')
+                AppNumberField(
+                  controller: adjustmentsController,
+                  label: 'Settings_Adj_Hij_Desc'.tr(),
+                  onChanged: saveAdjustmentValue,
+                ),
+              ExpansionTile(
+                key: const PageStorageKey('settings_advanced'),
+                tilePadding: EdgeInsets.zero,
+                title: Text('Settings_Advanced'.tr()),
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      borderRadius: const BorderRadius.all(Radius.circular(10)),
-                      color: settingsWidgetBGColor,
-                      border: Border.all(color: boxesBorderColor, width: 1),
-                    ),
-                    child: DropdownSearch<String>(
-                      popupProps: _settingsPopupProps(showSearchBox: false),
-                      items: (filter, infiniteScrollProps) => [
-                        "العربية",
-                        "English",
-                      ],
-                      decoratorProps: _settingsDropdownDecorator(
-                        label: "Settings_Language_Title".tr(),
-                        helperText: "Settings_Language_Desc".tr(),
-                      ),
-                      onChanged: _changelanguage,
-                      selectedItem: selectedlocale,
-                    ),
-                  ),
-                  const Divider(height: 20, thickness: 5, color: dividerColor),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      borderRadius: const BorderRadius.all(Radius.circular(10)),
-                      color: settingsWidgetBGColor,
-                      border: Border.all(color: boxesBorderColor, width: 1),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          flex: 4,
-                          child: const Text(
-                            "Settings_Use24Hour",
-                            style: detailsStyle,
-                          ).tr(),
-                        ),
-                        Expanded(
-                          flex: 1,
-                          child: Switch(
-                            activeThumbColor: textColor,
-                            inactiveThumbColor: Colors.grey,
-                            value: is24,
-                            onChanged: _change24HourSystem,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Divider(height: 20, thickness: 5, color: dividerColor),
-                  _buildLocationSelector(),
-                  const Divider(height: 20, thickness: 5, color: dividerColor),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      borderRadius: const BorderRadius.all(Radius.circular(10)),
-                      color: settingsWidgetBGColor,
-                      border: Border.all(color: boxesBorderColor, width: 1),
-                    ),
-                    child: DropdownSearch<String>(
-                      popupProps: _settingsPopupProps(),
-                      items: (filter, infiniteScrollProps) =>
-                          authorities.keys.toList(),
-                      decoratorProps: _settingsDropdownDecorator(
-                        label: "Settings_Method".tr(),
-                        helperText: "Settings_Method_Desc".tr(),
-                      ),
-                      onChanged: saveMethodParameter,
-                      selectedItem: selectedMethod,
-                    ),
-                  ),
-                  const Divider(height: 20, thickness: 5, color: dividerColor),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      borderRadius: const BorderRadius.all(Radius.circular(10)),
-                      color: settingsWidgetBGColor,
-                      border: Border.all(color: boxesBorderColor, width: 1),
-                    ),
-                    child: DropdownSearch<String>(
-                      popupProps: _settingsPopupProps(showSearchBox: false),
-                      items: (filter, infiniteScrollProps) =>
-                          schools.keys.toList(),
-                      decoratorProps: _settingsDropdownDecorator(
-                        label: "Settings_School".tr(),
-                        helperText: "Settings_School_Desc".tr(),
-                      ),
-                      onChanged: saveSchoolParameter,
-                      selectedItem: selectedSchool,
-                    ),
-                  ),
-                  const Divider(height: 20, thickness: 5, color: dividerColor),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      borderRadius: const BorderRadius.all(Radius.circular(10)),
-                      color: settingsWidgetBGColor,
-                      border: Border.all(color: boxesBorderColor, width: 1),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text("Settings_Tune_Title".tr(), style: detailsStyle),
-                        const SizedBox(height: 4),
-                        Text(
-                          "Settings_Tune_Desc".tr(),
-                          style: const TextStyle(
-                            color: highlightedColor,
-                            fontSize: 12,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        for (final prayerName in PRAYER_NAMES)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  flex: 2,
-                                  child: Text(
-                                    prayerName.tr(),
-                                    style: detailsStyle,
-                                  ),
-                                ),
-                                Expanded(
-                                  flex: 3,
-                                  child: NumberInputWithIncrementDecrement(
-                                    key: ValueKey("tune_input_$prayerName"),
-                                    initialValue: int.parse(
-                                      tuneControllers[prayerName]!.text.isEmpty
-                                          ? "0"
-                                          : tuneControllers[prayerName]!.text,
-                                    ),
-                                    controller: tuneControllers[prayerName]!,
-                                    onChanged: (newValue) =>
-                                        saveTuneValue(prayerName, newValue),
-                                    onDecrement: (newValue) =>
-                                        saveTuneValue(prayerName, newValue),
-                                    onIncrement: (newValue) =>
-                                        saveTuneValue(prayerName, newValue),
-                                    min: -100,
-                                    incDecBgColor: textColor,
-                                    style: const TextStyle(color: textColor),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  const Divider(height: 20, thickness: 5, color: dividerColor),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      borderRadius: const BorderRadius.all(Radius.circular(10)),
-                      color: settingsWidgetBGColor,
-                      border: Border.all(color: boxesBorderColor, width: 1),
-                    ),
-                    child: DropdownSearch<String>(
-                      popupProps: _settingsPopupProps(),
-                      items: (filter, infiniteScrollProps) =>
-                          CalendarMethods.keys.toList(),
-                      decoratorProps: _settingsDropdownDecorator(
-                        label: "Settings_Calendar_Methods".tr(),
-                        helperText: "Settings_Calendar_Methods_Desc".tr(),
-                      ),
-                      onChanged: saveCalendarMethodParameter,
-                      selectedItem: selectedCalendarMethod,
-                    ),
-                  ),
-                  Visibility(
-                    visible: selectedCalendarMethod == "MATHEMATICAL",
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        borderRadius: const BorderRadius.all(
-                          Radius.circular(10),
-                        ),
-                        color: settingsWidgetBGColor,
-                        border: Border.all(color: boxesBorderColor, width: 1),
-                      ),
+                  Text('Settings_Tune_Desc'.tr()),
+                  const SizedBox(height: 12),
+                  for (final name in PRAYER_NAMES)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Row(
-                              children: [
-                                const Text(
-                                  "Settings_Adj_Hij_Desc",
-                                  style: TextStyle(color: textColor),
-                                ).tr(),
-                              ],
-                            ),
+                          AppNumberField(
+                            key: ValueKey('tune_input_$name'),
+                            controller: tuneControllers[name]!,
+                            label: name.tr(),
+                            onChanged: (value) => saveTuneValue(name, value),
                           ),
-                          SizedBox(
-                            width: MediaQuery.of(context).size.width / 2,
-                            child: NumberInputWithIncrementDecrement(
-                              initialValue: int.parse(
-                                (adjustmentsController.text == "")
-                                    ? "0"
-                                    : adjustmentsController.text,
+                          ValueListenableBuilder<TextEditingValue>(
+                            valueListenable: tuneControllers[name]!,
+                            builder: (_, value, __) => Text(
+                              _offsetPreview(
+                                name,
+                                int.tryParse(value.text) ?? 0,
                               ),
-                              controller: adjustmentsController,
-                              onChanged: saveAdjustmentValue,
-                              onDecrement: saveAdjustmentValue,
-                              onIncrement: saveAdjustmentValue,
-                              min: -100,
-                              incDecBgColor: textColor,
-                              style: const TextStyle(color: textColor),
+                              style: TextStyle(
+                                color: AppPalette.of(context).muted,
+                                fontSize: 12,
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
+                  TextButton.icon(
+                    key: const ValueKey('reset_prayer_adjustments'),
+                    onPressed: _resetAdjustments,
+                    icon: const Icon(Icons.restore),
+                    label: Text('Settings_Reset_Adjustments'.tr()),
                   ),
-                  const Divider(height: 20, thickness: 5, color: dividerColor),
-                  _buildClearPrayerCacheButton(),
                 ],
               ),
-            ),
-          ),
+            ]),
+            _section('Prayer_Notifications_Title', [
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.notifications_outlined),
+                title: Text('Prayer_Notifications_Title'.tr()),
+                subtitle: Text(
+                  (!kIsWeb && Platform.isAndroid
+                          ? 'Prayer_Notifications_Desc'
+                          : 'Prayer_Notifications_Not_Supported')
+                      .tr(),
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: !kIsWeb && Platform.isAndroid
+                    ? () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) =>
+                              PrayerNotificationsPageClass(prefs: widget.prefs),
+                        ),
+                      )
+                    : null,
+              ),
+            ]),
+            _section('Settings_Storage_Section', [
+              _buildClearPrayerCacheButton(),
+            ]),
+          ],
         ),
       ),
+    ),
+  );
+
+  String _offsetPreview(String name, int offset) {
+    final raw = _previewDay?.timings[name];
+    final adjusted = prayerTimeOnDate(raw, _previewDay?.date ?? DateTime.now());
+    if (adjusted == null) {
+      return 'Settings_Offset_Effect'.tr(
+        namedArgs: {'minutes': offset.toString()},
+      );
+    }
+    final base = adjusted.subtract(
+      Duration(minutes: _previewOffsets[name] ?? 0),
     );
+    final formatter = DateFormat(is24 ? 'HH:mm' : 'h:mm a');
+    return 'Settings_Offset_Preview'.tr(
+      namedArgs: {
+        'before': formatter.format(base),
+        'after': formatter.format(base.add(Duration(minutes: offset))),
+      },
+    );
+  }
+
+  Future<void> _resetAdjustments() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Settings_Reset_Adjustments'.tr()),
+        content: Text('Settings_Reset_Adjustments_Confirm'.tr()),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancel'.tr()),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('Settings_Reset_Adjustments'.tr()),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final prefs = await widget.prefs;
+    final old = {
+      for (final name in PRAYER_NAMES)
+        prayerTunePreferenceKey(name): prefs.getInt(
+          prayerTunePreferenceKey(name),
+        ),
+    };
+    final revision = ++_saveRevision;
+    await _saves.run(() async {
+      try {
+        for (final key in old.keys) {
+          if (!await prefs.setInt(key, 0)) throw StateError('Reset failed');
+        }
+        await helper.invalidateTodayCachedData(widget.prefs);
+        if (mounted) {
+          setState(() {
+            for (final c in tuneControllers.values) {
+              c.text = '0';
+            }
+            _saveFeedback = 'Settings_Success_Save';
+          });
+        }
+        unawaited(_refreshPrayerSettings(revision));
+      } catch (_) {
+        for (final entry in old.entries) {
+          if (entry.value == null) {
+            await prefs.remove(entry.key);
+          } else {
+            await prefs.setInt(entry.key, entry.value!);
+          }
+        }
+        if (mounted) setState(() => _saveFeedback = 'Settings_Unable_To_Save');
+      }
+    });
   }
 
   Widget _buildLocationSelector() {
     final String subtitle = locationDisplayName.isEmpty
         ? "Settings_Location_Desc".tr()
         : locationDisplayName;
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: const BorderRadius.all(Radius.circular(10)),
-        color: settingsWidgetBGColor,
-        border: Border.all(color: boxesBorderColor, width: 1),
+    return Material(
+      color: AppPalette.of(context).panel,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSpacing.radius),
+        side: BorderSide(color: AppPalette.of(context).border),
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        leading: const Icon(Icons.location_on_outlined, color: textColor),
+        leading: Icon(
+          Icons.location_on_outlined,
+          color: AppPalette.of(context).text,
+        ),
         title: Text("Settings_Location_Title".tr(), style: detailsStyle),
         subtitle: Text(
           subtitle,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(color: highlightedColor, fontSize: 12),
+          style: TextStyle(color: AppPalette.of(context).accent, fontSize: 12),
         ),
-        trailing: const Icon(Icons.chevron_right, color: textColor),
+        trailing: Icon(Icons.chevron_right, color: AppPalette.of(context).text),
         onTap: _showLocationPicker,
       ),
     );
@@ -563,7 +658,7 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
         icon: const Icon(Icons.delete_outline, size: 18),
         label: Text("Settings_Clear_Prayer_Cache".tr()),
         style: TextButton.styleFrom(
-          foregroundColor: Colors.white70,
+          foregroundColor: AppPalette.of(context).muted,
           visualDensity: VisualDensity.compact,
         ),
       ),
@@ -592,9 +687,13 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
 
     final int cleared = await api_utils.clearPrayerTimesCache(widget.prefs);
     if (!mounted) return;
-    EasyLoading.showSuccess(
-      "Settings_Clear_Prayer_Cache_Success".tr(
-        args: <String>[cleared.toString()],
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          "Settings_Clear_Prayer_Cache_Success".tr(
+            args: <String>[cleared.toString()],
+          ),
+        ),
       ),
     );
   }
@@ -612,7 +711,7 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
       await showModalBottomSheet<void>(
         context: context,
         isScrollControlled: true,
-        backgroundColor: settingsWidgetBGColor,
+        backgroundColor: AppPalette.of(context).panel,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
@@ -815,8 +914,8 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                       children: <Widget>[
                         Text(
                           "Settings_Location_Change".tr(),
-                          style: const TextStyle(
-                            color: textColor,
+                          style: TextStyle(
+                            color: AppPalette.of(context).text,
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
                           ),
@@ -824,7 +923,9 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                         const SizedBox(height: 8),
                         Text(
                           "Settings_Location_Sheet_Desc".tr(),
-                          style: const TextStyle(color: highlightedColor),
+                          style: TextStyle(
+                            color: AppPalette.of(context).accent,
+                          ),
                         ),
                         const SizedBox(height: 16),
                         FilledButton.icon(
@@ -844,8 +945,8 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                           const SizedBox(height: 6),
                           Text(
                             "Settings_Location_Ip_Estimate_Desc".tr(),
-                            style: const TextStyle(
-                              color: highlightedColor,
+                            style: TextStyle(
+                              color: AppPalette.of(context).accent,
                               fontSize: 12,
                             ),
                           ),
@@ -867,18 +968,21 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                                 decoration: InputDecoration(
                                   hintText: "Settings_Location_Search_Hint"
                                       .tr(),
-                                  hintStyle: const TextStyle(
-                                    color: highlightedColor,
+                                  hintStyle: TextStyle(
+                                    color: AppPalette.of(context).accent,
                                   ),
                                   filled: true,
-                                  fillColor: thirdColor,
+                                  fillColor: AppPalette.of(context).panel,
                                   border: const OutlineInputBorder(),
                                 ),
                               ),
                             ),
                             IconButton(
                               onPressed: isSearching ? null : search,
-                              icon: const Icon(Icons.search, color: textColor),
+                              icon: Icon(
+                                Icons.search,
+                                color: AppPalette.of(context).text,
+                              ),
                               tooltip: "Settings_Location_Search".tr(),
                             ),
                           ],
@@ -895,15 +999,17 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                             padding: const EdgeInsets.only(top: 12),
                             child: Text(
                               "Settings_Location_No_Results".tr(),
-                              style: const TextStyle(color: highlightedColor),
+                              style: TextStyle(
+                                color: AppPalette.of(context).accent,
+                              ),
                             ),
                           ),
                         ...searchResults.map(
                           (PrayerLocation result) => ListTile(
                             contentPadding: EdgeInsets.zero,
-                            leading: const Icon(
+                            leading: Icon(
                               Icons.place_outlined,
-                              color: textColor,
+                              color: AppPalette.of(context).text,
                             ),
                             title: Text(
                               result.displayName,
@@ -941,9 +1047,9 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                         const SizedBox(height: 12),
                         ExpansionTile(
                           tilePadding: EdgeInsets.zero,
-                          leading: const Icon(
+                          leading: Icon(
                             Icons.edit_location_alt_outlined,
-                            color: textColor,
+                            color: AppPalette.of(context).text,
                           ),
                           title: Text(
                             "Settings_Location_Manual_Address".tr(),
@@ -952,7 +1058,9 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                           children: <Widget>[
                             Text(
                               "Settings_Location_Manual_Address_Desc".tr(),
-                              style: const TextStyle(color: highlightedColor),
+                              style: TextStyle(
+                                color: AppPalette.of(context).accent,
+                              ),
                             ),
                             const SizedBox(height: 8),
                             TextField(
@@ -964,11 +1072,11 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                               maxLines: 2,
                               decoration: InputDecoration(
                                 hintText: "Settings_Location_Address_Hint".tr(),
-                                hintStyle: const TextStyle(
-                                  color: highlightedColor,
+                                hintStyle: TextStyle(
+                                  color: AppPalette.of(context).accent,
                                 ),
                                 filled: true,
-                                fillColor: thirdColor,
+                                fillColor: AppPalette.of(context).panel,
                                 border: const OutlineInputBorder(),
                               ),
                             ),
@@ -988,7 +1096,10 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                         ),
                         ExpansionTile(
                           tilePadding: EdgeInsets.zero,
-                          leading: const Icon(Icons.tune, color: textColor),
+                          leading: Icon(
+                            Icons.tune,
+                            color: AppPalette.of(context).text,
+                          ),
                           title: Text(
                             "Settings_Location_Advanced".tr(),
                             style: detailsStyle,
@@ -996,7 +1107,9 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                           children: <Widget>[
                             Text(
                               "Settings_Location_Coordinates_Desc".tr(),
-                              style: const TextStyle(color: highlightedColor),
+                              style: TextStyle(
+                                color: AppPalette.of(context).accent,
+                              ),
                             ),
                             const SizedBox(height: 8),
                             Row(
@@ -1013,8 +1126,8 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                                     decoration: InputDecoration(
                                       labelText: "Settings_Location_Latitude"
                                           .tr(),
-                                      labelStyle: const TextStyle(
-                                        color: textColor,
+                                      labelStyle: TextStyle(
+                                        color: AppPalette.of(context).text,
                                       ),
                                     ),
                                   ),
@@ -1032,8 +1145,8 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                                     decoration: InputDecoration(
                                       labelText: "Settings_Location_Longitude"
                                           .tr(),
-                                      labelStyle: const TextStyle(
-                                        color: textColor,
+                                      labelStyle: TextStyle(
+                                        color: AppPalette.of(context).text,
                                       ),
                                     ),
                                   ),
@@ -1072,187 +1185,91 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
   }
 
   Future<void> _savePrayerLocation(PrayerLocation location) async {
-    EasyLoading.showInfo("Settings_Saving_Location".tr());
-    final bool result = await shared_preference_methods.setStringData(
-      widget.prefs,
-      "location",
-      json.encode(location.toJson()),
-    );
-    if (!result) {
-      EasyLoading.showError("Settings_Unable_To_Save".tr(), dismissOnTap: true);
-      return;
-    }
-    await helper.invalidateTodayCachedData(widget.prefs);
-    if (mounted) {
+    if (await _saveSetting('location', jsonEncode(location.toJson())) &&
+        mounted) {
       setState(() {
         locationDisplayName = location.cityCountry;
         _hasSavedLocation = true;
       });
     }
-    EasyLoading.showSuccess("Settings_Success_Save".tr());
   }
 
   Future<void> _saveAddressLocation(
     String address,
     PrayerLocation resolvedLocation,
   ) async {
-    EasyLoading.showInfo("Settings_Saving_Location".tr());
-    final bool result = await shared_preference_methods.setStringData(
-      widget.prefs,
-      "location",
-      json.encode(<String, dynamic>{
-        "type": "address",
-        "location": address,
-        "latitude": resolvedLocation.latitude,
-        "longitude": resolvedLocation.longitude,
-        "cityCountry": resolvedLocation.cityCountry,
-        "source": "address",
-      }),
-    );
-    if (!result) {
-      EasyLoading.showError("Settings_Unable_To_Save".tr(), dismissOnTap: true);
-      return;
-    }
-    await helper.invalidateTodayCachedData(widget.prefs);
-    if (mounted) {
+    if (await _saveSetting(
+          'location',
+          jsonEncode({
+            'type': 'address',
+            'location': address,
+            'latitude': resolvedLocation.latitude,
+            'longitude': resolvedLocation.longitude,
+            'cityCountry': resolvedLocation.cityCountry,
+            'source': 'address',
+          }),
+        ) &&
+        mounted) {
       setState(() {
         locationDisplayName = resolvedLocation.cityCountry;
         _hasSavedLocation = true;
       });
     }
-    EasyLoading.showSuccess("Settings_Success_Save".tr());
   }
 
-  static final ButtonStyle _locationPrimaryButtonStyle = FilledButton.styleFrom(
-    backgroundColor: highlightedColor,
-    foregroundColor: primaryColor,
-    disabledBackgroundColor: highlightedColor.withValues(alpha: 0.45),
-    disabledForegroundColor: primaryColor.withValues(alpha: 0.6),
+  ButtonStyle get _locationPrimaryButtonStyle => FilledButton.styleFrom(
+    backgroundColor: AppPalette.of(context).accent,
+    foregroundColor: AppPalette.of(context).canvas,
+    disabledBackgroundColor: AppPalette.of(
+      context,
+    ).accent.withValues(alpha: 0.45),
+    disabledForegroundColor: AppPalette.of(
+      context,
+    ).canvas.withValues(alpha: 0.6),
     padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.all(Radius.circular(10)),
     ),
   );
 
-  static final ButtonStyle _locationSecondaryButtonStyle =
-      OutlinedButton.styleFrom(
-        foregroundColor: highlightedTextColor,
-        side: const BorderSide(color: highlightedColor),
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(10)),
-        ),
-      );
+  ButtonStyle get _locationSecondaryButtonStyle => OutlinedButton.styleFrom(
+    foregroundColor: AppPalette.of(context).accent,
+    side: BorderSide(color: AppPalette.of(context).accent),
+    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.all(Radius.circular(10)),
+    ),
+  );
 
-  void saveMethodParameter(String? value) async {
-    if (value != null && value.isNotEmpty) {
-      EasyLoading.showInfo("Settings_Saving_Method".tr());
-      if (kDebugMode) {
-        print("Saving method...");
-      }
-      bool result = await shared_preference_methods.setStringData(
-        widget.prefs,
-        "method",
-        value,
-      );
-      if (!result) {
-        EasyLoading.showError("Couldn't save data".tr(), dismissOnTap: true);
-        return;
-      }
-      await helper.invalidateTodayCachedData(widget.prefs);
-      EasyLoading.showSuccess("Settings_Success_Save".tr());
-    }
+  void saveMethodParameter(String? value) {
+    if (value != null) unawaited(_saveSetting('method', value));
   }
 
-  void saveSchoolParameter(String? value) async {
-    if (value != null && value.isNotEmpty) {
-      EasyLoading.showInfo("Settings_Saving_School".tr());
-      if (kDebugMode) {
-        print("Saving school...");
-      }
-      bool result = await shared_preference_methods.setStringData(
-        widget.prefs,
-        "school",
-        value,
-      );
-      if (!result) {
-        EasyLoading.showError("Couldn't save data".tr(), dismissOnTap: true);
-        return;
-      }
-      await helper.invalidateTodayCachedData(widget.prefs);
-      EasyLoading.showSuccess("Settings_Success_Save".tr());
-    }
+  void saveSchoolParameter(String? value) {
+    if (value != null) unawaited(_saveSetting('school', value));
   }
 
-  void saveCalendarMethodParameter(String? value) async {
-    if (value != null && value.isNotEmpty) {
-      EasyLoading.showInfo("Settings_Saving_Calendar_Method".tr());
-      if (kDebugMode) {
-        print("Saving Calendar method...");
-      }
-      bool result = await shared_preference_methods.setStringData(
-        widget.prefs,
-        "calendarMethod",
-        value,
-      );
-      if (!result) {
-        EasyLoading.showError("Couldn't save data".tr(), dismissOnTap: true);
-        return;
-      }
-      await helper.invalidateTodayCachedData(widget.prefs);
-      setState(() {
-        selectedCalendarMethod = value;
-        EasyLoading.showSuccess("Settings_Success_Save".tr());
-      });
-    }
+  void saveCalendarMethodParameter(String? value) {
+    if (value != null) unawaited(_saveSetting('calendarMethod', value));
   }
 
-  void saveAdjustmentValue(num? newValue) async {
-    if (newValue != null) {
-      EasyLoading.showInfo("Settings_Saving_Adjustment".tr());
-      if (kDebugMode) {
-        print("Saving Adjustment Value...");
-      }
-      bool result = await shared_preference_methods.setIntegerData(
-        widget.prefs,
-        "adjustment",
-        newValue.toInt(),
-      );
-      if (!result) {
-        EasyLoading.showError("Couldn't save data".tr(), dismissOnTap: true);
-        return;
-      }
-      await helper.invalidateTodayCachedData(widget.prefs);
-      EasyLoading.showSuccess("Settings_Success_Save".tr());
-    }
+  void saveAdjustmentValue(num? value) {
+    if (value != null) unawaited(_saveSetting('adjustment', value.toInt()));
   }
 
-  void saveTuneValue(String prayerName, num? newValue) async {
-    if (newValue != null) {
-      EasyLoading.showInfo("Settings_Saving_Tune".tr());
-      if (kDebugMode) {
-        print("Saving tune value for $prayerName...");
-      }
-      bool result = await shared_preference_methods.setIntegerData(
-        widget.prefs,
-        prayerTunePreferenceKey(prayerName),
-        newValue.toInt(),
-      );
-      if (!result) {
-        EasyLoading.showError("Couldn't save data".tr(), dismissOnTap: true);
-        return;
-      }
-      await helper.invalidateTodayCachedData(widget.prefs);
-      EasyLoading.showSuccess("Settings_Success_Save".tr());
+  void saveTuneValue(String name, num? value) {
+    if (value != null) {
+      unawaited(_saveSetting(prayerTunePreferenceKey(name), value.toInt()));
     }
   }
 
   void _changelanguage(String? val) {
-    print(val);
+    if (val == null) return;
+    setState(() => selectedlocale = val);
     if (val == "English") {
-      context.setLocale(Locale("en", "US"));
+      context.setLocale(const Locale("en", "US"));
     } else if (val == "العربية") {
-      context.setLocale(Locale("ar", "EG"));
+      context.setLocale(const Locale("ar", "EG"));
     }
   }
 }

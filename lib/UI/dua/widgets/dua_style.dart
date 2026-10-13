@@ -1,5 +1,5 @@
+import 'package:muslim/shared/app_theme.dart';
 import 'package:flutter/material.dart';
-import 'package:muslim/shared/constants.dart' as app;
 import '../models/dua_catalog.dart';
 
 bool duaArabic(BuildContext context) =>
@@ -29,37 +29,7 @@ class DuaStyle extends StatelessWidget {
   const DuaStyle({super.key, required this.child});
   final Widget child;
   @override
-  Widget build(BuildContext context) {
-    final colors = ColorScheme.fromSeed(
-      seedColor: app.thirdColor,
-      secondary: app.highlightedColor,
-      brightness: MediaQuery.platformBrightnessOf(context),
-    );
-    return MediaQuery(
-      data: MediaQuery.of(context).copyWith(
-        textScaler: MediaQueryData.fromView(View.of(context)).textScaler,
-      ),
-      child: Theme(
-        data: ThemeData(
-          useMaterial3: true,
-          colorScheme: colors,
-          scaffoldBackgroundColor: colors.surface,
-          appBarTheme: AppBarTheme(
-            backgroundColor: colors.surface,
-            foregroundColor: colors.onSurface,
-          ),
-          cardTheme: CardThemeData(
-            elevation: 0,
-            margin: EdgeInsets.zero,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(22),
-            ),
-          ),
-        ),
-        child: child,
-      ),
-    );
-  }
+  Widget build(BuildContext context) => AppReaderStyle(child: child);
 }
 
 String duaOriginLabel(

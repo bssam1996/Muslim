@@ -1,6 +1,6 @@
+import 'package:muslim/shared/app_theme.dart';
 import 'package:easy_localization/easy_localization.dart' hide TextDirection;
 import 'package:flutter/material.dart';
-import 'package:muslim/shared/constants.dart';
 
 /// A readable summary of the calculation inputs returned with prayer times.
 class PrayerMetadataSheet extends StatelessWidget {
@@ -34,9 +34,9 @@ class PrayerMetadataSheet extends StatelessWidget {
       maxChildSize: 0.92,
       builder: (BuildContext context, ScrollController scrollController) {
         return DecoratedBox(
-          decoration: const BoxDecoration(
-            color: thirdColor,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          decoration: BoxDecoration(
+            color: AppPalette.of(context).panel,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
           ),
           child: ListView(
             controller: scrollController,
@@ -47,7 +47,7 @@ class PrayerMetadataSheet extends StatelessWidget {
                   width: 42,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.white38,
+                    color: AppPalette.of(context).muted,
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -58,12 +58,14 @@ class PrayerMetadataSheet extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: highlightedColor.withValues(alpha: 0.2),
+                      color: AppPalette.of(
+                        context,
+                      ).accent.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.location_on_outlined,
-                      color: highlightedTextColor,
+                      color: AppPalette.of(context).accent,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -73,8 +75,8 @@ class PrayerMetadataSheet extends StatelessWidget {
                       children: <Widget>[
                         Text(
                           'Home_Page_Meta_Title'.tr(),
-                          style: const TextStyle(
-                            color: highlightedTextColor,
+                          style: TextStyle(
+                            color: AppPalette.of(context).accent,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -83,8 +85,8 @@ class PrayerMetadataSheet extends StatelessWidget {
                           locationName,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: textColor,
+                          style: TextStyle(
+                            color: AppPalette.of(context).text,
                             fontSize: 21,
                             fontWeight: FontWeight.bold,
                           ),
@@ -94,22 +96,37 @@ class PrayerMetadataSheet extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Material(
-                    color: Colors.white.withValues(alpha: 0.10),
+                    color: AppPalette.of(context).text.withValues(alpha: 0.10),
                     shape: const CircleBorder(),
                     child: IconButton(
                       tooltip: 'Close'.tr(),
                       onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close, color: textColor),
+                      icon: Icon(
+                        Icons.close,
+                        color: AppPalette.of(context).text,
+                      ),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 20),
-              _methodCard(methodName, methodId, methodSelection, methodRegion),
+              _methodCard(
+                context,
+                methodName,
+                methodId,
+                methodSelection,
+                methodRegion,
+              ),
               const SizedBox(height: 16),
               LayoutBuilder(
                 builder: (BuildContext context, BoxConstraints constraints) {
-                  final double cardWidth = (constraints.maxWidth - 12) / 2;
+                  final columns =
+                      constraints.maxWidth >= 480 &&
+                          MediaQuery.textScalerOf(context).scale(14) <= 21
+                      ? 2
+                      : 1;
+                  final double cardWidth =
+                      (constraints.maxWidth - 12 * (columns - 1)) / columns;
                   return Wrap(
                     spacing: 12,
                     runSpacing: 12,
@@ -117,6 +134,7 @@ class PrayerMetadataSheet extends StatelessWidget {
                       SizedBox(
                         width: cardWidth,
                         child: _summaryCard(
+                          context,
                           Icons.language_outlined,
                           'Home_Page_Meta_Timezone'.tr(),
                           timezone,
@@ -125,6 +143,7 @@ class PrayerMetadataSheet extends StatelessWidget {
                       SizedBox(
                         width: cardWidth,
                         child: _summaryCard(
+                          context,
                           Icons.explore_outlined,
                           'Home_Page_Meta_Coordinates'.tr(),
                           coordinates,
@@ -134,6 +153,7 @@ class PrayerMetadataSheet extends StatelessWidget {
                       SizedBox(
                         width: cardWidth,
                         child: _summaryCard(
+                          context,
                           Icons.school_outlined,
                           'Home_Page_Meta_School'.tr(),
                           _value(metadata['school']),
@@ -142,6 +162,7 @@ class PrayerMetadataSheet extends StatelessWidget {
                       SizedBox(
                         width: cardWidth,
                         child: _summaryCard(
+                          context,
                           Icons.nightlight_outlined,
                           'Home_Page_Meta_Midnight'.tr(),
                           _readableMidnightMode(
@@ -156,26 +177,29 @@ class PrayerMetadataSheet extends StatelessWidget {
               const SizedBox(height: 22),
               Text(
                 'Home_Page_Meta_Calculation_Details'.tr(),
-                style: const TextStyle(
-                  color: highlightedTextColor,
+                style: TextStyle(
+                  color: AppPalette.of(context).accent,
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 8),
-              _detailsCard(<Widget>[
+              _detailsCard(context, <Widget>[
                 _detailRow(
+                  context,
                   Icons.my_location_outlined,
                   'Home_Page_Meta_Timezone_Source'.tr(),
                   _value(metadata['timezoneSource']),
                 ),
                 _detailRow(
+                  context,
                   Icons.wb_twilight_outlined,
                   'Home_Page_Meta_High_Latitude'.tr(),
                   _value(metadata['polarCircleResolution']),
                 ),
                 if (_value(metadata['polarReferenceLatitude']).isNotEmpty)
                   _detailRow(
+                    context,
                     Icons.straighten_outlined,
                     'Home_Page_Meta_Reference_Latitude'.tr(),
                     _formatCoordinate(metadata['polarReferenceLatitude']),
@@ -183,6 +207,7 @@ class PrayerMetadataSheet extends StatelessWidget {
                   ),
                 if (_value(metadata['latitudeAdjustmentMethod']).isNotEmpty)
                   _detailRow(
+                    context,
                     Icons.tune_outlined,
                     'Home_Page_Meta_Latitude_Adjustment'.tr(),
                     _value(metadata['latitudeAdjustmentMethod']),
@@ -196,6 +221,7 @@ class PrayerMetadataSheet extends StatelessWidget {
   }
 
   Widget _methodCard(
+    BuildContext context,
     String methodName,
     String methodId,
     String methodSelection,
@@ -204,13 +230,15 @@ class PrayerMetadataSheet extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: primaryColor,
+        color: AppPalette.of(context).canvas,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: highlightedColor.withValues(alpha: 0.65)),
+        border: Border.all(
+          color: AppPalette.of(context).accent.withValues(alpha: 0.65),
+        ),
       ),
       child: Row(
         children: <Widget>[
-          const Icon(Icons.calculate_outlined, color: highlightedTextColor),
+          Icon(Icons.calculate_outlined, color: AppPalette.of(context).accent),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -218,13 +246,16 @@ class PrayerMetadataSheet extends StatelessWidget {
               children: <Widget>[
                 Text(
                   'Home_Page_Meta_Method'.tr(),
-                  style: const TextStyle(color: highlightedColor, fontSize: 12),
+                  style: TextStyle(
+                    color: AppPalette.of(context).accent,
+                    fontSize: 12,
+                  ),
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  methodName.isEmpty ? '-' : methodName,
-                  style: const TextStyle(
-                    color: textColor,
+                  methodName.isEmpty ? 'Common_Unavailable'.tr() : methodName,
+                  style: TextStyle(
+                    color: AppPalette.of(context).text,
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                   ),
@@ -236,10 +267,11 @@ class PrayerMetadataSheet extends StatelessWidget {
                       <String>[
                         if (methodSelection.isNotEmpty) methodSelection,
                         if (methodRegion.isNotEmpty) methodRegion,
-                        if (methodId.isNotEmpty) 'ID $methodId',
+                        if (methodId.isNotEmpty)
+                          'Metadata_Method_ID'.tr(namedArgs: {'id': methodId}),
                       ].join(' · '),
-                      style: const TextStyle(
-                        color: Colors.white70,
+                      style: TextStyle(
+                        color: AppPalette.of(context).muted,
                         fontSize: 12,
                       ),
                     ),
@@ -253,6 +285,7 @@ class PrayerMetadataSheet extends StatelessWidget {
   }
 
   Widget _summaryCard(
+    BuildContext context,
     IconData icon,
     String label,
     String value, {
@@ -262,27 +295,30 @@ class PrayerMetadataSheet extends StatelessWidget {
       constraints: const BoxConstraints(minHeight: 112),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: settingsWidgetBGColor,
+        color: AppPalette.of(context).panel,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: boxesBorderColor),
+        border: Border.all(color: AppPalette.of(context).border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Icon(icon, size: 19, color: highlightedTextColor),
+          Icon(icon, size: 19, color: AppPalette.of(context).accent),
           const SizedBox(height: 14),
           Text(
             label,
-            style: const TextStyle(color: highlightedColor, fontSize: 12),
+            style: TextStyle(
+              color: AppPalette.of(context).accent,
+              fontSize: 12,
+            ),
           ),
           const SizedBox(height: 3),
           Text(
-            value.isEmpty ? '-' : value,
+            value.isEmpty ? 'Common_Unavailable'.tr() : value,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             textDirection: ltr ? TextDirection.ltr : null,
-            style: const TextStyle(
-              color: textColor,
+            style: TextStyle(
+              color: AppPalette.of(context).text,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -291,18 +327,19 @@ class PrayerMetadataSheet extends StatelessWidget {
     );
   }
 
-  Widget _detailsCard(List<Widget> children) {
-    return Container(
-      decoration: BoxDecoration(
-        color: primaryColor.withValues(alpha: 0.72),
+  Widget _detailsCard(BuildContext context, List<Widget> children) {
+    return Material(
+      color: AppPalette.of(context).canvas,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: boxesBorderColor),
+        side: BorderSide(color: AppPalette.of(context).border),
       ),
       child: Column(children: children),
     );
   }
 
   Widget _detailRow(
+    BuildContext context,
     IconData icon,
     String label,
     String value, {
@@ -310,15 +347,18 @@ class PrayerMetadataSheet extends StatelessWidget {
   }) {
     return ListTile(
       dense: true,
-      leading: Icon(icon, color: highlightedColor, size: 20),
+      leading: Icon(icon, color: AppPalette.of(context).accent, size: 20),
       title: Text(
         label,
-        style: const TextStyle(color: Colors.white70, fontSize: 12),
+        style: TextStyle(color: AppPalette.of(context).muted, fontSize: 12),
       ),
       subtitle: Text(
-        value.isEmpty ? '-' : value,
+        value.isEmpty ? 'Common_Unavailable'.tr() : value,
         textDirection: ltr ? TextDirection.ltr : null,
-        style: const TextStyle(color: textColor, fontWeight: FontWeight.w600),
+        style: TextStyle(
+          color: AppPalette.of(context).text,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }

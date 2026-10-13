@@ -1,8 +1,8 @@
+import 'package:muslim/shared/app_theme.dart';
 import 'dart:ui' as ui;
 
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:muslim/shared/constants.dart' as constants;
 import 'package:muslim/shared/web_home_style.dart';
 import 'package:muslim/utils/hadith_utils.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -25,11 +25,11 @@ class QuickHadithCardPageClass extends StatelessWidget {
       child: Card(
         clipBehavior: Clip.antiAlias,
         color: Colors.transparent,
-        elevation: styled ? 0 : 8,
+        elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(styled ? 24 : 16),
           side: styled
-              ? const BorderSide(color: webBorderColor)
+              ? BorderSide(color: AppPalette.of(context).border)
               : BorderSide.none,
         ),
         margin: const EdgeInsets.only(bottom: 8),
@@ -39,8 +39,14 @@ class QuickHadithCardPageClass extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: styled
-                  ? const <Color>[Color(0xFF233B45), webPanelColor]
-                  : const <Color>[constants.primaryColor, constants.thirdColor],
+                  ? <Color>[
+                      AppPalette.of(context).accentSurface,
+                      AppPalette.of(context).panel,
+                    ]
+                  : <Color>[
+                      AppPalette.of(context).canvas,
+                      AppPalette.of(context).panel,
+                    ],
             ),
           ),
           child: InkWell(
@@ -55,18 +61,20 @@ class QuickHadithCardPageClass extends StatelessWidget {
                 children: <Widget>[
                   Row(
                     children: <Widget>[
-                      const Icon(
+                      Icon(
                         Icons.auto_stories_rounded,
-                        color: constants.highlightedTextColor,
+                        color: AppPalette.of(context).accent,
                         size: 20,
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        'HOME_HADITH_TITLE'.tr(),
-                        style: const TextStyle(
-                          color: constants.highlightedTextColor,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
+                      Flexible(
+                        child: Text(
+                          'HOME_HADITH_TITLE'.tr(),
+                          style: TextStyle(
+                            color: AppPalette.of(context).accent,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                     ],
@@ -74,34 +82,36 @@ class QuickHadithCardPageClass extends StatelessWidget {
                   const SizedBox(height: 12),
                   Text(
                     hadith.hadith,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: fontSize,
                       height: 1.65,
                       fontFamily: 'Uthman',
-                      color: constants.textColor,
+                      color: AppPalette.of(context).text,
                     ),
                     textAlign: TextAlign.center,
                     textDirection: ui.TextDirection.rtl,
                   ),
                   const SizedBox(height: 10),
-                  const Divider(color: constants.dividerColor, height: 1),
+                  Divider(color: AppPalette.of(context).border, height: 1),
                   const SizedBox(height: 6),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: <Widget>[
-                      Text(
-                        'Hadith_Read_More'.tr(),
-                        style: const TextStyle(
-                          color: constants.highlightedTextColor,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
+                      Flexible(
+                        child: Text(
+                          'Hadith_Read_More'.tr(),
+                          style: TextStyle(
+                            color: AppPalette.of(context).accent,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 4),
-                      const Icon(
+                      Icon(
                         Icons.arrow_forward_rounded,
                         size: 18,
-                        color: constants.highlightedTextColor,
+                        color: AppPalette.of(context).accent,
                       ),
                     ],
                   ),
@@ -133,16 +143,17 @@ class QuickHadithCardPageClass extends StatelessWidget {
             ),
             child: DecoratedBox(
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
+                gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: <Color>[constants.thirdColor, constants.primaryColor],
+                  colors: <Color>[
+                    AppPalette.of(context).panel,
+                    AppPalette.of(context).canvas,
+                  ],
                 ),
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
-                  color: constants.highlightedBoxesBorderColor.withValues(
-                    alpha: .65,
-                  ),
+                  color: AppPalette.of(context).accent.withValues(alpha: .65),
                 ),
                 boxShadow: const <BoxShadow>[
                   BoxShadow(
@@ -164,20 +175,21 @@ class QuickHadithCardPageClass extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: <Widget>[
-                            _buildHadithSection(),
+                            _buildHadithSection(context),
                             if (hadith.explanation
                                 .trim()
                                 .isNotEmpty) ...<Widget>[
                               const SizedBox(height: 20),
                               _buildSectionTitle(
+                                context,
                                 Icons.menu_book_rounded,
                                 'Hadith_Explanation'.tr(),
                               ),
                               const SizedBox(height: 10),
                               Text(
                                 hadith.explanation,
-                                style: const TextStyle(
-                                  color: constants.textColor,
+                                style: TextStyle(
+                                  color: AppPalette.of(context).text,
                                   fontSize: 17,
                                   height: 1.7,
                                 ),
@@ -188,6 +200,7 @@ class QuickHadithCardPageClass extends StatelessWidget {
                             if (hadith.explanationLinks.isNotEmpty) ...<Widget>[
                               const SizedBox(height: 20),
                               _buildSectionTitle(
+                                context,
                                 Icons.link_rounded,
                                 'Hadith_Explanation_Links'.tr(),
                               ),
@@ -214,22 +227,24 @@ class QuickHadithCardPageClass extends StatelessWidget {
   Widget _buildHeader(BuildContext context) {
     return Container(
       padding: const EdgeInsetsDirectional.fromSTEB(20, 12, 8, 12),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: Colors.white10,
-        border: Border(bottom: BorderSide(color: constants.dividerColor)),
+        border: Border(
+          bottom: BorderSide(color: AppPalette.of(context).border),
+        ),
       ),
       child: Row(
         children: <Widget>[
-          const Icon(
+          Icon(
             Icons.auto_stories_rounded,
-            color: constants.highlightedTextColor,
+            color: AppPalette.of(context).accent,
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               'HOME_HADITH_TITLE'.tr(),
-              style: const TextStyle(
-                color: constants.textColor,
+              style: TextStyle(
+                color: AppPalette.of(context).text,
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
@@ -238,24 +253,24 @@ class QuickHadithCardPageClass extends StatelessWidget {
           IconButton(
             tooltip: 'Close'.tr(),
             onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(Icons.close_rounded, color: constants.textColor),
+            icon: Icon(Icons.close_rounded, color: AppPalette.of(context).text),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildHadithSection() {
+  Widget _buildHadithSection(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: constants.fourthColor.withValues(alpha: .35),
+        color: AppPalette.of(context).muted.withValues(alpha: .35),
         borderRadius: BorderRadius.circular(16),
       ),
       child: SelectableText(
         hadith.hadith,
-        style: const TextStyle(
-          color: constants.textColor,
+        style: TextStyle(
+          color: AppPalette.of(context).text,
           fontFamily: 'Uthman',
           fontSize: 21,
           height: 1.7,
@@ -266,17 +281,19 @@ class QuickHadithCardPageClass extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionTitle(IconData icon, String title) {
+  Widget _buildSectionTitle(BuildContext context, IconData icon, String title) {
     return Row(
       children: <Widget>[
-        Icon(icon, color: constants.highlightedTextColor, size: 22),
+        Icon(icon, color: AppPalette.of(context).accent, size: 22),
         const SizedBox(width: 8),
-        Text(
-          title,
-          style: const TextStyle(
-            color: constants.highlightedTextColor,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+        Flexible(
+          child: Text(
+            title,
+            style: TextStyle(
+              color: AppPalette.of(context).accent,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ],
@@ -296,14 +313,14 @@ class QuickHadithCardPageClass extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          leading: const Icon(
+          leading: Icon(
             Icons.open_in_new_rounded,
-            color: constants.highlightedTextColor,
+            color: AppPalette.of(context).accent,
           ),
           title: Text(
             label.isEmpty ? link : label,
-            style: const TextStyle(
-              color: constants.textColor,
+            style: TextStyle(
+              color: AppPalette.of(context).text,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -312,7 +329,7 @@ class QuickHadithCardPageClass extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             textDirection: ui.TextDirection.ltr,
-            style: const TextStyle(color: Colors.white60),
+            style: TextStyle(color: AppPalette.of(context).muted),
           ),
           onTap: () => _openLink(context, uri),
         ),

@@ -1,6 +1,7 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
@@ -8,6 +9,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/shared_preference_methods.dart' as shared_preference_methods;
 import '../shared/constants.dart' as constants;
 import 'notification_service.dart';
+import 'prayer_schedule.dart';
+import 'prayer_alarm_scheduler.dart';
 
 const String _lastFetchedDateKey = 'last_fetched_date';
 
@@ -261,7 +264,8 @@ Future<bool> shouldFetchDailyData(SharedPreferences prefs) async {
   if (lastFetchedDateString == null) {
     return true; // Never fetched before
   }
-  final DateTime lastFetchedDate = DateTime.parse(lastFetchedDateString);
+  final DateTime? lastFetchedDate = DateTime.tryParse(lastFetchedDateString);
+  if (lastFetchedDate == null) return true;
   final DateTime today = DateTime(
     DateTime.now().year,
     DateTime.now().month,
@@ -270,13 +274,14 @@ Future<bool> shouldFetchDailyData(SharedPreferences prefs) async {
   return !lastFetchedDate.isAtSameMomentAs(today);
 }
 
-Future<void> updateLastFetchedDate(SharedPreferences prefs) async {
-  final DateTime today = DateTime(
-    DateTime.now().year,
-    DateTime.now().month,
-    DateTime.now().day,
+Future<void> updateLastFetchedDate(
+  SharedPreferences prefs, {
+  DateTime? fetchedDate,
+}) async {
+  await prefs.setString(
+    _lastFetchedDateKey,
+    prayerDate(fetchedDate ?? DateTime.now()).toIso8601String(),
   );
-  await prefs.setString(_lastFetchedDateKey, today.toIso8601String());
 }
 
 String getNowMinutes() {
@@ -402,118 +407,112 @@ Future<Map<String, String>> getPrayerNotificationSounds(
   return soundSettings;
 }
 
-Future<void> handleNotifications(
+Future<bool> handleNotifications(
   Future<SharedPreferences> prefs,
-  List<Map<String, dynamic>> jsonTimings,
-) async {
-  var sharedprayerNotification = await shared_preference_methods
-      .checkExistenceData(prefs, 'prayerNotification');
-  var prayerNotificationValue = false;
-  if (sharedprayerNotification) {
-    var prayerNotificationSettings = await shared_preference_methods
-        .getBoolData(prefs, 'prayerNotification');
-    prayerNotificationValue = prayerNotificationSettings;
-  } else {
-    return;
-  }
-  final Map<String, bool> prayerNotificationSettings =
-      await getPrayerNotificationSettings(prefs, prayerNotificationValue);
-  final Map<String, String> prayerNotificationModes =
-      await getPrayerNotificationModes(prefs);
-  final Map<String, String> prayerNotificationSounds =
-      await getPrayerNotificationSounds(prefs);
-  if (prayerNotificationSettings.values.every((enabled) => !enabled)) {
-    prayerNotificationValue = false;
-    await shared_preference_methods.setBoolData(
-      prefs,
-      'prayerNotification',
-      false,
-    );
-  }
-  if (!prayerNotificationValue) {
-    try {
-      await NotificationService().init();
-      await NotificationService().clearAllNotifications();
-    } catch (_) {}
-    return;
-  }
+  List<PrayerDay> days, {
+  String configuration = '',
+  PrayerAlarmBackend? backend,
+  DateTime? now,
+}) async {
+  if (backend == null && (kIsWeb || !Platform.isAndroid)) return true;
   try {
-    await NotificationService().init();
-    await NotificationService().clearAllNotifications();
-    for (int i = 0; i < constants.PRAYER_NAMES.length; i++) {
-      final String prayerName = constants.PRAYER_NAMES[i];
-      if (i == 1) {
-        continue; // Skip Sunrise
-      }
-      if (!(prayerNotificationSettings[prayerName] ?? false)) {
-        continue;
-      }
-      String time = jsonTimings[0][prayerName];
-      final String lowerTime = time.toLowerCase();
-      bool is24HourSystem = !lowerTime.contains("m");
-      bool isPm = false;
-      if (!is24HourSystem) {
-        isPm = lowerTime.contains("pm");
-        time = lowerTime.replaceAll(" am", "").replaceAll(" pm", "");
-      }
-      List<String> splittedTime = time.split(":");
-      String hourString = splittedTime[0];
-      String minuteString = splittedTime[1];
-      if (!is24HourSystem) {
-        int parsedHour = int.parse(hourString) % 12;
-        if (isPm) {
-          parsedHour += 12;
-        }
-        hourString = parsedHour.toString();
-      }
-      DateTime selectedTime = DateTime(
-        DateTime.now().year,
-        DateTime.now().month,
-        DateTime.now().day,
-        int.parse(hourString),
-        int.parse(minuteString),
-        0,
-      );
-      if (selectedTime.isBefore(DateTime.now())) {
-        continue;
-      }
-      final String prayerMode =
-          prayerNotificationModes[prayerName] ??
-          constants.prayerNotificationModeVibrationOnly;
-      final String configuredSoundKey =
-          prayerNotificationSounds[prayerName] ?? "";
-      final String? soundResourceName =
-          prayerMode == constants.prayerNotificationModeCustomSound &&
-              configuredSoundKey.isNotEmpty
-          ? constants.androidRawResourceNameFromSoundKey(configuredSoundKey)
-          : null;
-      final String channelId = constants.prayerNotificationAndroidChannelId(
-        prayerName,
-        prayerMode,
-        soundResourceName,
-      );
-      var r = await NotificationService().scheduleDailyNotification(
-        selectedTime,
-        i,
-        channelId,
-        prayerName,
-        "${"Don't forget praying".tr()} ${prayerName.tr()}",
-        playSound: soundResourceName != null,
-        soundResourceName: soundResourceName,
-        enableVibration: true,
-      );
-      if (r != "") {
-        print(r);
+    final preferences = await prefs;
+    await preferences.reload();
+    String notificationSettingsSnapshot() {
+      final keys =
+          preferences
+              .getKeys()
+              .where(
+                (key) =>
+                    key.startsWith('prayerNotification') ||
+                    key.startsWith('prayerTimeTune') ||
+                    [
+                      'location',
+                      'method',
+                      'school',
+                      'calendarMethod',
+                      'adjustment',
+                    ].contains(key),
+              )
+              .toList()
+            ..sort();
+      return keys.map((key) => '$key=${preferences.get(key)}').join('|');
+    }
 
-        return;
-      }
+    final modes = await getPrayerNotificationModes(prefs);
+    final configuredSounds = await getPrayerNotificationSounds(prefs);
+    final capturedSettings = notificationSettingsSnapshot();
+    final masterEnabled = preferences.getBool('prayerNotification') ?? false;
+    final enabled = {
+      for (final name in constants.PRAYER_NOTIFICATION_NAMES)
+        name:
+            masterEnabled &&
+            (preferences.getBool(
+                  constants.prayerNotificationPreferenceKey(name),
+                ) ??
+                masterEnabled),
+    };
+    final sounds = <String, String?>{};
+    final channels = <String, String>{};
+    for (final name in constants.PRAYER_NOTIFICATION_NAMES) {
+      final mode =
+          preferences.getString(
+            constants.prayerNotificationModePreferenceKey(name),
+          ) ??
+          modes[name] ??
+          constants.prayerNotificationModeVibrationOnly;
+      final soundKey =
+          preferences.getString(
+            constants.prayerNotificationSoundPreferenceKey(name),
+          ) ??
+          configuredSounds[name] ??
+          '';
+      final sound =
+          mode == constants.prayerNotificationModeCustomSound &&
+              soundKey.isNotEmpty
+          ? constants.androidRawResourceNameFromSoundKey(soundKey)
+          : null;
+      sounds[name] = sound;
+      channels[name] = constants.prayerNotificationAndroidChannelId(
+        name,
+        mode,
+        sound,
+      );
     }
-    return;
-  } catch (e) {
-    if (kDebugMode) {
-      print(e.toString());
-    }
-    return;
+    return await PrayerAlarmReconciler(
+      preferences,
+      backend ?? NotificationService(),
+    ).reconcile(
+      days: days,
+      configuration: configuration,
+      enabled: enabled,
+      channels: channels,
+      sounds: sounds,
+      now: now ?? DateTime.now(),
+      stillCurrent: () async {
+        await preferences.reload();
+        if (capturedSettings != notificationSettingsSnapshot()) return false;
+        if (backend == null && configuration.isNotEmpty) {
+          final location =
+              jsonDecode(preferences.getString('location') ?? '{}')
+                  as Map<String, dynamic>;
+          final path = await constructAPIParameters(
+            '',
+            dateFormatter(now ?? DateTime.now()),
+            location,
+            prefs,
+          );
+          if (path == null ||
+              prayerConfigurationIdentity(path) != configuration) {
+            return false;
+          }
+        }
+        return capturedSettings == notificationSettingsSnapshot();
+      },
+    );
+  } catch (error, stack) {
+    debugPrint('Prayer alarm update failed: $error\n$stack');
+    return false;
   }
 }
 

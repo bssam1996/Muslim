@@ -1,6 +1,6 @@
+import 'package:muslim/shared/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:muslim/shared/constants.dart' as app;
 import '../dua_search.dart';
 import 'journey_route.dart';
 import 'pilgrimage_content.dart';
@@ -303,38 +303,12 @@ class _PilgrimageJourneyPageState extends State<PilgrimageJourneyPage> {
   );
 }
 
-/// Scoped styling preserves the existing violet/teal palette. The root app
-/// currently disables text scaling; restore the device setting for this flow.
+/// Uses the selected app appearance and inherited accessibility settings.
 class PilgrimageStyle extends StatelessWidget {
   const PilgrimageStyle({super.key, required this.child});
   final Widget child;
   @override
-  Widget build(BuildContext context) {
-    final brightness = MediaQuery.platformBrightnessOf(context);
-    final colors = ColorScheme.fromSeed(
-      seedColor: app.thirdColor,
-      brightness: brightness,
-      secondary: app.highlightedColor,
-    );
-    final theme = ThemeData(
-      useMaterial3: true,
-      colorScheme: colors,
-      appBarTheme: const AppBarTheme(
-        backgroundColor: app.primaryColor,
-        foregroundColor: Colors.white,
-      ),
-      scaffoldBackgroundColor: colors.surface,
-      inputDecorationTheme: const InputDecorationTheme(
-        alignLabelWithHint: true,
-      ),
-    );
-    return MediaQuery(
-      data: MediaQuery.of(context).copyWith(
-        textScaler: MediaQueryData.fromView(View.of(context)).textScaler,
-      ),
-      child: Theme(data: theme, child: child),
-    );
-  }
+  Widget build(BuildContext context) => AppReaderStyle(child: child);
 }
 
 class JourneyStepDetails extends StatefulWidget {

@@ -1,6 +1,6 @@
+import 'package:muslim/shared/app_theme.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:muslim/shared/constants.dart';
 import '../dua/pilgrimage/pilgrimage_journey_page.dart';
 
 /// Home drawer destinations share the existing menu styling and open the
@@ -16,7 +16,7 @@ class PilgrimageMenuEntries extends StatelessWidget {
           key: ValueKey(hajj ? 'home-hajj' : 'home-umrah'),
           title: Text(
             hajj ? 'Home_Panel_Hajj' : 'Home_Panel_Umrah',
-            style: const TextStyle(color: textColor),
+            style: TextStyle(color: AppPalette.of(context).text),
           ).tr(),
           trailing: Image.asset(
             hajj ? 'assets/hajj/hajj.png' : 'assets/umrah/main.png',
@@ -30,7 +30,7 @@ class PilgrimageMenuEntries extends StatelessWidget {
             ),
           ),
         ),
-        const Divider(color: textColor),
+        Divider(color: AppPalette.of(context).text),
       ],
     ],
   );

@@ -1,14 +1,15 @@
+import 'package:muslim/shared/app_theme.dart';
 import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:easy_localization/easy_localization.dart' hide TextDirection;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:muslim/shared/constants.dart';
 import 'package:muslim/utils/quiz_utils.dart';
 
 class QuizPageClass extends StatefulWidget {
-  const QuizPageClass({super.key});
+  const QuizPageClass({super.key, this.loadQuestion});
+  final Future<QuizQuestion> Function()? loadQuestion;
 
   @override
   State<QuizPageClass> createState() => _QuizPageClassState();
@@ -56,7 +57,8 @@ class _QuizPageClassState extends State<QuizPageClass>
     });
 
     try {
-      final QuizQuestion question = await getRandomQuizQuestion();
+      final QuizQuestion question =
+          await (widget.loadQuestion?.call() ?? getRandomQuizQuestion());
       if (!mounted) {
         return;
       }
@@ -153,31 +155,31 @@ class _QuizPageClassState extends State<QuizPageClass>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: interpolatedColor3,
+      backgroundColor: AppPalette.of(context).canvas,
       appBar: AppBar(
-        backgroundColor: primaryColor,
-        iconTheme: const IconThemeData(color: textColor),
+        backgroundColor: AppPalette.of(context).canvas,
+        iconTheme: IconThemeData(color: AppPalette.of(context).text),
         title: Text(
           'Quiz_Title'.tr(),
-          style: const TextStyle(color: textColor),
+          style: TextStyle(color: AppPalette.of(context).text),
         ),
         centerTitle: true,
       ),
       body: Stack(
         children: <Widget>[
           DecoratedBox(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: <Color>[
-                  primaryColor,
-                  interpolatedColor5,
-                  interpolatedColor6,
-                  interpolatedColor7,
-                  thirdColor,
-                  interpolatedColor1,
-                  interpolatedColor3,
+                  AppPalette.of(context).canvas,
+                  AppPalette.of(context).canvas,
+                  AppPalette.of(context).canvas,
+                  AppPalette.of(context).canvas,
+                  AppPalette.of(context).panel,
+                  AppPalette.of(context).canvas,
+                  AppPalette.of(context).canvas,
                 ],
               ),
             ),
@@ -215,11 +217,14 @@ class _QuizPageClassState extends State<QuizPageClass>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                const CircularProgressIndicator(color: highlightedTextColor),
+                CircularProgressIndicator(color: AppPalette.of(context).accent),
                 const SizedBox(height: 16),
                 Text(
                   'Quiz_Loading'.tr(),
-                  style: const TextStyle(color: textColor, fontSize: 16),
+                  style: TextStyle(
+                    color: AppPalette.of(context).text,
+                    fontSize: 16,
+                  ),
                 ),
               ],
             ),
@@ -241,8 +246,8 @@ class _QuizPageClassState extends State<QuizPageClass>
               action: ElevatedButton.icon(
                 onPressed: _fetchQuestion,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: highlightedColor,
-                  foregroundColor: Colors.white,
+                  backgroundColor: AppPalette.of(context).accent,
+                  foregroundColor: Theme.of(context).colorScheme.onSecondary,
                 ),
                 icon: const Icon(Icons.refresh),
                 label: Text('Reload'.tr()),
@@ -261,12 +266,12 @@ class _QuizPageClassState extends State<QuizPageClass>
         Directionality(
           textDirection: TextDirection.rtl,
           child: Card(
-            color: settingsWidgetBGColor,
+            color: AppPalette.of(context).panel,
             elevation: 10,
-            shadowColor: primaryColor,
+            shadowColor: AppPalette.of(context).canvas,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
-              side: const BorderSide(color: boxesBorderColor),
+              side: BorderSide(color: AppPalette.of(context).border),
             ),
             child: Padding(
               padding: const EdgeInsets.all(18),
@@ -277,8 +282,8 @@ class _QuizPageClassState extends State<QuizPageClass>
                   const SizedBox(height: 18),
                   Text(
                     question.question,
-                    style: const TextStyle(
-                      color: textColor,
+                    style: TextStyle(
+                      color: AppPalette.of(context).text,
                       fontSize: 22,
                       height: 1.45,
                       fontFamily: 'Uthman',
@@ -296,11 +301,13 @@ class _QuizPageClassState extends State<QuizPageClass>
                         ? null
                         : _submitAnswer,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: highlightedColor,
-                      foregroundColor: Colors.white,
-                      disabledBackgroundColor: fourthColor.withValues(
-                        alpha: 0.35,
-                      ),
+                      backgroundColor: AppPalette.of(context).accent,
+                      foregroundColor: Theme.of(
+                        context,
+                      ).colorScheme.onSecondary,
+                      disabledBackgroundColor: AppPalette.of(
+                        context,
+                      ).muted.withValues(alpha: 0.35),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -323,10 +330,8 @@ class _QuizPageClassState extends State<QuizPageClass>
                             });
                           },
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: highlightedTextColor,
-                      side: const BorderSide(
-                        color: highlightedBoxesBorderColor,
-                      ),
+                      foregroundColor: AppPalette.of(context).accent,
+                      side: BorderSide(color: AppPalette.of(context).accent),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -339,8 +344,10 @@ class _QuizPageClassState extends State<QuizPageClass>
                   ElevatedButton.icon(
                     onPressed: _loading ? null : _fetchQuestion,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: highlightedColor,
-                      foregroundColor: Colors.white,
+                      backgroundColor: AppPalette.of(context).accent,
+                      foregroundColor: Theme.of(
+                        context,
+                      ).colorScheme.onSecondary,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -352,8 +359,8 @@ class _QuizPageClassState extends State<QuizPageClass>
                   const SizedBox(height: 10),
                   Text(
                     question.id,
-                    style: const TextStyle(
-                      color: highlightedColor,
+                    style: TextStyle(
+                      color: AppPalette.of(context).accent,
                       fontSize: 12,
                     ),
                     textAlign: TextAlign.center,
@@ -376,9 +383,9 @@ class _QuizPageClassState extends State<QuizPageClass>
           height: 46,
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: primaryColor,
+            color: AppPalette.of(context).canvas,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: highlightedBoxesBorderColor),
+            border: Border.all(color: AppPalette.of(context).accent),
           ),
           child: Image.asset('assets/quiz/quiz.png'),
         ),
@@ -389,8 +396,8 @@ class _QuizPageClassState extends State<QuizPageClass>
             children: <Widget>[
               Text(
                 question.category,
-                style: const TextStyle(
-                  color: highlightedTextColor,
+                style: TextStyle(
+                  color: AppPalette.of(context).accent,
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                   fontFamily: 'Uthman',
@@ -400,7 +407,10 @@ class _QuizPageClassState extends State<QuizPageClass>
               const SizedBox(height: 2),
               Text(
                 _typeLabel(question.type),
-                style: const TextStyle(color: textColor, fontSize: 12),
+                style: TextStyle(
+                  color: AppPalette.of(context).text,
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
@@ -436,13 +446,13 @@ class _QuizPageClassState extends State<QuizPageClass>
     final Color borderColor = selectedIncorrect
         ? Colors.redAccent
         : selected
-        ? highlightedTextColor
-        : boxesBorderColor;
+        ? AppPalette.of(context).accent
+        : AppPalette.of(context).border;
     final Color backgroundColor = selectedIncorrect
         ? Colors.red.withValues(alpha: 0.24)
         : selected
-        ? highlightedColor.withValues(alpha: 0.28)
-        : primaryColor.withValues(alpha: 0.72);
+        ? AppPalette.of(context).accent.withValues(alpha: 0.28)
+        : AppPalette.of(context).canvas.withValues(alpha: 0.72);
 
     return Semantics(
       button: true,
@@ -468,15 +478,17 @@ class _QuizPageClassState extends State<QuizPageClass>
                     : selected
                     ? Icons.radio_button_checked
                     : Icons.radio_button_unchecked,
-                color: selected ? highlightedTextColor : textColor,
+                color: selected
+                    ? AppPalette.of(context).accent
+                    : AppPalette.of(context).text,
                 size: 22,
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   option,
-                  style: const TextStyle(
-                    color: textColor,
+                  style: TextStyle(
+                    color: AppPalette.of(context).text,
                     fontSize: 18,
                     height: 1.35,
                     fontFamily: 'Uthman',
@@ -494,13 +506,13 @@ class _QuizPageClassState extends State<QuizPageClass>
   Widget _buildOrderingInput(QuizQuestion question) {
     final Color borderColor = _hasAnswered && !_isCorrect
         ? Colors.redAccent
-        : boxesBorderColor;
+        : AppPalette.of(context).border;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: primaryColor.withValues(alpha: 0.55),
+        color: AppPalette.of(context).canvas.withValues(alpha: 0.55),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: borderColor),
       ),
@@ -531,22 +543,22 @@ class _QuizPageClassState extends State<QuizPageClass>
           final String option = _orderedOptions[index];
           return Card(
             key: ValueKey<String>('ordering-$option'),
-            color: settingsWidgetBGColor,
+            color: AppPalette.of(context).panel,
             margin: const EdgeInsets.symmetric(vertical: 5),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
-              side: const BorderSide(color: boxesBorderColor),
+              side: BorderSide(color: AppPalette.of(context).border),
             ),
             child: ListTile(
               leading: CircleAvatar(
-                backgroundColor: highlightedColor,
-                foregroundColor: Colors.white,
+                backgroundColor: AppPalette.of(context).accent,
+                foregroundColor: Theme.of(context).colorScheme.onSecondary,
                 child: Text('${index + 1}'),
               ),
               title: Text(
                 option,
-                style: const TextStyle(
-                  color: textColor,
+                style: TextStyle(
+                  color: AppPalette.of(context).text,
                   fontSize: 18,
                   fontFamily: 'Uthman',
                 ),
@@ -554,7 +566,10 @@ class _QuizPageClassState extends State<QuizPageClass>
               trailing: ReorderableDragStartListener(
                 index: index,
                 enabled: !_hasAnswered,
-                child: const Icon(Icons.drag_handle, color: textColor),
+                child: Icon(
+                  Icons.drag_handle,
+                  color: AppPalette.of(context).text,
+                ),
               ),
             ),
           );
@@ -573,25 +588,30 @@ class _QuizPageClassState extends State<QuizPageClass>
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: _isCorrect
-            ? highlightedColor.withValues(alpha: 0.28)
+            ? AppPalette.of(context).accent.withValues(alpha: 0.28)
             : Colors.red.withValues(alpha: 0.24),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: _isCorrect ? highlightedTextColor : Colors.redAccent,
+          color: _isCorrect ? AppPalette.of(context).accent : Colors.redAccent,
         ),
       ),
       child: Row(
         children: <Widget>[
           Icon(
             _isCorrect ? Icons.celebration : Icons.error_outline,
-            color: _isCorrect ? highlightedTextColor : Colors.redAccent,
+            color: _isCorrect
+                ? AppPalette.of(context).accent
+                : Colors.redAccent,
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               (_isCorrect ? 'Quiz_Correct_Answer' : 'Quiz_Incorrect_Answer')
                   .tr(),
-              style: const TextStyle(color: textColor, fontSize: 16),
+              style: TextStyle(
+                color: AppPalette.of(context).text,
+                fontSize: 16,
+              ),
               textAlign: TextAlign.start,
             ),
           ),
@@ -604,17 +624,17 @@ class _QuizPageClassState extends State<QuizPageClass>
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: highlightedColor.withValues(alpha: 0.18),
+        color: AppPalette.of(context).accent.withValues(alpha: 0.18),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: highlightedBoxesBorderColor),
+        border: Border.all(color: AppPalette.of(context).accent),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Text(
             'Quiz_Answer'.tr(),
-            style: const TextStyle(
-              color: highlightedTextColor,
+            style: TextStyle(
+              color: AppPalette.of(context).accent,
               fontSize: 16,
               fontWeight: FontWeight.bold,
             ),
@@ -631,8 +651,8 @@ class _QuizPageClassState extends State<QuizPageClass>
               padding: const EdgeInsets.only(bottom: 6),
               child: Text(
                 '$prefix${entry.value}',
-                style: const TextStyle(
-                  color: textColor,
+                style: TextStyle(
+                  color: AppPalette.of(context).text,
                   fontSize: 18,
                   height: 1.35,
                   fontFamily: 'Uthman',
@@ -655,11 +675,11 @@ class _QuizPageClassState extends State<QuizPageClass>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Icon(icon, color: highlightedTextColor, size: 56),
+          Icon(icon, color: AppPalette.of(context).accent, size: 56),
           const SizedBox(height: 16),
           Text(
             text,
-            style: const TextStyle(color: textColor, fontSize: 16),
+            style: TextStyle(color: AppPalette.of(context).text, fontSize: 16),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 18),
@@ -744,9 +764,9 @@ class _CelebrationParticle {
   final Color color;
 
   static const List<Color> _colors = <Color>[
-    highlightedTextColor,
-    highlightedColor,
-    Colors.white,
+    Color(0xFF92E8F6),
+    Color(0xFF92E8F6),
+    Color(0xFFFFFFFF),
     Color.fromRGBO(255, 214, 102, 1),
     Color.fromRGBO(255, 132, 132, 1),
   ];

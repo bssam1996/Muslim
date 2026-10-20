@@ -537,12 +537,49 @@ void main() {
         ),
         scale: 1,
       );
-      expect(find.textContaining('Home_Next_Event'.tr()), findsOneWidget);
+      expect(
+        find.text('Home_Next_Event'.tr(namedArgs: {'prayer': 'Sunrise'})),
+        findsOneWidget,
+      );
       expect(tester.takeException(), isNull);
     },
   );
 
   for (final locale in [const Locale('en', 'US'), const Locale('ar', 'EG')]) {
+    for (final name in ['Maghrib', 'Sunrise']) {
+      testWidgets(
+        'countdown uses a complete localized sentence for $name in $locale',
+        (tester) async {
+          final clock = ValueNotifier(DateTime(2026, 10, 8, 6));
+          addTearDown(clock.dispose);
+          await pumpDailyPage(
+            tester,
+            Scaffold(
+              body: PrayerCountdown(
+                name: name,
+                time: DateTime(2026, 10, 8, 6, 30),
+                displayTime: '06:30',
+                clock: clock,
+              ),
+            ),
+            locale: locale,
+          );
+          final title = find.byKey(const ValueKey('home_countdown_title'));
+          final expected = locale.languageCode == 'ar'
+              ? (name == 'Sunrise'
+                    ? 'الوقت المتبقي حتى الشروق'
+                    : 'الوقت المتبقي لصلاة المغرب')
+              : 'Time until $name';
+          expect(tester.widget<Text>(title).data, expected);
+          expect(
+            Directionality.of(tester.element(title)),
+            locale.languageCode == 'ar' ? TextDirection.rtl : TextDirection.ltr,
+          );
+          expect(tester.takeException(), isNull);
+        },
+      );
+    }
+
     testWidgets(
       'calendar table swipes change months without intercepting vertical scrolling in $locale',
       (tester) async {

@@ -1,6 +1,6 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/layout_root" android:layout_width="match_parent" android:layout_height="match_parent"
-    android:background="@drawable/widget_modern_background"
+    android:background="@drawable/widget_modern_background_system"
     android:paddingStart="8dp" android:paddingEnd="8dp" android:paddingTop="1dp" android:paddingBottom="1dp"
     android:orientation="vertical">
     <include layout="@layout/widget_modern_dates" android:id="@id/modern_dates"
@@ -19,7 +19,7 @@
                 android:layout_marginTop="1dp" />
             <ImageView android:id="@+id/modern_fajr_indicator" android:layout_width="4dp"
                 android:layout_height="3dp" android:layout_marginTop="3dp"
-                android:background="@drawable/widget_modern_indicator" android:visibility="invisible"
+                android:background="@drawable/widget_modern_indicator_system" android:visibility="invisible"
                 android:importantForAccessibility="no" />
         </LinearLayout>
         <LinearLayout android:id="@+id/sunrise_card" android:layout_width="0dp"
@@ -34,7 +34,7 @@
                 android:layout_marginTop="1dp" />
             <ImageView android:id="@+id/modern_sunrise_indicator" android:layout_width="4dp"
                 android:layout_height="3dp" android:layout_marginTop="3dp"
-                android:background="@drawable/widget_modern_indicator" android:visibility="invisible"
+                android:background="@drawable/widget_modern_indicator_system" android:visibility="invisible"
                 android:importantForAccessibility="no" />
         </LinearLayout>
         <LinearLayout android:id="@+id/dhuhr_card" android:layout_width="0dp"
@@ -49,10 +49,10 @@
                 android:layout_marginTop="1dp" />
             <ImageView android:id="@+id/modern_dhuhr_indicator" android:layout_width="4dp"
                 android:layout_height="3dp" android:layout_marginTop="3dp"
-                android:background="@drawable/widget_modern_indicator" android:visibility="invisible"
+                android:background="@drawable/widget_modern_indicator_system" android:visibility="invisible"
                 android:importantForAccessibility="no" />
         </LinearLayout>
-        <LinearLayout android:id="@+id/asr_card" android:background="@drawable/widget_modern_highlight" android:layout_width="0dp"
+        <LinearLayout android:id="@+id/asr_card" android:background="@drawable/widget_modern_highlight_system" android:layout_width="0dp"
             android:layout_height="match_parent" android:layout_weight="1"
             android:orientation="vertical" android:gravity="center">
             <TextView android:id="@+id/asr_label" style="@style/ModernWidgetLabel"
@@ -64,7 +64,7 @@
                 android:layout_marginTop="1dp" />
             <ImageView android:id="@+id/modern_asr_indicator" android:layout_width="4dp"
                 android:layout_height="3dp" android:layout_marginTop="3dp"
-                android:background="@drawable/widget_modern_indicator" android:visibility="invisible"
+                android:background="@drawable/widget_modern_indicator_system" android:visibility="invisible"
                 android:importantForAccessibility="no" />
         </LinearLayout>
         <LinearLayout android:id="@+id/maghrib_card" android:layout_width="0dp"
@@ -79,7 +79,7 @@
                 android:layout_marginTop="1dp" />
             <ImageView android:id="@+id/modern_maghrib_indicator" android:layout_width="4dp"
                 android:layout_height="3dp" android:layout_marginTop="3dp"
-                android:background="@drawable/widget_modern_indicator" android:visibility="invisible"
+                android:background="@drawable/widget_modern_indicator_system" android:visibility="invisible"
                 android:importantForAccessibility="no" />
         </LinearLayout>
         <LinearLayout android:id="@+id/isha_card" android:layout_width="0dp"
@@ -94,7 +94,7 @@
                 android:layout_marginTop="1dp" />
             <ImageView android:id="@+id/modern_isha_indicator" android:layout_width="4dp"
                 android:layout_height="3dp" android:layout_marginTop="3dp"
-                android:background="@drawable/widget_modern_indicator" android:visibility="invisible"
+                android:background="@drawable/widget_modern_indicator_system" android:visibility="invisible"
                 android:importantForAccessibility="no" />
         </LinearLayout>
     </LinearLayout>

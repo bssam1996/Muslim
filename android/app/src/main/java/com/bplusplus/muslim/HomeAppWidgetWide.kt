@@ -3,7 +3,6 @@ package com.bplusplus.muslim
 import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.SharedPreferences
-import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Typeface
 import android.os.Build
@@ -75,7 +74,7 @@ class HomeAppWidgetWide : HomeWidgetProvider() {
         ))
     }
 
-    private fun createViews(
+    internal fun createViews(
         context: Context,
         widgetData: SharedPreferences,
         size: SizeF
@@ -130,12 +129,7 @@ class HomeAppWidgetWide : HomeWidgetProvider() {
             listOf(R.id.gregorianDate_text to gregorianDate,
                 R.id.hijriDate_text to hijriDate))
 
-        applyWidePrayerState(nextPrayerKey, "fajr", R.id.fajr_card, R.id.fajr_label, R.id.fajr_text)
-        applyWidePrayerState(nextPrayerKey, "sunrise", R.id.sunrise_card, R.id.sunrise_label, R.id.sunrise_text)
-        applyWidePrayerState(nextPrayerKey, "dhuhr", R.id.dhuhr_card, R.id.dhuhr_label, R.id.dhuhr_text)
-        applyWidePrayerState(nextPrayerKey, "asr", R.id.asr_card, R.id.asr_label, R.id.asr_text)
-        applyWidePrayerState(nextPrayerKey, "maghrib", R.id.maghrib_card, R.id.maghrib_label, R.id.maghrib_text)
-        applyWidePrayerState(nextPrayerKey, "isha", R.id.isha_card, R.id.isha_label, R.id.isha_text)
+        WidgetAppearance(context, widgetData).classic(this, nextPrayerKey, wide = true)
     }
 
     private fun RemoteViews.applyAdaptiveSizing(
@@ -185,27 +179,4 @@ class HomeAppWidgetWide : HomeWidgetProvider() {
         setViewPadding(R.id.hijriDate_text, 0, gap, 0, 0)
     }
 
-    private fun RemoteViews.applyWidePrayerState(
-        nextPrayerKey: String,
-        prayerKey: String,
-        cardViewId: Int,
-        labelViewId: Int,
-        timeViewId: Int
-    ) {
-        val highlighted = nextPrayerKey == prayerKey
-        setInt(
-            cardViewId,
-            "setBackgroundResource",
-            if (highlighted) R.drawable.home_widget_bg_prayer_card_highlight
-            else R.drawable.home_widget_bg_prayer_card
-        )
-        setTextColor(
-            labelViewId,
-            if (highlighted) Color.parseColor("#FFF4D4") else Color.parseColor("#D8EDFF")
-        )
-        setTextColor(
-            timeViewId,
-            if (highlighted) Color.parseColor("#FFFFFF") else Color.parseColor("#E4F2FD")
-        )
-    }
 }

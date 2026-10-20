@@ -98,6 +98,11 @@ abstract class ModernPrayerWidget(private val wide: Boolean) : HomeWidgetProvide
         val innerWidth = width - horizontalPadding * 2
         val views = RemoteViews(context.packageName, if (wide) R.layout.home_app_widget_modern_wide
             else R.layout.home_app_widget_modern_portrait)
+        val appearance = WidgetAppearance(context, data)
+        appearance.background(views, R.id.layout_root, R.drawable.widget_modern_background_light,
+            R.drawable.widget_modern_background, R.drawable.widget_modern_background_system)
+        appearance.text(views, R.id.modern_hijri_top, "#805A12", "#E6C885")
+        appearance.text(views, R.id.modern_gregorian_top, "#4B6078", "#AFBDCF")
 
         // Keep a consistent size within each group, fitted to the translated text and actual space.
         fun fit(group: List<Pair<Int, String>>, desiredSp: Float, widthDp: Float,
@@ -163,12 +168,18 @@ abstract class ModernPrayerWidget(private val wide: Boolean) : HomeWidgetProvide
         }
         prayers.forEachIndexed { index, prayer ->
             val highlighted = index == nextIndex
-            views.setInt(prayer.card, "setBackgroundResource",
-                if (highlighted) R.drawable.widget_modern_highlight else android.R.color.transparent)
+            if (highlighted) appearance.background(views, prayer.card,
+                R.drawable.widget_modern_highlight_light, R.drawable.widget_modern_highlight,
+                R.drawable.widget_modern_highlight_system)
+            else views.setInt(prayer.card, "setBackgroundResource", android.R.color.transparent)
+            appearance.background(views, prayer.marker, R.drawable.widget_modern_indicator_light,
+                R.drawable.widget_modern_indicator, R.drawable.widget_modern_indicator_system)
             views.setViewVisibility(prayer.marker, if (compactWide || compactPortrait) View.GONE
                 else if (highlighted) View.VISIBLE else View.INVISIBLE)
-            views.setTextColor(prayer.label, context.getColor(if (highlighted) R.color.widget_modern_gold else R.color.widget_modern_muted))
-            views.setTextColor(prayer.time, context.getColor(if (highlighted) R.color.widget_modern_gold else R.color.widget_modern_text))
+            appearance.text(views, prayer.label, if (highlighted) "#805A12" else "#4B6078",
+                if (highlighted) "#E6C885" else "#AFBDCF")
+            appearance.text(views, prayer.time, if (highlighted) "#805A12" else "#172B44",
+                if (highlighted) "#E6C885" else "#F5F3EC")
         }
         return views
     }

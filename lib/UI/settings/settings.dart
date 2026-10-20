@@ -6,6 +6,7 @@ import '../../utils/prayer_schedule.dart';
 import '../prayer_notifications/prayer_notifications.dart';
 import 'package:muslim/shared/app_theme.dart';
 import 'package:muslim/shared/appearance_picker.dart';
+import 'package:muslim/shared/widget_appearance_picker.dart';
 import 'dart:convert';
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -364,22 +365,52 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
     ),
   );
 
-  Widget _section(String title, List<Widget> children) => Padding(
-    key: ValueKey('settings_section_$title'),
-    padding: const EdgeInsets.only(bottom: 24),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Semantics(
-          header: true,
-          child: Text(
-            title.tr(),
-            style: Theme.of(context).textTheme.titleMedium,
+  Widget _settingsPanel(String title, Widget child) => Padding(
+    padding: const EdgeInsets.only(bottom: AppSpacing.section),
+    child: Material(
+      key: ValueKey('settings_section_$title'),
+      color: AppPalette.of(context).panel,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSpacing.radius),
+        side: BorderSide(color: AppPalette.of(context).border),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: child,
+    ),
+  );
+
+  Widget _section(
+    String title,
+    List<Widget> children, {
+    required IconData icon,
+  }) => _settingsPanel(
+    title,
+    Padding(
+      padding: const EdgeInsets.all(AppSpacing.medium),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Semantics(
+            header: true,
+            child: Row(
+              children: [
+                Icon(icon, color: AppPalette.of(context).accent),
+                const SizedBox(width: AppSpacing.medium),
+                Expanded(
+                  child: Text(
+                    title.tr(),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        ...children,
-      ],
+          const Divider(height: AppSpacing.section),
+          ...children,
+        ],
+      ),
     ),
   );
 
@@ -425,9 +456,16 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                   ),
                 ),
               ),
-            _section('Settings_Location_Title', [_buildLocationSelector()]),
+            _section('Settings_Location_Title', [
+              _buildLocationSelector(),
+            ], icon: Icons.location_on_outlined),
             _section('Settings_Appearance_Section', [
               const AppearancePicker(),
+              if (!kIsWeb &&
+                  defaultTargetPlatform == TargetPlatform.android) ...[
+                const SizedBox(height: AppSpacing.page),
+                const WidgetAppearancePicker(),
+              ],
               const SizedBox(height: 12),
               _dropdown(
                 'Settings_Language_Title',
@@ -442,7 +480,7 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                 value: is24,
                 onChanged: _change24HourSystem,
               ),
-            ]),
+            ], icon: Icons.palette_outlined),
             _section('Settings_Prayer_Section', [
               _dropdown(
                 'Settings_Method',
@@ -471,11 +509,27 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                   label: 'Settings_Adj_Hij_Desc'.tr(),
                   onChanged: saveAdjustmentValue,
                 ),
+            ], icon: Icons.schedule_outlined),
+            _settingsPanel(
+              'Settings_Advanced',
               ExpansionTile(
                 key: const PageStorageKey('settings_advanced'),
-                tilePadding: EdgeInsets.zero,
-                title: Text('Settings_Advanced'.tr()),
+                tilePadding: const EdgeInsets.all(AppSpacing.medium),
+                childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                shape: const Border(),
+                collapsedShape: const Border(),
+                leading: Icon(Icons.tune, color: AppPalette.of(context).accent),
+                title: Semantics(
+                  header: true,
+                  child: Text(
+                    'Settings_Advanced'.tr(),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
                 children: [
+                  const Divider(height: AppSpacing.section),
                   Text('Settings_Tune_Desc'.tr()),
                   const SizedBox(height: 12),
                   for (final name in PRAYER_NAMES)
@@ -514,12 +568,11 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                   ),
                 ],
               ),
-            ]),
+            ),
             _section('Prayer_Notifications_Title', [
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.notifications_outlined),
-                title: Text('Prayer_Notifications_Title'.tr()),
+                title: Text('Prayer_Notifications_Manage'.tr()),
                 subtitle: Text(
                   (!kIsWeb && Platform.isAndroid
                           ? 'Prayer_Notifications_Desc'
@@ -536,10 +589,10 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                       )
                     : null,
               ),
-            ]),
+            ], icon: Icons.notifications_outlined),
             _section('Settings_Storage_Section', [
               _buildClearPrayerCacheButton(),
-            ]),
+            ], icon: Icons.storage_outlined),
           ],
         ),
       ),
@@ -651,17 +704,12 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
   }
 
   Widget _buildClearPrayerCacheButton() {
-    return Align(
-      alignment: Alignment.center,
-      child: TextButton.icon(
-        onPressed: _confirmClearPrayerCache,
-        icon: const Icon(Icons.delete_outline, size: 18),
-        label: Text("Settings_Clear_Prayer_Cache".tr()),
-        style: TextButton.styleFrom(
-          foregroundColor: AppPalette.of(context).muted,
-          visualDensity: VisualDensity.compact,
-        ),
-      ),
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text('Settings_Clear_Prayer_Cache'.tr()),
+      subtitle: Text('Settings_Clear_Prayer_Cache_Desc'.tr()),
+      trailing: const Icon(Icons.delete_outline),
+      onTap: _confirmClearPrayerCache,
     );
   }
 

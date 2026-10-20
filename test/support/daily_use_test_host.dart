@@ -73,6 +73,10 @@ void initializeDailyUseTests() {
     );
     final messenger =
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(
+      const MethodChannel('home_widget'),
+      (_) async => null,
+    );
     for (final name in [
       'xyz.luan/audioplayers.global',
       'xyz.luan/audioplayers.global/events',

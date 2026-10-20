@@ -36,7 +36,9 @@ class PrayerCountdown extends StatelessWidget {
         child: Column(
           children: [
             Text(
-              '${(name == 'Sunrise' ? 'Home_Next_Event' : 'Home_Page_Next_Prayer').tr()} · ${name.tr()}',
+              (name == 'Sunrise' ? 'Home_Next_Event' : 'Home_Page_Next_Prayer')
+                  .tr(namedArgs: {'prayer': 'Home_Countdown_Name_$name'.tr()}),
+              key: const ValueKey('home_countdown_title'),
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: palette.text,
@@ -45,6 +47,7 @@ class PrayerCountdown extends StatelessWidget {
             ),
             Text(
               '${DateFormat.MMMd(context.locale.toString()).format(time)} · $displayTime',
+              textAlign: TextAlign.center,
               style: TextStyle(color: palette.muted, fontSize: 12),
             ),
             const SizedBox(height: 8),

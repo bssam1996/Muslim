@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="home_widget_bg_header_system" type="drawable">@drawable/home_widget_bg_header</item>
+    <item name="home_widget_bg_prayer_card_system" type="drawable">@drawable/home_widget_bg_prayer_card</item>
+    <item name="home_widget_bg_prayer_card_highlight_system" type="drawable">@drawable/home_widget_bg_prayer_card_highlight</item>
+    <item name="home_widget_bg_prayer_label_system" type="drawable">@drawable/home_widget_bg_prayer_label</item>
+    <item name="home_widget_bg_prayer_label_highlight_system" type="drawable">@drawable/home_widget_bg_prayer_label_highlight</item>
+    <item name="home_widget_bg_prayer_time_system" type="drawable">@drawable/home_widget_bg_prayer_time</item>
+    <item name="home_widget_bg_prayer_time_highlight_system" type="drawable">@drawable/home_widget_bg_prayer_time_highlight</item>
+    <item name="home_widget_bg_root_system" type="drawable">@drawable/home_widget_bg_root</item>
+    <item name="widget_modern_background_system" type="drawable">@drawable/widget_modern_background</item>
+    <item name="widget_modern_highlight_system" type="drawable">@drawable/widget_modern_highlight</item>
+    <item name="widget_modern_indicator_system" type="drawable">@drawable/widget_modern_indicator</item>
+    <color name="widget_classic_label">#E8F6FF</color>
+    <color name="widget_classic_wide_label">#D8EDFF</color>
+    <color name="widget_classic_time">#E4F2FD</color>
+    <color name="widget_classic_date">#E5F2FF</color>
+    <color name="widget_modern_text">#F5F3EC</color>
+    <color name="widget_modern_muted">#AFBDCF</color>
+    <color name="widget_modern_gold">#E6C885</color>
+</resources>

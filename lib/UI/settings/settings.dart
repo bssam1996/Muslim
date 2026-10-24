@@ -4,6 +4,8 @@ import '../../utils/serial_task_queue.dart';
 import '../../utils/prayer_data_repository.dart';
 import '../../utils/prayer_schedule.dart';
 import '../prayer_notifications/prayer_notifications.dart';
+import '../prayer_notifications/web_prayer_notifications.dart';
+import '../../utils/web_push_service.dart';
 import 'package:muslim/shared/app_theme.dart';
 import 'package:muslim/shared/appearance_picker.dart';
 import 'package:muslim/shared/widget_appearance_picker.dart';
@@ -574,17 +576,22 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
                 contentPadding: EdgeInsets.zero,
                 title: Text('Prayer_Notifications_Manage'.tr()),
                 subtitle: Text(
-                  (!kIsWeb && Platform.isAndroid
+                  (kIsWeb
+                          ? 'Web_Push_Description'
+                          : Platform.isAndroid
                           ? 'Prayer_Notifications_Desc'
                           : 'Prayer_Notifications_Not_Supported')
                       .tr(),
                 ),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: !kIsWeb && Platform.isAndroid
+                onTap: kIsWeb || Platform.isAndroid
                     ? () => Navigator.of(context).push(
                         MaterialPageRoute<void>(
-                          builder: (_) =>
-                              PrayerNotificationsPageClass(prefs: widget.prefs),
+                          builder: (_) => kIsWeb
+                              ? WebPrayerNotificationsPage(prefs: widget.prefs)
+                              : PrayerNotificationsPageClass(
+                                  prefs: widget.prefs,
+                                ),
                         ),
                       )
                     : null,
@@ -1316,8 +1323,10 @@ class _SettingsPageClassState extends State<SettingsPageClass> {
     setState(() => selectedlocale = val);
     if (val == "English") {
       context.setLocale(const Locale("en", "US"));
+      if (kIsWeb) unawaited(syncSavedWebPush(language: 'en'));
     } else if (val == "العربية") {
       context.setLocale(const Locale("ar", "EG"));
+      if (kIsWeb) unawaited(syncSavedWebPush(language: 'ar'));
     }
   }
 }

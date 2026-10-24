@@ -36,6 +36,7 @@ import 'UI/prayer_metadata_sheet.dart';
 import 'UI/settings/settings.dart';
 import 'shared/app_navigation.dart';
 import 'utils/helper.dart' as helper;
+import 'utils/web_push_service.dart';
 import 'utils/homewidget_utils.dart' as homewidget_utils;
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -106,6 +107,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
   }
 
   Future<void> _initializeHome() async {
+    if (kIsWeb) unawaited(syncSavedWebPush());
     try {
       final success = await FetchAPI();
       if (!mounted) return;
@@ -574,7 +576,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
               : AppPalette.of(context).canvas,
           drawer: AppDrawer(
             showQiblah: !kIsWeb,
-            showNotifications: !kIsWeb && Platform.isAndroid,
+            showNotifications: kIsWeb || Platform.isAndroid,
             footer: _buildAppVersionFooter(),
             onDestination: (destination) {
               Navigator.of(context).pop();
@@ -1316,6 +1318,9 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (kIsWeb && state == AppLifecycleState.resumed) {
+      unawaited(syncSavedWebPush());
+    }
     if (state == AppLifecycleState.resumed &&
         mounted &&
         ModalRoute.of(context)?.isCurrent == true) {

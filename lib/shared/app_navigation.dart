@@ -1,5 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../UI/azkar/azkar_page.dart';
 import '../UI/biographies/biography_page.dart';
@@ -11,6 +12,7 @@ import '../UI/hadith/main_page.dart';
 import '../UI/month/months_page.dart';
 import '../UI/mosque/nearest_mosque_page.dart';
 import '../UI/prayer_notifications/prayer_notifications.dart';
+import '../UI/prayer_notifications/web_prayer_notifications.dart';
 import '../UI/prophets/prophets_page.dart';
 import '../UI/qiblah/qiblah_page.dart';
 import '../UI/quran/quran_page.dart';
@@ -101,7 +103,10 @@ enum AppDestination {
     hajj => const PilgrimageJourneyPage(hajj: true),
     umrah => const PilgrimageJourneyPage(hajj: false),
     settings => SettingsPageClass(prefs: preferences),
-    notifications => PrayerNotificationsPageClass(prefs: preferences),
+    notifications =>
+      kIsWeb
+          ? WebPrayerNotificationsPage(prefs: preferences)
+          : PrayerNotificationsPageClass(prefs: preferences),
     contact => const ContactPageClass(),
   };
 }

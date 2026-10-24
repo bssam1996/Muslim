@@ -6,6 +6,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'homewidget_utils.dart' as widgets;
 import 'refresh_coordinator.dart';
+import 'web_push_service.dart';
 
 final _settingsRefresh = RefreshCoordinator();
 
@@ -13,6 +14,7 @@ final _settingsRefresh = RefreshCoordinator();
 /// prayer notifications. Concurrent changes coalesce after the current load.
 Future<bool> refreshSavedPrayerConfiguration() =>
     _settingsRefresh.runAfterCurrent(() async {
+      final webPushSynced = kIsWeb ? await syncSavedWebPush() : true;
       final window = await loadSavedPrayerWindow();
       if (window.configuration.isEmpty) return false;
       final success = await helper.handleNotifications(
@@ -23,7 +25,7 @@ Future<bool> refreshSavedPrayerConfiguration() =>
       if (!kIsWeb && Platform.isAndroid && window.days.isNotEmpty) {
         await widgets.updateHomePage(window.days, window.configuration);
       }
-      return success && window.complete;
+      return success && window.complete && webPushSynced;
     });
 
 class SavedPrayerWindow {

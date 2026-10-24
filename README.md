@@ -24,6 +24,9 @@
 - Android
 - Web (Limited)
 
+Web prayer reminders now have a separate Web Push implementation. See
+[web notification setup](docs/web_push.md) for backend configuration and deployment.
+
 ## 🛠️ Tech Stack
 
 - **Framework**: Flutter SDK

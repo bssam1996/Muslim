@@ -1,0 +1,15 @@
+name: prayer_audio
+description: Android scheduled Adhan playback with per-prayer audio settings.
+version: 0.0.1
+publish_to: none
+environment:
+  sdk: '>=3.10.0 <4.0.0'
+dependencies:
+  flutter:
+    sdk: flutter
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.bplusplus.prayer_audio
+        pluginClass: PrayerAudioPlugin

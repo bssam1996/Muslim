@@ -7,6 +7,7 @@ import "package:flutter_local_notifications/flutter_local_notifications.dart";
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'prayer_alarm_scheduler.dart';
+import 'package:prayer_audio/prayer_audio.dart';
 
 class NotificationService implements PrayerAlarmBackend {
   static final NotificationService _instance = NotificationService._internal();
@@ -24,8 +25,15 @@ class NotificationService implements PrayerAlarmBackend {
   Future<Set<int>> pendingIds() async {
     await init();
     return (await _notificationsPlugin.pendingNotificationRequests().timeout(
-      const Duration(seconds: 10),
-    )).map((request) => request.id).toSet();
+          const Duration(seconds: 10),
+        ))
+        .map((request) => request.id)
+        .toSet()
+        .union(
+          !kIsWeb && Platform.isAndroid
+              ? await PrayerAudio.pendingIds()
+              : <int>{},
+        );
   }
 
   @override
@@ -33,23 +41,62 @@ class NotificationService implements PrayerAlarmBackend {
 
   @override
   Future<void> schedule(PrayerAlarm alarm) async {
+    final body =
+        alarm.body ?? "${"Don't forget praying".tr()} ${alarm.name.tr()}";
+    final independentAudio = alarm.forceSound || alarm.volume != null;
+    if (alarm.sound != null && (!alarm.isReminder || independentAudio)) {
+      try {
+        await PrayerAudio.schedule({
+          ...alarm.toJson(),
+          'title': alarm.isReminder
+              ? 'Prayer_Reminder_Title'.tr(
+                  namedArgs: {'prayer': alarm.name.tr()},
+                )
+              : alarm.name.tr(),
+          'body': body,
+          'stopLabel': 'Audio_Stop'.tr(),
+          'channelName': 'Prayer_Adhan_Playback'.tr(),
+          'stopHint': 'Prayer_Audio_Stop_Hint'.tr(),
+        });
+        return;
+      } on PlatformException catch (error) {
+        // Ordinary prayer sounds keep the existing inexact notification fallback
+        // when exact alarms are unavailable. Independent audio needs exact access.
+        if (independentAudio || error.code != 'exact_alarms_not_permitted') {
+          rethrow;
+        }
+      }
+    }
     final error = await schedulePrayerOccurrence(
       alarm.time,
       alarm.id,
       alarm.channelId,
-      alarm.name,
-      "${"Don't forget praying".tr()} ${alarm.name.tr()}",
+      alarm.isReminder
+          ? 'Prayer_Reminder_Title'.tr(namedArgs: {'prayer': alarm.name.tr()})
+          : alarm.name.tr(),
+      body,
       playSound: alarm.sound != null,
-      soundResourceName: alarm.sound,
+      soundResourceName: alarm.sound == 'system' ? null : alarm.sound,
     );
     if (error.isNotEmpty) throw StateError(error);
   }
 
+  Future<void> stopPrayerAudio() async {
+    if (!kIsWeb && Platform.isAndroid) await PrayerAudio.stop();
+  }
+
   Future<void> clearAllNotifications() async {
+    for (final id
+        in !kIsWeb && Platform.isAndroid
+            ? await PrayerAudio.pendingIds()
+            : <int>{}) {
+      await PrayerAudio.cancel(id);
+    }
     await _notificationsPlugin.cancelAll();
   }
 
   Future<void> clearNotification(int id) async {
+    if (!kIsWeb && Platform.isAndroid) await PrayerAudio.cancel(id);
     await _notificationsPlugin
         .cancel(id: id)
         .timeout(const Duration(seconds: 5));

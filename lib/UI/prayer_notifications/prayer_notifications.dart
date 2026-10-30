@@ -1,4 +1,7 @@
 import '../../utils/prayer_notification_status.dart';
+import '../../utils/prayer_alert_options.dart';
+import 'prayer_alert_options_editor.dart';
+import 'dart:convert';
 import 'package:muslim/shared/app_theme.dart';
 import 'dart:async';
 import 'dart:io';
@@ -30,11 +33,13 @@ class PrayerNotificationsPageClass extends StatefulWidget {
     this.reconcile,
     this.requestPermissions,
     this.testNotification,
+    this.stopAudio,
   });
   final Future<PrayerNotificationStatus> Function()? loadStatus;
   final Future<bool> Function()? reconcile;
   final Future<bool> Function()? requestPermissions;
   final Future<void> Function()? testNotification;
+  final Future<void> Function()? stopAudio;
 
   @override
   State<PrayerNotificationsPageClass> createState() =>
@@ -61,9 +66,12 @@ class _PrayerNotificationsPageClassState
   bool get _supported =>
       widget.loadStatus != null || (!kIsWeb && Platform.isAndroid);
   bool _scheduleBusy = false;
+  bool _stopAudioBusy = false;
   bool _scheduleFailed = false;
   bool prayerNotification = false;
   List<String> adhanOptions = [];
+  Map<String, PrayerAlertOptions> alertOptions = {};
+  Map<String, String> reminderSoundAssets = {};
   Map<String, bool> prayerNotifications = {
     for (final prayerName in PRAYER_NOTIFICATION_NAMES) prayerName: false,
   };
@@ -143,7 +151,12 @@ class _PrayerNotificationsPageClassState
       return;
     }
 
+    final prefs = await widget.prefs;
     setState(() {
+      alertOptions = {
+        for (final name in PRAYER_NOTIFICATION_NAMES)
+          name: PrayerAlertOptions.read(prefs, name),
+      };
       prayerNotification = prayerNotificationValue;
       adhanOptions = adhanOptionValues;
       prayerNotifications = prayerNotificationValues;
@@ -158,6 +171,16 @@ class _PrayerNotificationsPageClassState
       final AssetManifest manifest = await AssetManifest.loadFromAssetBundle(
         rootBundle,
       );
+      reminderSoundAssets = {
+        for (final path in manifest.listAssets().where(
+          (path) =>
+              path.startsWith('assets/reminders/') &&
+              path.toLowerCase().endsWith('.mp3'),
+        ))
+          androidRawResourceNameFromSoundKey(
+            path.split('/').last.replaceAll('.mp3', ''),
+          ): path,
+      };
       final List<String> options =
           manifest
               .listAssets()
@@ -266,7 +289,11 @@ class _PrayerNotificationsPageClassState
     });
   }
 
-  Future<void> _toggleSoundPreview(String prayerName, String soundKey) async {
+  Future<void> _toggleSoundPreview(
+    String prayerName,
+    String soundKey, {
+    String? assetPath,
+  }) async {
     if (soundKey.isEmpty) {
       return;
     }
@@ -279,7 +306,10 @@ class _PrayerNotificationsPageClassState
     await _stopSoundPreview(updateState: false);
     try {
       await _previewPlayer.play(
-        AssetSource(_assetSourceFromSoundKey(soundKey)),
+        AssetSource(
+          assetPath?.replaceFirst('assets/', '') ??
+              _assetSourceFromSoundKey(soundKey),
+        ),
       );
       if (!mounted) {
         return;
@@ -333,6 +363,42 @@ class _PrayerNotificationsPageClassState
       _performNotificationChange(
         () => _persistPrayerNotificationSound(name, sound),
       );
+
+  Future<void> _changeAlertOptions(String name, Map<String, dynamic> changes) =>
+      _performNotificationChange(() async {
+        final prefs = await widget.prefs;
+        final next = PrayerAlertOptions.fromJson({
+          ...PrayerAlertOptions.read(prefs, name).toJson(),
+          ...changes,
+        });
+        if (((changes.containsKey('forceSound') && next.forceSound) ||
+                (changes.containsKey('volume') && next.volume != null)) &&
+            widget.requestPermissions == null &&
+            !await NotificationService()
+                .requestExactAlarmPermissionIfNeeded()) {
+          _feedback('Prayer_Adhan_Exact_Required');
+          return;
+        }
+        if (!await prefs.setString(
+          prayerAlertOptionsKey(name),
+          jsonEncode(next.toJson()),
+        )) {
+          throw StateError('Save failed');
+        }
+        if (mounted) setState(() => alertOptions[name] = next);
+      });
+
+  Future<void> _previewReminder(String name, String resource) async {
+    final asset = reminderSoundAssets[resource];
+    if (asset == null) {
+      final sound = adhanOptions
+          .where((key) => androidRawResourceNameFromSoundKey(key) == resource)
+          .firstOrNull;
+      if (sound != null) await _toggleSoundPreview('reminder_$name', sound);
+      return;
+    }
+    await _toggleSoundPreview('reminder_$name', resource, assetPath: asset);
+  }
 
   Future<void> _persistPrayerNotification(bool value) async {
     if (!_supported) {
@@ -487,6 +553,20 @@ class _PrayerNotificationsPageClassState
     }
   }
 
+  Future<void> _stopPrayerAudio() async {
+    if (_stopAudioBusy) return;
+    setState(() => _stopAudioBusy = true);
+    try {
+      await (widget.stopAudio?.call() ??
+          NotificationService().stopPrayerAudio());
+      await _stopSoundPreview();
+    } catch (_) {
+      _feedback('Prayer_Audio_Stop_Error');
+    } finally {
+      if (mounted) setState(() => _stopAudioBusy = false);
+    }
+  }
+
   String _permission(bool? granted) =>
       (granted == true
               ? 'Notifications_Granted'
@@ -525,21 +605,32 @@ class _PrayerNotificationsPageClassState
               Text(
                 alarm == null
                     ? 'Notifications_None_Scheduled'.tr()
-                    : 'Notifications_Next_Scheduled'.tr(
-                        namedArgs: {
-                          'prayer': alarm.name.tr(),
-                          'date': DateFormat.MMMd(
-                            context.locale.toString(),
-                          ).format(alarm.time),
-                          'time': DateFormat(
-                            status.use24Hour ? 'HH:mm' : 'h:mm a',
-                          ).format(alarm.time),
-                        },
-                      ),
+                    : (alarm.isReminder
+                              ? 'Prayer_Reminder_Next_Scheduled'
+                              : 'Notifications_Next_Scheduled')
+                          .tr(
+                            namedArgs: {
+                              'prayer': alarm.name.tr(),
+                              'date': DateFormat.MMMd(
+                                context.locale.toString(),
+                              ).format(alarm.time),
+                              'time': DateFormat(
+                                status.use24Hour ? 'HH:mm' : 'h:mm a',
+                              ).format(alarm.time),
+                            },
+                          ),
               ),
             Wrap(
               spacing: 8,
               children: [
+                TextButton.icon(
+                  key: const ValueKey('stop_prayer_audio'),
+                  onPressed: _stopAudioBusy || !_supported
+                      ? null
+                      : _stopPrayerAudio,
+                  icon: const Icon(Icons.stop_circle_outlined),
+                  label: Text('Prayer_Audio_Stop'.tr()),
+                ),
                 TextButton.icon(
                   key: const ValueKey('test_notification'),
                   onPressed: _scheduleBusy || status?.notifications != true
@@ -725,6 +816,21 @@ class _PrayerNotificationsPageClassState
               ),
             ],
           ),
+        PrayerAlertOptionsEditor(
+          options: alertOptions[prayerName] ?? const PrayerAlertOptions(),
+          adhanEnabled: selectedMode == prayerNotificationModeCustomSound,
+          enabled: !_scheduleBusy && _supported,
+          sounds: {
+            for (final sound in adhanOptions)
+              androidRawResourceNameFromSoundKey(sound): _adhanLabel(sound),
+            for (final sound in reminderSoundAssets.keys)
+              sound: _adhanLabel(sound),
+          },
+          onChanged: (changes) => _changeAlertOptions(prayerName, changes),
+          onPreview: (sound) => _previewReminder(prayerName, sound),
+          isPreviewPlaying:
+              _isPreviewPlaying && _previewPrayerName == 'reminder_$prayerName',
+        ),
       ],
     );
   }

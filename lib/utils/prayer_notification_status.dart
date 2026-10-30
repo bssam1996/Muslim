@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'dart:convert';
 import 'dart:io' show Platform;
 
@@ -9,6 +10,7 @@ import 'helper.dart' as helper;
 import 'notification_service.dart';
 import 'prayer_alarm_scheduler.dart';
 import 'prayer_schedule.dart';
+import 'prayer_alert_options.dart';
 
 class PrayerNotificationStatus {
   const PrayerNotificationStatus({
@@ -83,14 +85,48 @@ List<PrayerAlarm> confirmedPrayerAlarms(
               mode == prayerNotificationModeCustomSound && sound.isNotEmpty
               ? androidRawResourceNameFromSoundKey(sound)
               : null;
+          final options = PrayerAlertOptions.read(prefs, name);
+          final matchesAlert = alarm.isReminder
+              ? options.reminderEnabled &&
+                    alarm.forceSound ==
+                        (options.reminderSound != 'silent' &&
+                            options.forceSound) &&
+                    alarm.volume ==
+                        (options.reminderSound != 'silent'
+                            ? options.volume
+                            : null) &&
+                    alarm.channelId ==
+                        'muslim_reminder_${name.toLowerCase()}_${options.reminderSound}_v1' &&
+                    alarm.occurrenceTime.difference(alarm.time).inMinutes ==
+                        options.reminderMinutes &&
+                    alarm.body ==
+                        ([
+                              reminderPrepareText,
+                              reminderPreviousText,
+                            ].contains(options.reminderText)
+                            ? options.reminderText.tr(
+                                namedArgs: {
+                                  'prayer': name.tr(),
+                                  'minutes': '${options.reminderMinutes}',
+                                },
+                              )
+                            : options.reminderText)
+              : alarm.channelId ==
+                        prayerNotificationAndroidChannelId(
+                          name,
+                          mode,
+                          resource,
+                        ) &&
+                    alarm.forceSound ==
+                        (resource != null && options.forceSound) &&
+                    alarm.volume == (resource != null ? options.volume : null);
           return PRAYER_NOTIFICATION_NAMES.contains(name) &&
               isOwnedPrayerAlarm(alarm.id) &&
               pending.contains(alarm.id) &&
               alarm.time.isAfter(now ?? DateTime.now()) &&
               alarm.configuration == configuration &&
               (prefs.getBool(prayerNotificationPreferenceKey(name)) ?? true) &&
-              alarm.channelId ==
-                  prayerNotificationAndroidChannelId(name, mode, resource);
+              matchesAlert;
         })
         .toList()
       ..sort((a, b) => a.time.compareTo(b.time));

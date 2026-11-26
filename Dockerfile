@@ -30,7 +30,8 @@ ARG MUSLIM_API_URL=https://api-muslim.bplusplus.uk/
 RUN flutter build web --release --no-pub --no-web-resources-cdn \
     --dart-define=MUSLIM_API_URL="$MUSLIM_API_URL"
 
-FROM nginx:stable-alpine AS runtime
+# Non-root Nginx keeps its PID and temporary files under the writable /tmp mount.
+FROM nginx/nginx-unprivileged:stable-alpine AS runtime
 COPY deploy/nginx/default.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/build/web/ /usr/share/nginx/html/
 EXPOSE 8080

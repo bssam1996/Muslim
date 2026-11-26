@@ -83,6 +83,14 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:8004:8080"
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
 ```
 
 Then run from the directory containing that combined Compose file:
@@ -101,6 +109,15 @@ Docker network and use URL `muslim-web:8080`. Cloudflare handles public HTTPS.
 Keep `api-muslim.bplusplus.uk` routed to the API for mobile and browser clients.
 
 To deploy a newly published image, run the same pull and up commands again.
+
+The web runtime uses the Nginx unprivileged image, which runs as a non-root user
+and writes its PID and temporary files under `/tmp`. Keep the `/tmp` tmpfs mount
+when using `read_only: true`. The publish workflow checks startup and HTTP
+responses with this read-only filesystem, tmpfs mount, and all capabilities
+dropped. After migrating from the earlier root Nginx image, publish the updated
+Dockerfile and pull the new web image before using these settings; the earlier
+image attempts to write to `/var/cache/nginx` and `/run` and requires capabilities
+to switch worker users.
 
 `/healthz` checks the web server only, not API availability. The included Compose
 file accepts `WEB_PORT` (default `8004`), `WEB_BIND_ADDRESS` (default

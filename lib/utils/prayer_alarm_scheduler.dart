@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'prayer_schedule.dart';
 import 'prayer_alert_options.dart';
 import 'prayer_alarm_lock.dart';
+import 'prayer_notification_text.dart';
 
 const prayerAlarmManifestKey = 'prayer_alarm_manifest_v2';
 const _alarmBase = 1000000;
@@ -26,6 +27,8 @@ class PrayerAlarm {
     this.body,
     this.prayerTime,
     this.deliveryVersion = prayerAudioDeliveryVersion,
+    this.title,
+    this.locale,
   });
   final int id;
   final String name;
@@ -37,11 +40,13 @@ class PrayerAlarm {
   final double? volume;
   final bool isReminder;
   final String? body;
+  final String? title;
+  final String? locale;
   final DateTime? prayerTime;
   final int deliveryVersion;
   DateTime get occurrenceTime => prayerTime ?? time;
   String get signature =>
-      '$name|${time.millisecondsSinceEpoch}|$configuration|$channelId|$sound|$forceSound|$volume|$isReminder|$body|$deliveryVersion';
+      '$name|${time.millisecondsSinceEpoch}|$configuration|$channelId|$sound|$forceSound|$volume|$isReminder|$title|$body|$locale|$deliveryVersion';
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
@@ -53,6 +58,8 @@ class PrayerAlarm {
     'volume': volume,
     'isReminder': isReminder,
     'body': body,
+    'title': title,
+    'locale': locale,
     'prayerEpoch': prayerTime?.millisecondsSinceEpoch,
     'deliveryVersion': deliveryVersion,
   };
@@ -67,6 +74,8 @@ class PrayerAlarm {
     volume: (json['volume'] as num?)?.toDouble(),
     isReminder: json['isReminder'] == true,
     body: json['body'] as String?,
+    title: json['title'] as String?,
+    locale: json['locale'] as String?,
     deliveryVersion: json['deliveryVersion'] as int? ?? 1,
     prayerTime: json['prayerEpoch'] is int
         ? DateTime.fromMillisecondsSinceEpoch(json['prayerEpoch'] as int)
@@ -102,6 +111,7 @@ class PrayerAlarmReconciler {
     required DateTime now,
     Map<String, PrayerAlertOptions> options = const {},
     Map<String, String> reminderBodies = const {},
+    PrayerNotificationText? text,
     Future<bool> Function()? stillCurrent,
   }) {
     final result = Completer<bool>();
@@ -118,6 +128,7 @@ class PrayerAlarmReconciler {
               now: now,
               options: options,
               reminderBodies: reminderBodies,
+              text: text,
               stillCurrent: stillCurrent,
             ),
           ),
@@ -138,6 +149,7 @@ class PrayerAlarmReconciler {
     required DateTime now,
     Map<String, PrayerAlertOptions> options = const {},
     Map<String, String> reminderBodies = const {},
+    PrayerNotificationText? text,
     Future<bool> Function()? stillCurrent,
   }) async {
     await preferences.reload();
@@ -210,6 +222,9 @@ class PrayerAlarmReconciler {
             sound: sounds[name],
             forceSound: sounds[name] != null && settings.forceSound,
             volume: sounds[name] != null ? settings.volume : null,
+            title: text?.title(name),
+            body: text?.prayerBody(name),
+            locale: text?.locale,
           ),
         );
       }
@@ -233,7 +248,12 @@ class PrayerAlarmReconciler {
             volume: settings.reminderSound != 'silent' ? settings.volume : null,
             isReminder: true,
             prayerTime: prayerTime,
-            body: reminderBodies[name] ?? settings.reminderText,
+            body:
+                reminderBodies[name] ??
+                text?.reminderBody(name, settings) ??
+                settings.reminderText,
+            title: text?.title(name, reminder: true),
+            locale: text?.locale,
           ),
         );
       }

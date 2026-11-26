@@ -55,6 +55,15 @@ sound, vibration only, or a bundled recording. The default is the system sound.
 The alarm manifest includes a delivery version so installing the playback-control
 update replaces previously scheduled notifications on the next reconciliation.
 
+Notification titles, preset messages, and playback controls load directly from
+the bundled translation JSON using EasyLocalization's saved `locale` preference
+(or the device language and English fallback). Scheduling never depends on an
+EasyLocalization widget: midnight and WorkManager engines do not have the UI's
+translation catalogue loaded. Localized titles, bodies, and locale are persisted
+in the alarm manifest and participate in reconciliation. This also replaces old
+pending reminders whose saved text contains raw translation keys. Custom messages
+are kept verbatim.
+
 Both kinds of alert participate in the existing seven-calendar-day reconciliation
 and rollback. Reminder IDs use separate banks from prayer alerts. Their original
 prayer instants are persisted so a reminder crossing midnight survives a partial

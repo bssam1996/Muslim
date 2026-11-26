@@ -1,4 +1,3 @@
-import 'package:easy_localization/easy_localization.dart';
 import 'dart:convert';
 import 'dart:io' show Platform;
 
@@ -11,6 +10,7 @@ import 'notification_service.dart';
 import 'prayer_alarm_scheduler.dart';
 import 'prayer_schedule.dart';
 import 'prayer_alert_options.dart';
+import 'prayer_notification_text.dart';
 
 class PrayerNotificationStatus {
   const PrayerNotificationStatus({
@@ -45,6 +45,7 @@ Future<PrayerNotificationStatus> readPrayerNotificationStatus() async {
     location,
     Future.value(prefs),
   );
+  await PrayerNotificationText.load(prefs);
   final next = confirmedPrayerAlarms(
     prefs,
     pending,
@@ -86,6 +87,15 @@ List<PrayerAlarm> confirmedPrayerAlarms(
               ? androidRawResourceNameFromSoundKey(sound)
               : null;
           final options = PrayerAlertOptions.read(prefs, name);
+          final text = PrayerNotificationText.cached(prefs);
+          final expectedBody =
+              text?.reminderBody(name, options) ??
+              ([
+                    reminderPrepareText,
+                    reminderPreviousText,
+                  ].contains(options.reminderText)
+                  ? null
+                  : options.reminderText);
           final matchesAlert = alarm.isReminder
               ? options.reminderEnabled &&
                     alarm.forceSound ==
@@ -99,18 +109,7 @@ List<PrayerAlarm> confirmedPrayerAlarms(
                         'muslim_reminder_${name.toLowerCase()}_${options.reminderSound}_v1' &&
                     alarm.occurrenceTime.difference(alarm.time).inMinutes ==
                         options.reminderMinutes &&
-                    alarm.body ==
-                        ([
-                              reminderPrepareText,
-                              reminderPreviousText,
-                            ].contains(options.reminderText)
-                            ? options.reminderText.tr(
-                                namedArgs: {
-                                  'prayer': name.tr(),
-                                  'minutes': '${options.reminderMinutes}',
-                                },
-                              )
-                            : options.reminderText)
+                    alarm.body == expectedBody
               : alarm.channelId ==
                         prayerNotificationAndroidChannelId(
                           name,
@@ -125,6 +124,8 @@ List<PrayerAlarm> confirmedPrayerAlarms(
               pending.contains(alarm.id) &&
               alarm.time.isAfter(now ?? DateTime.now()) &&
               alarm.configuration == configuration &&
+              (alarm.locale == null ||
+                  alarm.locale == PrayerNotificationText.localeFor(prefs)) &&
               (prefs.getBool(prayerNotificationPreferenceKey(name)) ?? true) &&
               matchesAlert;
         })

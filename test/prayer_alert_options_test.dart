@@ -461,10 +461,7 @@ void main() {
         expect(scheduled!['sound'], sound);
         expect(scheduled!['forceSound'], isTrue);
         expect(scheduled!['volume'], .3);
-        expect(
-          scheduled!['title'],
-          'Prayer_Reminder_Title'.tr(namedArgs: {'prayer': 'Fajr'.tr()}),
-        );
+        expect(scheduled!['title'], 'Reminder before Fajr');
       },
     );
   }

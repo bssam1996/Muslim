@@ -7,6 +7,9 @@ import "package:flutter_local_notifications/flutter_local_notifications.dart";
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'prayer_alarm_scheduler.dart';
+import 'prayer_notification_text.dart';
+import 'prayer_alert_options.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:prayer_audio/prayer_audio.dart';
 
 class NotificationService implements PrayerAlarmBackend {
@@ -41,22 +44,28 @@ class NotificationService implements PrayerAlarmBackend {
 
   @override
   Future<void> schedule(PrayerAlarm alarm) async {
+    final prefs = await SharedPreferences.getInstance();
+    final text = await PrayerNotificationText.load(prefs, locale: alarm.locale);
+    final title =
+        alarm.title ?? text.title(alarm.name, reminder: alarm.isReminder);
     final body =
-        alarm.body ?? "${"Don't forget praying".tr()} ${alarm.name.tr()}";
+        alarm.body ??
+        (alarm.isReminder
+            ? text.reminderBody(
+                alarm.name,
+                PrayerAlertOptions.read(prefs, alarm.name),
+              )
+            : text.prayerBody(alarm.name));
     final independentAudio = alarm.forceSound || alarm.volume != null;
     if (alarm.sound != null && (!alarm.isReminder || independentAudio)) {
       try {
         await PrayerAudio.schedule({
           ...alarm.toJson(),
-          'title': alarm.isReminder
-              ? 'Prayer_Reminder_Title'.tr(
-                  namedArgs: {'prayer': alarm.name.tr()},
-                )
-              : alarm.name.tr(),
+          'title': title,
           'body': body,
-          'stopLabel': 'Audio_Stop'.tr(),
-          'channelName': 'Prayer_Adhan_Playback'.tr(),
-          'stopHint': 'Prayer_Audio_Stop_Hint'.tr(),
+          'stopLabel': text.text('Audio_Stop'),
+          'channelName': text.text('Prayer_Adhan_Playback'),
+          'stopHint': text.text('Prayer_Audio_Stop_Hint'),
         });
         return;
       } on PlatformException catch (error) {
@@ -71,9 +80,7 @@ class NotificationService implements PrayerAlarmBackend {
       alarm.time,
       alarm.id,
       alarm.channelId,
-      alarm.isReminder
-          ? 'Prayer_Reminder_Title'.tr(namedArgs: {'prayer': alarm.name.tr()})
-          : alarm.name.tr(),
+      title,
       body,
       playSound: alarm.sound != null,
       soundResourceName: alarm.sound == 'system' ? null : alarm.sound,

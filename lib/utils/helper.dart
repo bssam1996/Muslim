@@ -12,6 +12,7 @@ import 'notification_service.dart';
 import 'prayer_schedule.dart';
 import 'prayer_alarm_scheduler.dart';
 import 'prayer_alert_options.dart';
+import 'prayer_notification_text.dart';
 
 const String _lastFetchedDateKey = 'last_fetched_date';
 
@@ -433,6 +434,7 @@ Future<bool> handleNotifications(
                       'school',
                       'calendarMethod',
                       'adjustment',
+                      'locale',
                     ].contains(key),
               )
               .toList()
@@ -484,21 +486,7 @@ Future<bool> handleNotifications(
       for (final name in constants.PRAYER_NOTIFICATION_NAMES)
         name: PrayerAlertOptions.read(preferences, name),
     };
-    final reminderBodies = {
-      for (final entry in options.entries)
-        entry.key:
-            [
-              reminderPrepareText,
-              reminderPreviousText,
-            ].contains(entry.value.reminderText)
-            ? entry.value.reminderText.tr(
-                namedArgs: {
-                  'prayer': entry.key.tr(),
-                  'minutes': entry.value.reminderMinutes.toString(),
-                },
-              )
-            : entry.value.reminderText,
-    };
+    final text = await PrayerNotificationText.load(preferences);
     return await PrayerAlarmReconciler(
       preferences,
       backend ?? NotificationService(),
@@ -509,7 +497,7 @@ Future<bool> handleNotifications(
       channels: channels,
       sounds: sounds,
       options: options,
-      reminderBodies: reminderBodies,
+      text: text,
       now: now ?? DateTime.now(),
       stillCurrent: () async {
         await preferences.reload();

@@ -87,7 +87,6 @@ Future<RandomHadith?> getRandomHadith() async {
     }
     http.Response r = await http.get(
       Uri.parse('${constants.MUSLIM_API_URL}hadith/get_random_hadith'),
-      headers: {"Access-Control-Allow-Origin": "*"},
     );
     if (r.statusCode != 200) {
       return null;

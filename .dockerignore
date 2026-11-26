@@ -1,0 +1,25 @@
+# Only send the files needed to build and serve the web app.
+*
+!Dockerfile
+!pubspec.yaml
+!pubspec.lock
+!lib/
+!lib/**
+!assets/
+!assets/**
+!web/
+!web/**
+!packages/
+!packages/**
+!deploy/
+!deploy/nginx/
+!deploy/nginx/default.conf
+**/.dart_tool/
+**/build/
+**/.pub/
+**/.pub-cache/
+**/.flutter-plugins*
+**/key.properties
+**/*.jks
+**/*.keystore
+**/.env*

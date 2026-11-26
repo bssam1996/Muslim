@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 
-const MUSLIM_API_URL = "https://muslim-api-mu.vercel.app/";
+// Mobile and web use the public API by default.
+// Overrides must include a trailing slash because endpoints are appended below.
+const MUSLIM_API_URL = String.fromEnvironment(
+  'MUSLIM_API_URL',
+  defaultValue: 'https://api-muslim.bplusplus.uk/',
+);
 const prayerTimesApiUrl = "${MUSLIM_API_URL}v1/";
 const MUSLIM_GOOGLE_PLAY_URI =
     "https://play.google.com/store/apps/details?id=com.bplusplus.muslim";

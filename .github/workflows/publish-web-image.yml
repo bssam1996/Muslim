@@ -71,13 +71,17 @@ jobs:
           tags: muslim-web:check
           cache-from: type=gha
 
-      - name: Check container starts and serves the app
+      - name: Check container with production filesystem and capabilities
         shell: bash
         run: |
-          docker run --detach --name muslim-web-check --publish 127.0.0.1:18080:8080 muslim-web:check
+          docker run --detach --name muslim-web-check \
+            --init --read-only --tmpfs /tmp \
+            --security-opt no-new-privileges:true --cap-drop ALL \
+            --publish 127.0.0.1:18080:8080 muslim-web:check
           trap 'docker logs muslim-web-check; docker rm -f muslim-web-check' EXIT
           curl --retry 10 --retry-connrefused --retry-delay 1 --fail --silent http://127.0.0.1:18080/healthz
           curl --fail --silent --output /dev/null http://127.0.0.1:18080/
+          test "$(docker exec muslim-web-check id -u)" != 0
 
       - name: Build and publish
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6

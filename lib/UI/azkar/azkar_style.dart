@@ -1,5 +1,5 @@
+import 'package:muslim/shared/app_theme.dart';
 import 'package:flutter/material.dart';
-import 'package:muslim/shared/constants.dart' as app;
 
 String azkarLabel(BuildContext context, String en, String ar) =>
     Localizations.localeOf(context).languageCode == 'ar' ? ar : en;
@@ -33,40 +33,7 @@ class AzkarStyle extends StatelessWidget {
   final Widget child;
 
   @override
-  Widget build(BuildContext context) {
-    final colors = ColorScheme.fromSeed(
-      seedColor: app.thirdColor,
-      secondary: app.highlightedColor,
-      brightness: MediaQuery.platformBrightnessOf(context),
-    );
-    return MediaQuery(
-      // The app root fixes text scale at 1. Respect accessibility in this flow.
-      data: MediaQuery.of(context).copyWith(
-        textScaler: MediaQueryData.fromView(View.of(context)).textScaler,
-      ),
-      child: Theme(
-        data: ThemeData(
-          useMaterial3: true,
-          colorScheme: colors,
-          scaffoldBackgroundColor: colors.surface,
-          appBarTheme: AppBarTheme(
-            backgroundColor: colors.surface,
-            foregroundColor: colors.onSurface,
-            centerTitle: false,
-            elevation: 0,
-          ),
-          cardTheme: CardThemeData(
-            elevation: 0,
-            margin: EdgeInsets.zero,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(24),
-            ),
-          ),
-        ),
-        child: child,
-      ),
-    );
-  }
+  Widget build(BuildContext context) => AppReaderStyle(child: child);
 }
 
 class AzkarIcon extends StatelessWidget {

@@ -1,3 +1,4 @@
+import 'package:muslim/shared/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
@@ -15,6 +16,8 @@ import 'package:muslim/UI/dua/pilgrimage/pilgrimage_routes.dart';
 import 'package:muslim/UI/dua/pilgrimage/pilgrimage_sources.dart';
 
 Widget host(Widget child, {bool arabic = false}) => MaterialApp(
+  theme: AppTheme.build(Brightness.light),
+  darkTheme: AppTheme.build(Brightness.dark),
   locale: arabic ? const Locale('ar') : const Locale('en'),
   supportedLocales: const [Locale('en'), Locale('ar')],
   localizationsDelegates: GlobalMaterialLocalizations.delegates,

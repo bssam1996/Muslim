@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 2.18.0+73
+version: 2.22.1+78
 
 environment:
   sdk: '>=3.10.0 <4.0.0'
@@ -60,6 +60,7 @@ dependencies:
   smooth_page_indicator: ^1.1.0
   win32: 5.15.0
   upgrader: ^13.4.0
+  package_info_plus: ^8.1.1
   flutter_launch_store: ^1.0.8
   background_fetch: ^1.5.0
   share_plus: ^12.0.2
@@ -69,6 +70,8 @@ dependencies:
   workmanager: ^0.9.0+3
   audioplayers: ^6.7.0
   android_alarm_manager_plus: ^5.0.0
+  prayer_audio:
+    path: packages/prayer_audio
   url_launcher: ^6.3.2
   font_awesome_flutter: ^11.0.0
   in_app_review: ^2.0.12
@@ -139,6 +142,32 @@ flutter:
     - "assets/hajj/hajj.png"
     - "assets/daily_routine/daily-routine.png"
     - "assets/biographies/prophet_muhammed_biography_2.png"
+    - "assets/prophets/prophets.png"
+    - "assets/prophets/adam/"
+    - "assets/prophets/idris/"
+    - "assets/prophets/nuh/"
+    - "assets/prophets/hud/"
+    - "assets/prophets/salih/"
+    - "assets/prophets/ibrahim/"
+    - "assets/prophets/lut/"
+    - "assets/prophets/ismail/"
+    - "assets/prophets/ishaq/"
+    - "assets/prophets/yaqub/"
+    - "assets/prophets/yusuf/"
+    - "assets/prophets/shuayb/"
+    - "assets/prophets/ayyub/"
+    - "assets/prophets/dhul_kifl/"
+    - "assets/prophets/musa/"
+    - "assets/prophets/harun/"
+    - "assets/prophets/dawud/"
+    - "assets/prophets/sulayman/"
+    - "assets/prophets/ilyas/"
+    - "assets/prophets/al_yasa/"
+    - "assets/prophets/yunus/"
+    - "assets/prophets/zakariya/"
+    - "assets/prophets/yahya/"
+    - "assets/prophets/isa/"
+    - "assets/prophets/muhammad/"
     - "assets/icon/icon.png"
     - "assets/adhan/"
     - "assets/translations/"
@@ -180,6 +209,6 @@ msix_config:
   display_name: Muslim
   publisher_display_name: B++
   identity_name: com.bplusplus.muslim
-  msix_version: 1.23.0.0
+  msix_version: 1.24.0.0
   logo_path: assets/icon/icon.png
   capabilities: internetClient, location

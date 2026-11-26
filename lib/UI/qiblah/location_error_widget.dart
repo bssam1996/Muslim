@@ -1,42 +1,51 @@
+import 'package:muslim/shared/app_theme.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
-class LocationErrorWidget extends StatelessWidget {
-  final String? error;
-  final Function? callback;
 
-  const LocationErrorWidget({Key? key, this.error, this.callback})
-      : super(key: key);
+class LocationErrorWidget extends StatelessWidget {
+  const LocationErrorWidget({
+    super.key,
+    required this.error,
+    this.callback,
+    this.actionLabel,
+    this.onRetry,
+  });
+
+  final String error;
+  final VoidCallback? callback;
+  final String? actionLabel;
+  final VoidCallback? onRetry;
 
   @override
-  Widget build(BuildContext context) {
-    const box = SizedBox(height: 32);
-    const errorColor = Color(0xffb00020);
-
-    return Container(
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            const Icon(
-              Icons.location_off,
-              size: 150,
-              color: errorColor,
-            ),
-            box,
-            Text(
-              error!,
-              style: const TextStyle(color: errorColor, fontWeight: FontWeight.bold),
-            ),
-            box,
+  Widget build(BuildContext context) => Center(
+    child: SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.explore_off_outlined,
+            size: 64,
+            color: AppPalette.of(context).accent,
+          ),
+          const SizedBox(height: 20),
+          Text(
+            error,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: AppPalette.of(context).text),
+          ),
+          if (callback != null) ...[
+            const SizedBox(height: 20),
             ElevatedButton(
-              child: const Text("Retry"),
-              onPressed: () {
-                if (callback != null) callback!();
-              },
-            )
+              onPressed: callback,
+              child: Text(actionLabel ?? 'Reload'.tr()),
+            ),
           ],
-        ),
+          if (onRetry != null)
+            TextButton(onPressed: onRetry, child: Text('Reload'.tr())),
+        ],
       ),
-    );
-  }
+    ),
+  );
 }

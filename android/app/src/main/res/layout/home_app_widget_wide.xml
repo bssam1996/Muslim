@@ -5,15 +5,16 @@
     android:theme="@style/Theme.Android.AppWidgetContainer"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/home_widget_bg_root"
+    android:background="@drawable/home_widget_bg_root_system"
     android:orientation="horizontal"
     android:padding="8dp">
 
     <LinearLayout
+        android:id="@+id/widget_header"
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="0.24"
-        android:background="@drawable/home_widget_bg_header"
+        android:background="@drawable/home_widget_bg_header_system"
         android:gravity="center_vertical"
         android:orientation="vertical"
         android:paddingLeft="5dp"
@@ -28,7 +29,7 @@
             android:gravity="center"
             android:singleLine="true"
             android:text="@string/gregorianDate_text"
-            android:textColor="#E5F2FF"
+            android:textColor="@color/widget_classic_date"
             android:textSize="10sp" />
 
         <TextView
@@ -40,7 +41,7 @@
             android:gravity="center"
             android:singleLine="true"
             android:text="@string/hijriDate_text"
-            android:textColor="#E5F2FF"
+            android:textColor="@color/widget_classic_date"
             android:textSize="10sp" />
     </LinearLayout>
 
@@ -56,7 +57,7 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:background="@drawable/home_widget_bg_prayer_card"
+            android:background="@drawable/home_widget_bg_prayer_card_system"
             android:gravity="center"
             android:orientation="vertical"
             android:paddingBottom="2dp"
@@ -71,7 +72,7 @@
                 android:gravity="center"
                 android:singleLine="true"
                 android:text="@string/fajr_label"
-                android:textColor="#D8EDFF"
+                android:textColor="@color/widget_classic_wide_label"
                 android:textSize="9sp" />
 
             <TextView
@@ -83,7 +84,7 @@
                 android:gravity="center"
                 android:singleLine="true"
                 android:text="@string/fajr_text"
-                android:textColor="@android:color/white"
+                android:textColor="@color/widget_classic_time"
                 android:textSize="10sp"
                 android:textStyle="bold" />
         </LinearLayout>
@@ -94,7 +95,7 @@
             android:layout_height="match_parent"
             android:layout_marginLeft="3dp"
             android:layout_weight="1"
-            android:background="@drawable/home_widget_bg_prayer_card"
+            android:background="@drawable/home_widget_bg_prayer_card_system"
             android:gravity="center"
             android:orientation="vertical"
             android:paddingBottom="2dp"
@@ -109,7 +110,7 @@
                 android:gravity="center"
                 android:singleLine="true"
                 android:text="@string/sunrise_label"
-                android:textColor="#D8EDFF"
+                android:textColor="@color/widget_classic_wide_label"
                 android:textSize="9sp" />
 
             <TextView
@@ -121,7 +122,7 @@
                 android:gravity="center"
                 android:singleLine="true"
                 android:text="@string/sunrise_text"
-                android:textColor="@android:color/white"
+                android:textColor="@color/widget_classic_time"
                 android:textSize="10sp"
                 android:textStyle="bold" />
         </LinearLayout>
@@ -132,7 +133,7 @@
             android:layout_height="match_parent"
             android:layout_marginLeft="3dp"
             android:layout_weight="1"
-            android:background="@drawable/home_widget_bg_prayer_card"
+            android:background="@drawable/home_widget_bg_prayer_card_system"
             android:gravity="center"
             android:orientation="vertical"
             android:paddingBottom="2dp"
@@ -147,7 +148,7 @@
                 android:gravity="center"
                 android:singleLine="true"
                 android:text="@string/dhuhr_label"
-                android:textColor="#D8EDFF"
+                android:textColor="@color/widget_classic_wide_label"
                 android:textSize="9sp" />
 
             <TextView
@@ -159,7 +160,7 @@
                 android:gravity="center"
                 android:singleLine="true"
                 android:text="@string/dhuhr_text"
-                android:textColor="@android:color/white"
+                android:textColor="@color/widget_classic_time"
                 android:textSize="10sp"
                 android:textStyle="bold" />
         </LinearLayout>
@@ -170,7 +171,7 @@
             android:layout_height="match_parent"
             android:layout_marginLeft="3dp"
             android:layout_weight="1"
-            android:background="@drawable/home_widget_bg_prayer_card"
+            android:background="@drawable/home_widget_bg_prayer_card_system"
             android:gravity="center"
             android:orientation="vertical"
             android:paddingBottom="2dp"
@@ -185,7 +186,7 @@
                 android:gravity="center"
                 android:singleLine="true"
                 android:text="@string/asr_label"
-                android:textColor="#D8EDFF"
+                android:textColor="@color/widget_classic_wide_label"
                 android:textSize="9sp" />
 
             <TextView
@@ -197,7 +198,7 @@
                 android:gravity="center"
                 android:singleLine="true"
                 android:text="@string/asr_text"
-                android:textColor="@android:color/white"
+                android:textColor="@color/widget_classic_time"
                 android:textSize="10sp"
                 android:textStyle="bold" />
         </LinearLayout>
@@ -208,7 +209,7 @@
             android:layout_height="match_parent"
             android:layout_marginLeft="3dp"
             android:layout_weight="1"
-            android:background="@drawable/home_widget_bg_prayer_card"
+            android:background="@drawable/home_widget_bg_prayer_card_system"
             android:gravity="center"
             android:orientation="vertical"
             android:paddingBottom="2dp"
@@ -223,7 +224,7 @@
                 android:gravity="center"
                 android:singleLine="true"
                 android:text="@string/maghrib_label"
-                android:textColor="#D8EDFF"
+                android:textColor="@color/widget_classic_wide_label"
                 android:textSize="9sp" />
 
             <TextView
@@ -235,7 +236,7 @@
                 android:gravity="center"
                 android:singleLine="true"
                 android:text="@string/maghrib_text"
-                android:textColor="@android:color/white"
+                android:textColor="@color/widget_classic_time"
                 android:textSize="10sp"
                 android:textStyle="bold" />
         </LinearLayout>
@@ -246,7 +247,7 @@
             android:layout_height="match_parent"
             android:layout_marginLeft="3dp"
             android:layout_weight="1"
-            android:background="@drawable/home_widget_bg_prayer_card"
+            android:background="@drawable/home_widget_bg_prayer_card_system"
             android:gravity="center"
             android:orientation="vertical"
             android:paddingBottom="2dp"
@@ -261,7 +262,7 @@
                 android:gravity="center"
                 android:singleLine="true"
                 android:text="@string/isha_label"
-                android:textColor="#D8EDFF"
+                android:textColor="@color/widget_classic_wide_label"
                 android:textSize="9sp" />
 
             <TextView
@@ -273,7 +274,7 @@
                 android:gravity="center"
                 android:singleLine="true"
                 android:text="@string/isha_text"
-                android:textColor="@android:color/white"
+                android:textColor="@color/widget_classic_time"
                 android:textSize="10sp"
                 android:textStyle="bold" />
         </LinearLayout>

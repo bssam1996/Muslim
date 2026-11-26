@@ -17,6 +17,9 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class)
@@ -31,6 +34,8 @@ class ModernPrayerWidgetTest {
                 else listOf("Fajr", "Sunrise", "Dhuhr", "Asr", "Maghrib", "Isha")
             val times = listOf("05:10", "06:35", "12:45", "16:20", "18:50", "20:15")
             prefs.edit().clear().apply {
+                putString("prayer_data_date", SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()))
+                putLong("next_prayer_epoch_ms", System.currentTimeMillis() + 3600000L)
                 keys.forEachIndexed { i, key ->
                     putString("${key}_label", labels[i]); putString("${key}_text", times[i])
                 }

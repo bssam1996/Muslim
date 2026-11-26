@@ -38,28 +38,15 @@ void main() {
           .url,
       'https://stream.radiojar.com/0tpy1h0kxtzuv',
     );
-    expect(
-      radioStations
-          .firstWhere(
-            (station) => station.url
-                .startsWith('https://n0e.radiojar.com/8s5u5tpdtwzuv'),
-          )
-          .englishName,
-      'Holy Quran Radio from Cairo',
-    );
-    expect(
-      radioStations
-          .firstWhere(
-            (station) => station.url
-                .startsWith('https://n01.radiojar.com/x0vs2vzy6k0uv'),
-          )
-          .englishName,
-      'Prophetic Sunnah Radio',
-    );
+    final cairo = radioStations.firstWhere((station) => station.id == 155);
+    expect(cairo.englishName, 'Holy Quran Radio from Cairo');
+    expect(cairo.url, 'https://stream.radiojar.com/8s5u5tpdtwzuv');
+    final shamaeil = radioStations.firstWhere((station) => station.id == 154);
+    expect(shamaeil.englishName, "Al-Shama'il Al-Muhammadiyyah");
+    expect(shamaeil.url, 'https://backup.qurango.net/radio/shmaeel');
   });
 
-  test('search matches English and Arabic names without choosing a language',
-      () {
+  test('search matches English and Arabic names without choosing a language', () {
     const RadioStation station = RadioStation(
       id: 1,
       englishName: 'Radio Ibrahim Al-Akdar',
@@ -70,11 +57,11 @@ void main() {
 
     expect(station.matches('ibrahim'), isTrue);
     expect(
-        station.matches('\u0627\u0628\u0631\u0627\u0647\u064a\u0645'), isTrue);
+      station.matches('\u0627\u0628\u0631\u0627\u0647\u064a\u0645'),
+      isTrue,
+    );
     expect(
-      station.matches(
-        '\u063a\u064a\u0631 \u0645\u0648\u062c\u0648\u062f',
-      ),
+      station.matches('\u063a\u064a\u0631 \u0645\u0648\u062c\u0648\u062f'),
       isFalse,
     );
   });

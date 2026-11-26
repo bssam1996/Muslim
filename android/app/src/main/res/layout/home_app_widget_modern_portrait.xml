@@ -1,6 +1,6 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/layout_root" android:layout_width="match_parent" android:layout_height="match_parent"
-    android:background="@drawable/widget_modern_background" android:padding="10dp"
+    android:background="@drawable/widget_modern_background_system" android:padding="10dp"
     android:orientation="vertical">
     <include layout="@layout/widget_modern_dates"
         android:layout_width="match_parent" android:layout_height="wrap_content" />
@@ -9,7 +9,7 @@
         android:gravity="center_vertical" android:paddingStart="8dp" android:paddingEnd="8dp">
         <ImageView android:id="@+id/modern_fajr_indicator" android:layout_width="3dp"
             android:layout_height="14dp" android:layout_marginEnd="7dp"
-            android:background="@drawable/widget_modern_indicator" android:visibility="invisible"
+            android:background="@drawable/widget_modern_indicator_system" android:visibility="invisible"
             android:importantForAccessibility="no" />
         <TextView android:id="@+id/fajr_label" style="@style/ModernWidgetLabel"
             android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
@@ -23,7 +23,7 @@
         android:gravity="center_vertical" android:paddingStart="8dp" android:paddingEnd="8dp">
         <ImageView android:id="@+id/modern_sunrise_indicator" android:layout_width="3dp"
             android:layout_height="14dp" android:layout_marginEnd="7dp"
-            android:background="@drawable/widget_modern_indicator" android:visibility="invisible"
+            android:background="@drawable/widget_modern_indicator_system" android:visibility="invisible"
             android:importantForAccessibility="no" />
         <TextView android:id="@+id/sunrise_label" style="@style/ModernWidgetLabel"
             android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
@@ -37,7 +37,7 @@
         android:gravity="center_vertical" android:paddingStart="8dp" android:paddingEnd="8dp">
         <ImageView android:id="@+id/modern_dhuhr_indicator" android:layout_width="3dp"
             android:layout_height="14dp" android:layout_marginEnd="7dp"
-            android:background="@drawable/widget_modern_indicator" android:visibility="invisible"
+            android:background="@drawable/widget_modern_indicator_system" android:visibility="invisible"
             android:importantForAccessibility="no" />
         <TextView android:id="@+id/dhuhr_label" style="@style/ModernWidgetLabel"
             android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
@@ -46,12 +46,12 @@
             android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
             android:text="@string/widget_preview_dhuhr" android:gravity="end" />
     </LinearLayout>
-    <LinearLayout android:id="@+id/asr_card" android:background="@drawable/widget_modern_highlight" android:layout_width="match_parent"
+    <LinearLayout android:id="@+id/asr_card" android:background="@drawable/widget_modern_highlight_system" android:layout_width="match_parent"
         android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal"
         android:gravity="center_vertical" android:paddingStart="8dp" android:paddingEnd="8dp">
         <ImageView android:id="@+id/modern_asr_indicator" android:layout_width="3dp"
             android:layout_height="14dp" android:layout_marginEnd="7dp"
-            android:background="@drawable/widget_modern_indicator" android:visibility="invisible"
+            android:background="@drawable/widget_modern_indicator_system" android:visibility="invisible"
             android:importantForAccessibility="no" />
         <TextView android:id="@+id/asr_label" style="@style/ModernWidgetLabel"
             android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
@@ -65,7 +65,7 @@
         android:gravity="center_vertical" android:paddingStart="8dp" android:paddingEnd="8dp">
         <ImageView android:id="@+id/modern_maghrib_indicator" android:layout_width="3dp"
             android:layout_height="14dp" android:layout_marginEnd="7dp"
-            android:background="@drawable/widget_modern_indicator" android:visibility="invisible"
+            android:background="@drawable/widget_modern_indicator_system" android:visibility="invisible"
             android:importantForAccessibility="no" />
         <TextView android:id="@+id/maghrib_label" style="@style/ModernWidgetLabel"
             android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
@@ -79,7 +79,7 @@
         android:gravity="center_vertical" android:paddingStart="8dp" android:paddingEnd="8dp">
         <ImageView android:id="@+id/modern_isha_indicator" android:layout_width="3dp"
             android:layout_height="14dp" android:layout_marginEnd="7dp"
-            android:background="@drawable/widget_modern_indicator" android:visibility="invisible"
+            android:background="@drawable/widget_modern_indicator_system" android:visibility="invisible"
             android:importantForAccessibility="no" />
         <TextView android:id="@+id/isha_label" style="@style/ModernWidgetLabel"
             android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"

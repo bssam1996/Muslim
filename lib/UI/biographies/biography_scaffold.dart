@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:muslim/shared/constants.dart';
+import 'package:muslim/shared/app_theme.dart';
 
 const biographyHeadingStyle = TextStyle(
-  color: textColor,
   fontSize: 22,
   fontWeight: FontWeight.w600,
 );
@@ -20,20 +19,7 @@ class BiographyScaffold extends StatelessWidget {
   final Widget? bottomNavigationBar;
 
   @override
-  Widget build(BuildContext context) => Theme(
-    data: ThemeData.dark(useMaterial3: true).copyWith(
-      scaffoldBackgroundColor: primaryColor,
-      cardColor: thirdColor,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: highlightedColor,
-        brightness: Brightness.dark,
-        surface: thirdColor,
-      ),
-      appBarTheme: const AppBarTheme(
-        backgroundColor: primaryColor,
-        foregroundColor: textColor,
-      ),
-    ),
+  Widget build(BuildContext context) => AppReaderStyle(
     child: Scaffold(
       appBar: appBar,
       body: body,

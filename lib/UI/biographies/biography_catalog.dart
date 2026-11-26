@@ -1,3 +1,5 @@
+import '../books/library_book.dart';
+
 class BiographyAuthor {
   const BiographyAuthor({required this.nameKey, required this.books});
 
@@ -5,23 +7,21 @@ class BiographyAuthor {
   final List<BiographyBook> books;
 }
 
-class BiographyBook {
+class BiographyBook extends LibraryBook {
   const BiographyBook({
-    required this.id,
-    required this.titleKey,
+    required super.id,
+    required super.titleKey,
     required this.fileName,
     required this.directory,
-    required this.approximateBytes,
-  });
+    required super.approximateBytes,
+  }) : super(language: 'ar', sourceKey: 'Biography_Author_Ibn_Kathir');
 
   // Keep IDs stable when replacing a PDF so downloads and reading positions
   // continue to belong to the same book.
-  final String id;
-  final String titleKey;
   final String directory;
   final String fileName;
-  final int approximateBytes;
 
+  @override
   Uri get downloadUri => Uri.https(
     'raw.githubusercontent.com',
     '/bssam1996/Muslim/main/Books/Prophet Muhammed Biography/$directory/$fileName',

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class LoadingIndicator extends StatelessWidget {
   const LoadingIndicator({super.key});
@@ -12,7 +13,11 @@ class LoadingIndicator extends StatelessWidget {
     if (kIsWeb) {
       return Container(
         alignment: Alignment.center,
-        child: CircularProgressIndicator(),
+        child: Semantics(
+          liveRegion: true,
+          label: 'Loading_Status'.tr(),
+          child: const CircularProgressIndicator(),
+        ),
       );
     }
     final widget = (Platform.isAndroid)
@@ -20,7 +25,11 @@ class LoadingIndicator extends StatelessWidget {
         : const CupertinoActivityIndicator();
     return Container(
       alignment: Alignment.center,
-      child: widget,
+      child: Semantics(
+        liveRegion: true,
+        label: 'Loading_Status'.tr(),
+        child: widget,
+      ),
     );
   }
 }

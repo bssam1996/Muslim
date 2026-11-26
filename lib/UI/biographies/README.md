@@ -1,6 +1,9 @@
 # Biography library
 
 The home navigation panel opens authors, then each author's full book and summary.
+The book model, download controls and PDF reader now live in `lib/UI/books/`
+and are shared with Prophets. The original imports remain compatibility exports;
+existing IDs, saved-data keys and storage locations are unchanged.
 `biography_catalog.dart` defines authors, translation keys, stable book IDs,
 repository directories, filenames and approximate download sizes. Add entries
 there and the matching keys in both `assets/translations` JSON files when adding

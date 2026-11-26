@@ -19,4 +19,5 @@
     <string name="maghrib_text">00:00 AM</string>
     <string name="isha_label">Isha</string>
     <string name="isha_text">00:00 AM</string>
+    <string name="prayer_times_unavailable">Prayer times unavailable for today</string>
 </resources>

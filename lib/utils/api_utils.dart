@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../shared/constants.dart' as constants;
 import 'helper.dart' as helper;
 import 'prayer_location_utils.dart';
+import 'prayer_schedule.dart';
 import 'shared_preference_methods.dart' as shared_preference_methods;
 
 Future<Map<String, dynamic>> getSavedLocation() async {
@@ -128,8 +129,17 @@ bool isValidPrayerTimesResponse(dynamic jsonData) {
 
   return constants.PRAYER_NAMES.every((String prayerName) {
     final dynamic value = timings[prayerName];
-    return value is String && value.isNotEmpty;
+    return prayerTimeOnDate(value, DateTime(2000)) != null;
   });
+}
+
+bool isPrayerTimesResponseForDate(dynamic jsonData, DateTime date) {
+  if (!isValidPrayerTimesResponse(jsonData)) return false;
+  final dynamic gregorian = jsonData['data']['date']['gregorian'];
+  // Older caches omit Gregorian metadata; their date is already in the key.
+  if (gregorian == null) return true;
+  if (gregorian is! Map || gregorian['date'] is! String) return false;
+  return gregorian['date'] == helper.dateFormatter(date);
 }
 
 String _apiFailureMessage(http.Response response, dynamic jsonData) {
@@ -157,14 +167,13 @@ Future<Map<String, dynamic>> getDataFromDay(
   Map<String, dynamic> savedLocation, {
   Future<SharedPreferences>? preferences,
   http.Client? client,
+  bool cacheOnly = false,
+  bool forceRefresh = false,
+  DateTime? baseDate,
 }) async {
   final Future<SharedPreferences> prefs =
       preferences ?? SharedPreferences.getInstance();
-  DateTime d = DateTime(
-    DateTime.now().year,
-    DateTime.now().month,
-    DateTime.now().day + dayNumber,
-  );
+  final DateTime d = prayerDate(baseDate ?? DateTime.now(), dayNumber);
   String formattedDate = helper.dateFormatter(d);
   // Construct API url from helpers
   String? sharedKey = await helper.constructAPIParameters(
@@ -188,15 +197,20 @@ Future<Map<String, dynamic>> getDataFromDay(
     }
     try {
       final dynamic cachedData = jsonDecode(cachedPayload);
-      if (isValidPrayerTimesResponse(cachedData)) {
-        return {"jsonData": cachedData, "error": ""};
+      if (isPrayerTimesResponseForDate(cachedData, d)) {
+        if (!forceRefresh || cacheOnly) {
+          return {"jsonData": cachedData, "error": "", 'fromCache': true};
+        }
+      } else {
+        await shared_preference_methods.invalidateSharedData(prefs, cacheKey);
       }
     } catch (_) {
-      // The malformed cache entry is removed below and replaced by fresh data.
+      await shared_preference_methods.invalidateSharedData(prefs, cacheKey);
     }
-    await shared_preference_methods.invalidateSharedData(prefs, cacheKey);
-    debugPrint('Removed invalid cached prayer-times response.');
+    // Preserve a valid cached response during an explicit network refresh.
   }
+
+  if (cacheOnly) return {"error": "cache_missing"};
 
   if (kDebugMode) {
     print("Fetching from API");
@@ -221,9 +235,10 @@ Future<Map<String, dynamic>> getDataFromDay(
       debugPrint('Prayer-times API returned malformed JSON: $e');
       return {"error": _apiFailureMessage(response, null)};
     }
-    if (response.statusCode == 200 && isValidPrayerTimesResponse(jsonData)) {
+    if (response.statusCode == 200 &&
+        isPrayerTimesResponseForDate(jsonData, d)) {
       await saveDateInSharedPreference(prefs, cacheKey, response.body);
-      return {"jsonData": jsonData, "error": ""};
+      return {"jsonData": jsonData, "error": "", 'fromCache': false};
     }
     return {"error": _apiFailureMessage(response, jsonData)};
   } catch (e, stackTrace) {
@@ -269,7 +284,10 @@ Future<int> clearPrayerTimesCache(Future<SharedPreferences> preferences) async {
   final SharedPreferences prefs = await preferences;
   final List<String> cacheKeys = prefs
       .getKeys()
-      .where(_isPrayerTimesCacheKey)
+      .where(
+        (key) =>
+            _isPrayerTimesCacheKey(key) || key.startsWith('calendar-cache-v1/'),
+      )
       .toList(growable: false);
 
   for (final String key in cacheKeys) {

@@ -1,5 +1,5 @@
+import 'package:muslim/shared/app_theme.dart';
 import 'package:flutter/material.dart';
-import 'package:muslim/shared/constants.dart';
 import 'package:easy_localization/easy_localization.dart';
 
 import 'customsearch/custom_search.dart';
@@ -11,26 +11,32 @@ class HadithHomePageClass extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Hadith_Home_Page_Title',
-          style: TextStyle(color: textColor),
+          style: TextStyle(color: AppPalette.of(context).text),
         ).tr(),
-        iconTheme: const IconThemeData(color: textColor),
-        backgroundColor: primaryColor,
+        iconTheme: IconThemeData(color: AppPalette.of(context).text),
+        backgroundColor: AppPalette.of(context).canvas,
       ),
-      backgroundColor: thirdColor,
+      backgroundColor: AppPalette.of(context).panel,
       body: SafeArea(
         child: SingleChildScrollView(
-        child: Padding(
+          child: Padding(
             padding: const EdgeInsets.all(20.0),
-            child:  Column(
+            child: Column(
               children: [
                 Card(
                   shadowColor: Colors.grey.shade300,
-                  color: fourthColor,
+                  color: AppPalette.of(context).panel,
                   child: ListTile(
-                    title: Text("Hadith_Home_Page_Custom_Search_Button", style: const TextStyle(fontSize:24, color: textColor),).tr(),
-                    onTap: (){
+                    title: Text(
+                      "Hadith_Home_Page_Custom_Search_Button",
+                      style: TextStyle(
+                        fontSize: 24,
+                        color: AppPalette.of(context).text,
+                      ),
+                    ).tr(),
+                    onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -40,12 +46,12 @@ class HadithHomePageClass extends StatelessWidget {
                     },
                   ),
                 ),
-                const Divider(color: textColor,)
+                Divider(color: AppPalette.of(context).text),
               ],
-            )
+            ),
+          ),
         ),
       ),
-    )
     );
   }
 }

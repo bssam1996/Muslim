@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
 
@@ -10,6 +11,8 @@ import 'package:workmanager/workmanager.dart';
 
 import 'api_utils.dart' as api_utils;
 import 'helper.dart' as helper;
+import 'prayer_schedule.dart';
+import 'prayer_data_repository.dart';
 
 const String dailyRefreshUniqueName = 'daily_prayer_refresh';
 const String dailyRefreshTaskName = 'Refresh_Notification_Prayer_Times';
@@ -42,20 +45,6 @@ class _WidgetPrayerSlot {
   final String textStorageKey;
 }
 
-class _ParsedClockTime {
-  const _ParsedClockTime(this.hour, this.minute);
-
-  final int hour;
-  final int minute;
-}
-
-class _PrayerOccurrence {
-  const _PrayerOccurrence(this.key, this.dateTime);
-
-  final String key;
-  final DateTime dateTime;
-}
-
 const List<_WidgetPrayerSlot> _widgetPrayerSlots = <_WidgetPrayerSlot>[
   _WidgetPrayerSlot("fajr", "Fajr", "fajr_text"),
   _WidgetPrayerSlot("sunrise", "Sunrise", "sunrise_text"),
@@ -65,167 +54,79 @@ const List<_WidgetPrayerSlot> _widgetPrayerSlots = <_WidgetPrayerSlot>[
   _WidgetPrayerSlot("isha", "Isha", "isha_text"),
 ];
 
-DateTime _nextMidnight(DateTime now) {
-  final DateTime todayMidnight = DateTime(now.year, now.month, now.day);
-  return todayMidnight.add(const Duration(days: 1));
+const widgetPrayerSnapshotKey = 'prayer_snapshot_v2';
+
+PrayerDay? widgetPrayerDisplayDay(List<PrayerDay> days, {DateTime? now}) {
+  final current = now ?? DateTime.now();
+  final today = days
+      .where((day) => day.date == prayerDate(current))
+      .firstOrNull;
+  if (today == null) return null;
+  final next = nextPrayerOccurrence(days, current);
+  return next == null
+      ? today
+      : days.where((day) => day.date == prayerDate(next.time)).firstOrNull;
 }
 
-String _normalizeNumerals(String input) {
-  const Map<String, String> numerals = <String, String>{
-    '\u0660': '0',
-    '\u0661': '1',
-    '\u0662': '2',
-    '\u0663': '3',
-    '\u0664': '4',
-    '\u0665': '5',
-    '\u0666': '6',
-    '\u0667': '7',
-    '\u0668': '8',
-    '\u0669': '9',
-    '\u06F0': '0',
-    '\u06F1': '1',
-    '\u06F2': '2',
-    '\u06F3': '3',
-    '\u06F4': '4',
-    '\u06F5': '5',
-    '\u06F6': '6',
-    '\u06F7': '7',
-    '\u06F8': '8',
-    '\u06F9': '9',
-  };
-  String normalized = input;
-  numerals.forEach((String source, String target) {
-    normalized = normalized.replaceAll(source, target);
-  });
-  return normalized;
-}
+DateTime _nextMidnight(DateTime now) => prayerDate(now, 1);
 
-_ParsedClockTime? _parseClockTime(String rawValue) {
-  if (rawValue.trim().isEmpty || rawValue.trim() == "-") {
-    return null;
-  }
-  final String normalized = _normalizeNumerals(rawValue).toLowerCase();
-  final RegExpMatch? match =
-      RegExp(r'(\d{1,2})\s*:\s*(\d{2})').firstMatch(normalized);
-  if (match == null) {
-    return null;
-  }
-
-  int? hour = int.tryParse(match.group(1)!);
-  int? minute = int.tryParse(match.group(2)!);
-  if (hour == null || minute == null) {
-    return null;
-  }
-
-  final bool hasAm = RegExp(r'(^|\W)am($|\W)').hasMatch(normalized) ||
-      normalized.contains('\u0635');
-  final bool hasPm = RegExp(r'(^|\W)pm($|\W)').hasMatch(normalized) ||
-      normalized.contains('\u0645');
-
-  if (hasAm || hasPm) {
-    hour = hour % 12;
-    if (hasPm) {
-      hour += 12;
-    }
-  } else if (hour == 24) {
-    hour = 0;
-  }
-
-  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) {
-    return null;
-  }
-  return _ParsedClockTime(hour, minute);
-}
-
-DateTime _dateTimeAtOffset(
-  DateTime today,
-  int dayOffset,
-  _ParsedClockTime parsed,
-) {
-  return DateTime(
-    today.year,
-    today.month,
-    today.day + dayOffset,
-    parsed.hour,
-    parsed.minute,
-  );
-}
-
-NextPrayerState? computeNextPrayerStateFromTimings(
-  Map<String, String> timingsByPrayerKey, {
-  DateTime? now,
-}) {
-  final DateTime currentNow = now ?? DateTime.now();
-  final DateTime nowAtMinute = DateTime(
-    currentNow.year,
-    currentNow.month,
-    currentNow.day,
-    currentNow.hour,
-    currentNow.minute,
-  );
-
-  final List<_PrayerOccurrence> occurrences = <_PrayerOccurrence>[];
-  for (int dayOffset = 0; dayOffset <= 1; dayOffset++) {
-    for (final _WidgetPrayerSlot slot in _widgetPrayerSlots) {
-      final _ParsedClockTime? parsed =
-          _parseClockTime(timingsByPrayerKey[slot.key] ?? "");
-      if (parsed == null) {
-        continue;
-      }
-      occurrences.add(
-        _PrayerOccurrence(
-          slot.key,
-          _dateTimeAtOffset(nowAtMinute, dayOffset, parsed),
-        ),
-      );
-    }
-  }
-
-  if (occurrences.isEmpty) {
-    return null;
-  }
-
-  final int selectedIndex =
-      occurrences.indexWhere((o) => !o.dateTime.isBefore(nowAtMinute));
-  if (selectedIndex < 0) {
-    return null;
-  }
-
-  final _PrayerOccurrence selectedOccurrence = occurrences[selectedIndex];
-  DateTime nextChangeTime;
-  if (selectedIndex + 1 < occurrences.length) {
-    nextChangeTime = occurrences[selectedIndex + 1].dateTime;
-  } else {
-    nextChangeTime = selectedOccurrence.dateTime.add(const Duration(days: 1));
-  }
-
+NextPrayerState? computeNextPrayerState(List<PrayerDay> days, {DateTime? now}) {
+  final current = now ?? DateTime.now();
+  final next = nextPrayerOccurrence(days, current);
+  if (next == null) return null;
+  final transition = next.time.add(const Duration(seconds: 1));
+  final midnight = _nextMidnight(current);
   return NextPrayerState(
-    prayerKey: selectedOccurrence.key,
-    nextPrayerTime: selectedOccurrence.dateTime,
-    nextChangeTime: nextChangeTime,
+    prayerKey: next.name.toLowerCase(),
+    nextPrayerTime: next.time,
+    nextChangeTime: midnight.isBefore(transition) ? midnight : transition,
   );
 }
 
-Map<String, String> _extractPrayerTimingsByKey(
-    Map<String, dynamic> jsonTimings) {
-  final Map<String, String> values = <String, String>{};
-  for (final _WidgetPrayerSlot slot in _widgetPrayerSlots) {
-    values[slot.key] = (jsonTimings[slot.displayName] ?? "").toString();
+// Compatibility entry point; tomorrow must be supplied rather than inferred.
+NextPrayerState? computeNextPrayerStateFromTimings(
+  Map<String, String> timings, {
+  DateTime? now,
+  Map<String, String>? tomorrowTimings,
+}) {
+  final current = now ?? DateTime.now();
+  try {
+    Map<String, dynamic> named(Map<String, String> values) => {
+      for (final name in prayerEvents) name: values[name.toLowerCase()],
+    };
+    return computeNextPrayerState([
+      PrayerDay(current, named(timings)),
+      if (tomorrowTimings != null)
+        PrayerDay(prayerDate(current, 1), named(tomorrowTimings)),
+    ], now: current);
+  } on FormatException {
+    return null;
   }
-  return values;
 }
 
-Future<Map<String, String>> _readPrayerTimingsFromWidgetData() async {
-  final List<Future<String?>> reads = <Future<String?>>[
-    for (final _WidgetPrayerSlot slot in _widgetPrayerSlots)
-      HomeWidget.getWidgetData<String>(slot.textStorageKey, defaultValue: ""),
-  ];
-  final List<String?> values = await Future.wait<String?>(reads);
-  final Map<String, String> timings = <String, String>{};
-  for (int i = 0; i < _widgetPrayerSlots.length; i++) {
-    timings[_widgetPrayerSlots[i].key] = values[i] ?? "";
+Future<List<PrayerDay>> _readWidgetPrayerDays() async {
+  try {
+    final raw = await HomeWidget.getWidgetData<String>(widgetPrayerSnapshotKey);
+    if (raw == null) return [];
+    final json = jsonDecode(raw) as Map;
+    final location = await api_utils.getSavedLocation();
+    if (location['error'] != '') return [];
+    final path = await helper.constructAPIParameters(
+      '',
+      helper.dateFormatter(DateTime.now()),
+      location,
+      SharedPreferences.getInstance(),
+    );
+    if (path == null ||
+        json['configuration'] != prayerConfigurationIdentity(path)) {
+      return [];
+    }
+    return (json['days'] as List)
+        .map((day) => PrayerDay.fromJson(Map<String, dynamic>.from(day as Map)))
+        .toList();
+  } catch (_) {
+    return [];
   }
-  return timings;
 }
 
 Future<void> _saveNextPrayerState(NextPrayerState? state) async {
@@ -260,7 +161,8 @@ Future<bool> scheduleNextExactMidnightAlarm({String source = "unknown"}) async {
     rescheduleOnReboot: true,
   );
   print(
-      "[$source] Exact midnight alarm scheduled: $scheduled at $nextMidnight");
+    "[$source] Exact midnight alarm scheduled: $scheduled at $nextMidnight",
+  );
   return scheduled;
 }
 
@@ -335,23 +237,8 @@ Future<bool> refreshWidgetHighlightState({String source = "unknown"}) async {
       return false;
     }
 
-    final Map<String, String> timingsByPrayerKey =
-        await _readPrayerTimingsFromWidgetData();
-    final NextPrayerState? nextPrayerState =
-        computeNextPrayerStateFromTimings(timingsByPrayerKey);
-    if (nextPrayerState == null) {
-      if (kDebugMode) {
-        print("[$source] No prayer timings available for widget highlight");
-      }
-      return false;
-    }
-
-    await _saveNextPrayerState(nextPrayerState);
-    await refreshWidgetOnly(source: "$source:HighlightRefresh");
-    await scheduleNextPrayerExactAlarm(
-      nextPrayerState.nextChangeTime,
-      source: source,
-    );
+    final days = await _readWidgetPrayerDays();
+    await _publishWidgetDays(days, source: source);
     return true;
   } catch (e) {
     if (kDebugMode) {
@@ -368,70 +255,85 @@ Future<void> bootstrapWidgetHighlightScheduling({
 }
 
 Future<void> updateHomePage(
-  Map<String, dynamic> jsonTimings,
-  Map<String, dynamic> jsonData,
-) async {
-  final Map<String, String> timingsByPrayerKey =
-      _extractPrayerTimingsByKey(jsonTimings);
-  final NextPrayerState? nextPrayerState =
-      computeNextPrayerStateFromTimings(timingsByPrayerKey);
+  List<PrayerDay> days,
+  String configuration, {
+  bool localize = true,
+}) async {
+  await HomeWidget.saveWidgetData<String>(
+    widgetPrayerSnapshotKey,
+    jsonEncode({
+      'configuration': configuration,
+      'days': days.map((d) => d.toJson()).toList(),
+    }),
+  );
+  await _publishWidgetDays(days, source: 'PrayerRefresh', localize: localize);
+}
 
-  await Future.wait<bool?>([
-    HomeWidget.saveWidgetData<String>(
-        "fajr_text", jsonTimings["Fajr"].toString()),
-    HomeWidget.saveWidgetData<String>("fajr_label", "Fajr".tr()),
-    HomeWidget.saveWidgetData<String>(
-      "sunrise_text",
-      jsonTimings["Sunrise"].toString(),
-    ),
-    HomeWidget.saveWidgetData<String>("sunrise_label", "Sunrise".tr()),
-    HomeWidget.saveWidgetData<String>(
-        "dhuhr_text", jsonTimings["Dhuhr"].toString()),
-    HomeWidget.saveWidgetData<String>("dhuhr_label", "Dhuhr".tr()),
-    HomeWidget.saveWidgetData<String>(
-        "asr_text", jsonTimings["Asr"].toString()),
-    HomeWidget.saveWidgetData<String>("asr_label", "Asr".tr()),
-    HomeWidget.saveWidgetData<String>(
-      "maghrib_text",
-      jsonTimings["Maghrib"].toString(),
-    ),
-    HomeWidget.saveWidgetData<String>("maghrib_label", "Maghrib".tr()),
-    HomeWidget.saveWidgetData<String>(
-        "isha_text", jsonTimings["Isha"].toString()),
-    HomeWidget.saveWidgetData<String>("isha_label", "Isha".tr()),
-    HomeWidget.saveWidgetData<String>(
-      "gregorianDate_text",
-      jsonData["gregorian"]?["date"] ?? "Month",
-    ),
-    HomeWidget.saveWidgetData<String>(
-      "hijriDate_text",
-      jsonData["hijri"]?["date"] ?? "Month",
-    ),
-    HomeWidget.saveWidgetData<String>(
-      nextPrayerWidgetDataKey,
-      nextPrayerState?.prayerKey ?? "",
-    ),
-    HomeWidget.saveWidgetData<int>(
-      nextPrayerEpochWidgetDataKey,
-      nextPrayerState?.nextChangeTime.millisecondsSinceEpoch ?? 0,
-    ),
-    HomeWidget.saveWidgetData<int>(
-      widgetLastCalcEpochWidgetDataKey,
-      DateTime.now().millisecondsSinceEpoch,
-    ),
-  ]);
-
-  await refreshWidgetOnly(source: "updateHomePage");
-  if (nextPrayerState != null) {
-    await scheduleNextPrayerExactAlarm(
-      nextPrayerState.nextChangeTime,
-      source: "updateHomePage",
+Future<void> _publishWidgetDays(
+  List<PrayerDay> days, {
+  required String source,
+  bool localize = false,
+}) async {
+  final now = DateTime.now();
+  final current = widgetPrayerDisplayDay(days, now: now);
+  final display = current == null
+      ? <String, dynamic>{}
+      : await api_utils.getTimings24System(current.timings);
+  final next = current == null ? null : computeNextPrayerState(days, now: now);
+  for (final slot in _widgetPrayerSlots) {
+    await HomeWidget.saveWidgetData<String>(
+      slot.textStorageKey,
+      display[slot.displayName]?.toString() ?? '-',
+    );
+    if (localize) {
+      await HomeWidget.saveWidgetData<String>(
+        '${slot.key}_label',
+        slot.displayName.tr(),
+      );
+    }
+  }
+  final unavailable = localize
+      ? 'Prayer_Times_Unavailable'.tr()
+      : await HomeWidget.getWidgetData<String>(
+              'prayer_unavailable_text',
+              defaultValue: 'Prayer times unavailable for today',
+            ) ??
+            'Prayer times unavailable for today';
+  if (localize) {
+    await HomeWidget.saveWidgetData<String>(
+      'prayer_unavailable_text',
+      unavailable,
     );
   }
+  await HomeWidget.saveWidgetData<String>(
+    'prayer_data_date',
+    current == null ? '' : prayerDateKey(current.date),
+  );
+  await HomeWidget.saveWidgetData<String>(
+    'widget_calculated_date',
+    prayerDateKey(now),
+  );
+  await HomeWidget.saveWidgetData<String>(
+    'gregorianDate_text',
+    current == null ? unavailable : helper.dateFormatter(current.date),
+  );
+  await HomeWidget.saveWidgetData<String>(
+    'hijriDate_text',
+    current?.dateData['hijri']?['date']?.toString() ?? '-',
+  );
+  await _saveNextPrayerState(next);
+  await refreshWidgetOnly(source: source);
+  // Even a missing-day snapshot needs another chance at the date boundary.
+  await scheduleNextPrayerExactAlarm(
+    next?.nextChangeTime ?? _nextMidnight(now),
+    source: source,
+  );
 }
 
 Future<bool> runDailyRefreshTask({String source = "unknown"}) async {
   final SharedPreferences prefs = await SharedPreferences.getInstance();
+  await prefs.reload();
+  final fetchedDate = prayerDate(DateTime.now());
   final bool shouldFetch = await helper.shouldFetchDailyData(prefs);
   if (!shouldFetch) {
     if (kDebugMode) {
@@ -442,50 +344,28 @@ Future<bool> runDailyRefreshTask({String source = "unknown"}) async {
 
   final bool refreshed = await refreshPrayerTimesAndReschedule();
   if (refreshed) {
-    await helper.updateLastFetchedDate(prefs);
+    await helper.updateLastFetchedDate(prefs, fetchedDate: fetchedDate);
   }
   return refreshed;
 }
 
 Future<bool> refreshPrayerTimesAndReschedule() async {
-  final Future<SharedPreferences> prefsFuture = SharedPreferences.getInstance();
   try {
-    final Map<String, dynamic> savedLocation =
-        await api_utils.getSavedLocation();
-    if (savedLocation["error"] != "") {
-      if (kDebugMode) {
-        print("Error getting saved location ${savedLocation["error"]}");
-      }
-      return false;
-    }
-
-    final Map<String, dynamic> dataFromDay =
-        await api_utils.getDataFromDay(0, savedLocation);
-    if (dataFromDay["error"] != "") {
-      if (kDebugMode) {
-        print("Error getting date from day ${dataFromDay["error"]}");
-      }
-      return false;
-    }
-
-    dynamic jsonData = dataFromDay["jsonData"];
-    jsonData['data']['timings'] =
-        await api_utils.getTimings24System(jsonData['data']['timings']);
-
+    final prefs = SharedPreferences.getInstance();
+    await helper.handleNotifications(prefs, []);
+    final window = await loadSavedPrayerWindow();
+    if (window.date != prayerDate(DateTime.now())) return false;
     if (!kIsWeb && Platform.isAndroid) {
-      await updateHomePage(
-          jsonData['data']['timings'], jsonData['data']['date']);
-      final List<Map<String, dynamic>> jsonTimings = [
-        jsonData['data']['timings']
-      ];
-      await helper.handleNotifications(prefsFuture, jsonTimings);
+      await updateHomePage(window.days, window.configuration, localize: false);
     }
-
-    return true;
-  } catch (e) {
-    if (kDebugMode) {
-      print("refreshPrayerTimesAndReschedule failed: $e");
-    }
+    final scheduled = await helper.handleNotifications(
+      prefs,
+      window.days,
+      configuration: window.configuration,
+    );
+    return window.complete && scheduled;
+  } catch (error, stack) {
+    debugPrint('Background prayer refresh failed: $error\n$stack');
     return false;
   }
 }
@@ -508,8 +388,9 @@ void workManagerCallbackDispatcher() {
       if (highlighted) {
         return dailyCheckResult || highlighted;
       }
-      final bool refreshed =
-          await refreshWidgetOnly(source: "WorkManager:$task");
+      final bool refreshed = await refreshWidgetOnly(
+        source: "WorkManager:$task",
+      );
       return dailyCheckResult || refreshed;
     }
     return runDailyRefreshTask(source: "WorkManager:$task");

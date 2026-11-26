@@ -81,8 +81,16 @@ void main() {
         client: client,
       );
 
-      expect(capturedRequest.url.host, 'muslim-api-mu.vercel.app');
-      expect(capturedRequest.url.path, '/v1/timings/30-08-2026');
+      const configuredBase = String.fromEnvironment(
+        'MUSLIM_API_URL',
+        defaultValue: 'https://api-muslim.bplusplus.uk/',
+      );
+      final Uri expectedUri = Uri.parse(
+        '${configuredBase}v1/timings/30-08-2026',
+      );
+      expect(capturedRequest.url.scheme, expectedUri.scheme);
+      expect(capturedRequest.url.authority, expectedUri.authority);
+      expect(capturedRequest.url.path, expectedUri.path);
     },
   );
 

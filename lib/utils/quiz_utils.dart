@@ -105,10 +105,7 @@ Future<QuizQuestion> getRandomQuizQuestion() async {
   final Uri uri = Uri.parse(
     '${constants.MUSLIM_API_URL}quizes/get_random_quiz',
   );
-  final http.Response response = await http.get(
-    uri,
-    headers: const <String, String>{'Access-Control-Allow-Origin': '*'},
-  );
+  final http.Response response = await http.get(uri);
 
   if (response.statusCode != 200) {
     throw QuizFetchException('Quiz API returned ${response.statusCode}');
